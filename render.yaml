@@ -3,8 +3,8 @@ services:
     name: kolnexus-backend
     env: node
     repo: https://github.com/Theepak90/kol-tracker-pro.git
-    buildCommand: npm run build:backend
-    startCommand: npm run start:backend
+    buildCommand: cd backend && npm install --legacy-peer-deps --production
+    startCommand: cd backend && node simple-server.js
     plan: free
     region: oregon
     envVars:

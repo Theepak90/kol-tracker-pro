@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "cd backend && npm install --legacy-peer-deps --production",
     "build:backend": "cd backend && npm install --legacy-peer-deps",
+    "start": "cd backend && node simple-server.js",
     "start:backend": "cd backend && node simple-server.js",
     "lint": "eslint .",
     "preview": "vite preview",
