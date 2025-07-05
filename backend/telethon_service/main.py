@@ -120,7 +120,7 @@ app.add_middleware(
         "http://localhost:5179",
         "http://localhost:3000",
         "http://localhost:4173",
-        "https://kolnexus2.netlify.app",
+        "https://kol-tracker-pro.vercel.app",
         "https://kolnexus-backend.onrender.com",
         "https://kolnexus-telethon.onrender.com"
     ],

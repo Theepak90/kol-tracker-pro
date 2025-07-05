@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { TelegramStatusIndicator } from './TelegramStatusIndicator';
 import kolxd from '../kolxd.png';
 import { 
   LayoutDashboard, 
@@ -313,6 +314,11 @@ export default function Layout({ children }: LayoutProps) {
               <p className="text-sm text-slate-500 font-medium">Analytics Platform</p>
             </div>
           </div>
+          
+          {/* Telegram Status Indicator */}
+          <div className="mt-4">
+            <TelegramStatusIndicator />
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="flex flex-1 flex-col">
@@ -417,6 +423,9 @@ export default function Layout({ children }: LayoutProps) {
           </button>
           <div className="flex-1 text-sm font-semibold leading-6 bg-gradient-to-r from-[#09a7ec] to-blue-600 bg-clip-text text-transparent">
             KOL Nexus
+          </div>
+          <div className="flex items-center">
+            <TelegramStatusIndicator className="text-xs" />
           </div>
         </div>
 

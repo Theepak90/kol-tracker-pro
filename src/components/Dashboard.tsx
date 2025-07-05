@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { BarChart3, Users, TrendingUp, Shield, Activity, AlertTriangle, ArrowUpRight, ArrowDownRight, MoreHorizontal, ChevronRight, Loader2, MessagesSquare, Bot, Search, Trophy, Gamepad2, ArrowRight, LogIn, UserPlus, Zap, Target, Globe, Star, Sparkles, Rocket, Eye, MessageCircle, Hash, DollarSign } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import { TelegramUsageGuide } from './TelegramUsageGuide';
 
 interface DashboardStats {
   totalKOLs: number;
@@ -443,6 +444,11 @@ export default function Dashboard() {
               <span className="text-gray-500 ml-2">vs last month</span>
             </div>
           </div>
+        </div>
+
+        {/* Telegram Integration Guide */}
+        <div className="mb-8">
+          <TelegramUsageGuide />
         </div>
 
         {/* Quick Actions */}
