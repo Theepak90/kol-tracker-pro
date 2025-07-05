@@ -15,10 +15,9 @@ const io = socketIo(server, {
       'http://localhost:5174', 
       'http://localhost:5175',
       'http://localhost:5176',
-      'https://kolnexus2.netlify.app',
+      'https://kol-tracker-pro.vercel.app',
       'https://kolnexus-backend.onrender.com',
-      'https://kolnexus-telethon.onrender.com',
-      'https://6868fe2172ebe43ae9607379--kolnexus2.netlify.app'
+      'https://kolnexus-telethon.onrender.com'
     ],
     methods: ["GET", "POST"],
     credentials: true
@@ -48,10 +47,9 @@ const corsOrigins = process.env.CORS_ORIGIN
       'http://localhost:5174', 
       'http://localhost:5175',
       'http://localhost:5176',
-      'https://kolnexus2.netlify.app',
+      'https://kol-tracker-pro.vercel.app',
       'https://kolnexus-backend.onrender.com',
-      'https://kolnexus-telethon.onrender.com',
-      'https://6868fe2172ebe43ae9607379--kolnexus2.netlify.app'
+      'https://kolnexus-telethon.onrender.com'
     ];
 
 app.use(cors({
@@ -1028,7 +1026,7 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 KOL Tracker API running on port ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/api`);
-    console.log(`🔗 Frontend: https://kolnexus2.netlify.app`);
+    console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
   });
 }
 
