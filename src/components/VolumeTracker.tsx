@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Clock, DollarSign, Activity, BarChart3, Eye, MoreHorizontal, Loader2, Users, Filter, Search, ExternalLink } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, Tooltip, Legend } from 'recharts';
-import { apiService, KOL } from '../services/apiService';
-import { toast } from 'react-hot-toast';
+import { TrendingUp, Clock, DollarSign, Activity, BarChart3, Users, Search, ExternalLink, MoreHorizontal } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, Tooltip } from 'recharts';
 
 interface VolumeData {
   time: string;
   volume: number;
   calls: number;
-  timestamp: number;
 }
 
 interface CallData {
@@ -18,251 +15,119 @@ interface CallData {
   callTime: string;
   volume1m: number;
   volume5m: number;
-  volume15m: number;
-  volume1h: number;
   priceChange: number;
-  volumeChange: number;
   status: 'success' | 'moderate' | 'failed' | 'pending';
   confidence: number;
-  marketCap?: number;
+}
+
+interface Stats {
+  totalVolume: number;
+  activeCalls: number;
+  avgResponseTime: number;
+  successRate: number;
 }
 
 export function VolumeTracker() {
   const [timeRange, setTimeRange] = useState('1h');
-  const [isLoading, setIsLoading] = useState(false);
-  const [kols, setKols] = useState<KOL[]>([]);
-  const [selectedKOL, setSelectedKOL] = useState<string>('all');
-  const [volumeData, setVolumeData] = useState<VolumeData[]>([]);
-  const [recentCalls, setRecentCalls] = useState<CallData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [stats, setStats] = useState({
-    totalVolume: 0,
-    activeCalls: 0,
-    avgResponseTime: 0,
-    successRate: 0
-  });
+  const [selectedKOL, setSelectedKOL] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Demo KOLs for fallback
-  const demoKOLs: KOL[] = [
-    {
-      _id: 'demo1',
-      telegramUsername: 'CryptoGuru_X',
-      displayName: 'Crypto Guru X',
-      description: 'Professional crypto analyst',
-      tags: ['crypto', 'trading'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      _id: 'demo2',
-      telegramUsername: 'TokenHunter',
-      displayName: 'Token Hunter',
-      description: 'Gem hunter and early stage investor',
-      tags: ['gems', 'altcoins'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      _id: 'demo3',
-      telegramUsername: 'DeFiAlpha',
-      displayName: 'DeFi Alpha',
-      description: 'DeFi protocol specialist',
-      tags: ['defi', 'yield'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      _id: 'demo4',
-      telegramUsername: 'ChainWatcher',
-      displayName: 'Chain Watcher',
-      description: 'On-chain analytics expert',
-      tags: ['onchain', 'analytics'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
+  // Demo data
+  const kols = ['all', 'CryptoGuru_X', 'TokenHunter', 'DeFiAlpha', 'ChainWatcher'];
 
-  useEffect(() => {
-    const initializeComponent = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Try to load KOLs from API
-        const apiKols = await apiService.getKOLs();
-        
-        // If API returns data, use it; otherwise use demo data
-        if (Array.isArray(apiKols) && apiKols.length > 0) {
-          setKols(apiKols);
-        } else {
-          console.log('Using demo KOLs for VolumeTracker');
-          // Ensure demo KOLs is always an array
-          setKols(Array.isArray(demoKOLs) ? demoKOLs : []);
-        }
-        
-        // Generate initial data
-        await generateVolumeData();
-        generateRecentCalls();
-        
-      } catch (error) {
-        console.error('Failed to initialize VolumeTracker:', error);
-        // Use demo data as fallback
-        setKols(Array.isArray(demoKOLs) ? demoKOLs : []);
-        await generateVolumeData();
-        generateRecentCalls();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    initializeComponent();
-  }, []);
+  const generateVolumeData = (): VolumeData[] => {
+    const data: VolumeData[] = [];
+    const intervals = timeRange === '1h' ? 12 : timeRange === '4h' ? 16 : timeRange === '12h' ? 24 : 48;
+    const intervalMinutes = timeRange === '1h' ? 5 : timeRange === '4h' ? 15 : timeRange === '12h' ? 30 : 30;
 
-  useEffect(() => {
-    try {
-      generateVolumeData();
-      generateRecentCalls();
-    } catch (error) {
-      console.error('Failed to update data:', error);
-    }
-  }, [timeRange, selectedKOL]);
-
-  const generateVolumeData = async () => {
-    try {
-      setIsLoading(true);
+    for (let i = intervals; i >= 0; i--) {
+      const time = new Date(Date.now() - (i * intervalMinutes * 60 * 1000));
+      const baseVolume = selectedKOL === 'all' ? 2000000 : 800000;
+      const randomMultiplier = 0.5 + Math.random() * 1.5;
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const now = new Date();
-      const data: VolumeData[] = [];
-      const intervals = timeRange === '1h' ? 12 : timeRange === '4h' ? 16 : timeRange === '12h' ? 24 : 48;
-      const intervalMinutes = timeRange === '1h' ? 5 : timeRange === '4h' ? 15 : timeRange === '12h' ? 30 : 30;
-
-      for (let i = intervals; i >= 0; i--) {
-        const time = new Date(now.getTime() - (i * intervalMinutes * 60 * 1000));
-        const baseVolume = selectedKOL === 'all' ? 2000000 : 800000;
-        const randomMultiplier = 0.5 + Math.random() * 1.5;
-        const kolMultiplier = selectedKOL !== 'all' ? 0.7 + Math.random() * 0.6 : 1;
-        
-        data.push({
-          time: time.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false 
-          }),
-          volume: Math.floor(baseVolume * randomMultiplier * kolMultiplier),
-          calls: Math.floor(2 + Math.random() * 8),
-          timestamp: time.getTime()
-        });
-      }
-
-      // Ensure we only set valid array data
-      if (Array.isArray(data)) {
-        setVolumeData(data);
-      } else {
-        console.error('Generated volume data is not an array:', data);
-        setVolumeData([]);
-      }
-      
-      // Calculate stats
-      const totalVol = data.reduce((sum, item) => sum + item.volume, 0);
-      const totalCalls = data.reduce((sum, item) => sum + item.calls, 0);
-      const successfulCalls = Math.floor(totalCalls * (0.6 + Math.random() * 0.3));
-      
-      setStats({
-        totalVolume: totalVol,
-        activeCalls: totalCalls,
-        avgResponseTime: 2.3 + Math.random() * 1.5,
-        successRate: totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0
+      data.push({
+        time: time.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        volume: Math.floor(baseVolume * randomMultiplier),
+        calls: Math.floor(2 + Math.random() * 8)
       });
-      
-    } catch (error) {
-      console.error('Error generating volume data:', error);
-    } finally {
-      setIsLoading(false);
     }
+    return data;
   };
 
-  const generateRecentCalls = () => {
-    try {
-      const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE', 'SATS', 'ORDI'];
-      const calls: CallData[] = [];
+  const generateRecentCalls = (): CallData[] => {
+    const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE'];
+    const kolNames = ['CryptoGuru_X', 'TokenHunter', 'DeFiAlpha', 'ChainWatcher'];
+    const calls: CallData[] = [];
+
+    for (let i = 0; i < 8; i++) {
+      const kol = kolNames[Math.floor(Math.random() * kolNames.length)];
+      const token = tokens[Math.floor(Math.random() * tokens.length)];
+      const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
       
-      // Ensure we have KOLs to work with
-      const safeKols = Array.isArray(kols) && kols.length > 0 ? kols : demoKOLs;
-      const filteredKOLs = selectedKOL === 'all' ? safeKols : safeKols.filter(k => k.telegramUsername === selectedKOL);
-      const kolsToUse = filteredKOLs.length > 0 ? filteredKOLs : demoKOLs;
-
-      for (let i = 0; i < 8; i++) {
-        const kol = kolsToUse[Math.floor(Math.random() * kolsToUse.length)];
-        const token = tokens[Math.floor(Math.random() * tokens.length)];
-        const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
-        
-        const baseVolume = 500000 + Math.random() * 2000000;
-        const priceChange = -20 + Math.random() * 250;
-        const volumeChange = 50 + Math.random() * 400;
-        
-        let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
-        if (i > 2) {
-          if (priceChange > 100) status = 'success';
-          else if (priceChange > 20) status = 'moderate';
-          else status = 'failed';
-        }
-
-        calls.push({
-          id: `call-${i}`,
-          kol: kol.displayName || kol.telegramUsername,
-          token,
-          callTime,
-          volume1m: Math.floor(baseVolume * 0.3),
-          volume5m: Math.floor(baseVolume * 0.7),
-          volume15m: Math.floor(baseVolume),
-          volume1h: Math.floor(baseVolume * 1.5),
-          priceChange,
-          volumeChange,
-          status,
-          confidence: 60 + Math.random() * 35,
-          marketCap: 1000000 + Math.random() * 50000000
-        });
+      const baseVolume = 500000 + Math.random() * 2000000;
+      const priceChange = -20 + Math.random() * 250;
+      
+      let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
+      if (i > 2) {
+        if (priceChange > 100) status = 'success';
+        else if (priceChange > 20) status = 'moderate';
+        else status = 'failed';
       }
 
-      // Ensure we only set valid array data
-      if (Array.isArray(calls)) {
-        setRecentCalls(calls);
-      } else {
-        console.error('Generated calls data is not an array:', calls);
-        setRecentCalls([]);
-      }
-    } catch (error) {
-      console.error('Error generating recent calls:', error);
-      setRecentCalls([]);
+      calls.push({
+        id: `call-${i}`,
+        kol,
+        token,
+        callTime,
+        volume1m: Math.floor(baseVolume * 0.3),
+        volume5m: Math.floor(baseVolume * 0.7),
+        priceChange,
+        status,
+        confidence: 60 + Math.random() * 35
+      });
     }
+    return calls;
+  };
+
+  const [volumeData, setVolumeData] = useState<VolumeData[]>(generateVolumeData());
+  const [recentCalls, setRecentCalls] = useState<CallData[]>(generateRecentCalls());
+
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setVolumeData(generateVolumeData());
+      setRecentCalls(generateRecentCalls());
+      setIsLoading(false);
+    }, 500);
+  }, [timeRange, selectedKOL]);
+
+  const stats: Stats = {
+    totalVolume: volumeData.reduce((sum, item) => sum + item.volume, 0),
+    activeCalls: volumeData.reduce((sum, item) => sum + item.calls, 0),
+    avgResponseTime: 2.3 + Math.random() * 1.5,
+    successRate: 65 + Math.random() * 25
   };
 
   const formatVolume = (volume: number): string => {
-    if (volume >= 1000000000) {
-      return `$${(volume / 1000000000).toFixed(1)}B`;
-    }
-    if (volume >= 1000000) {
-      return `$${(volume / 1000000).toFixed(1)}M`;
-    }
+    if (volume >= 1000000000) return `$${(volume / 1000000000).toFixed(1)}B`;
+    if (volume >= 1000000) return `$${(volume / 1000000).toFixed(1)}M`;
     return `$${(volume / 1000).toFixed(0)}K`;
   };
 
   const formatTime = (timeString: string): string => {
-    try {
-      const time = new Date(timeString);
-      const now = new Date();
-      const diffMs = now.getTime() - time.getTime();
-      const diffMins = Math.floor(diffMs / (1000 * 60));
-      
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-      return `${Math.floor(diffMins / 1440)}d ago`;
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return 'Unknown time';
-    }
+    const time = new Date(timeString);
+    const now = new Date();
+    const diffMs = now.getTime() - time.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return `${Math.floor(diffMins / 1440)}d ago`;
   };
 
   const getStatusColor = (status: string): string => {
@@ -281,350 +146,253 @@ export function VolumeTracker() {
     return 'text-red-500';
   };
 
-  // Safe filtering with proper error handling - absolutely ensure it returns an array
-  const filteredCalls = React.useMemo(() => {
-    try {
-      // Ensure recentCalls is always an array
-      const safeCalls = Array.isArray(recentCalls) ? recentCalls : [];
-      
-      if (!searchTerm || searchTerm.trim() === '') {
-        return safeCalls;
-      }
-      
-      const searchLower = searchTerm.toLowerCase().trim();
-      const filtered = safeCalls.filter(call => {
-        try {
-          if (!call || typeof call !== 'object') return false;
-          
-          const kolName = (call.kol || '').toString();
-          const tokenName = (call.token || '').toString();
-          return kolName.toLowerCase().includes(searchLower) ||
-                 tokenName.toLowerCase().includes(searchLower);
-        } catch (error) {
-          console.warn('Error filtering individual call:', call, error);
-          return false;
-        }
-      });
-      
-      // Double-check the result is an array
-      return Array.isArray(filtered) ? filtered : [];
-    } catch (error) {
-      console.error('Error in filteredCalls:', error);
-      return [];
-    }
-  }, [recentCalls, searchTerm]);
-
-  // Safe KOLs list - absolutely ensure it's always an array
-  const safeKols = React.useMemo(() => {
-    try {
-      if (Array.isArray(kols) && kols.length > 0) {
-        return kols;
-      }
-      // Always return demo data if kols is not a valid array
-      return Array.isArray(demoKOLs) ? demoKOLs : [];
-    } catch (error) {
-      console.error('Error in safeKols:', error);
-      return [];
-    }
-  }, [kols]);
+  const filteredCalls = recentCalls.filter(call => 
+    call.kol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.token.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Volume Tracker
-          </h1>
-          <p className="text-gray-600 text-sm mt-1">Monitor volume spikes and call effectiveness in real-time</p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex space-x-2">
-          {['1h', '4h', '12h', '24h'].map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                timeRange === range
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search calls by KOL or token..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Volume Tracker</h1>
+            <p className="text-gray-600 text-sm mt-1">Monitor volume spikes and call effectiveness in real-time</p>
           </div>
-        </div>
-        <div className="sm:w-48">
-          <select
-            value={selectedKOL}
-            onChange={(e) => setSelectedKOL(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All KOLs</option>
-            {safeKols.map((kol) => (
-              <option key={kol._id || kol.telegramUsername} value={kol.telegramUsername}>
-                {kol.displayName || kol.telegramUsername}
-              </option>
+          <div className="mt-4 sm:mt-0 flex space-x-2">
+            {['1h', '4h', '12h', '24h'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  timeRange === range
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {range}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
-      </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-50 rounded-xl">
-              <DollarSign size={24} className="text-blue-500" />
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search calls by KOL or token..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Volume</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : formatVolume(stats.totalVolume)}
-              </p>
-              <p className="text-gray-500 text-xs">Last {timeRange}</p>
+          </div>
+          <div className="sm:w-48">
+            <select
+              value={selectedKOL}
+              onChange={(e) => setSelectedKOL(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {kols.map((kol) => (
+                <option key={kol} value={kol}>
+                  {kol === 'all' ? 'All KOLs' : kol}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-blue-50 rounded-xl">
+                <DollarSign size={24} className="text-blue-500" />
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Total Volume</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {formatVolume(stats.totalVolume)}
+                </p>
+                <p className="text-gray-500 text-xs">Last {timeRange}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-emerald-50 rounded-xl">
+                <Activity size={24} className="text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Active Calls</p>
+                <p className="text-2xl font-semibold text-gray-900">{stats.activeCalls}</p>
+                <p className="text-gray-500 text-xs">Signals tracked</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-amber-50 rounded-xl">
+                <Clock size={24} className="text-amber-500" />
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Avg Response Time</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {stats.avgResponseTime.toFixed(1)}m
+                </p>
+                <p className="text-gray-500 text-xs">Market reaction</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-emerald-50 rounded-xl">
+                <TrendingUp size={24} className="text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Success Rate</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {stats.successRate.toFixed(0)}%
+                </p>
+                <p className="text-gray-500 text-xs">Profitable calls</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-emerald-50 rounded-xl">
-              <Activity size={24} className="text-emerald-500" />
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-gray-900">Volume Over Time</h3>
+              <button className="p-1 text-gray-400 hover:text-gray-600">
+                <MoreHorizontal size={16} />
+              </button>
             </div>
-            <div>
-              <p className="text-gray-600 text-sm">Active Calls</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.activeCalls}
-              </p>
-              <p className="text-gray-500 text-xs">Signals tracked</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-amber-50 rounded-xl">
-              <Clock size={24} className="text-amber-500" />
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">Avg Response Time</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats.avgResponseTime.toFixed(1)}m`}
-              </p>
-              <p className="text-gray-500 text-xs">Market reaction</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-emerald-50 rounded-xl">
-              <TrendingUp size={24} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">Success Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats.successRate.toFixed(0)}%`}
-              </p>
-              <p className="text-gray-500 text-xs">Profitable calls</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Volume Over Time</h3>
-            <button className="p-1 text-gray-400 hover:text-gray-600">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-          {isLoading ? (
-            <div className="h-64 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={Array.isArray(volumeData) ? volumeData : []}>
+                <LineChart data={volumeData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#666"
-                    fontSize={12}
-                  />
-                  <YAxis 
-                    stroke="#666"
-                    fontSize={12}
-                    tickFormatter={(value) => formatVolume(value)}
-                  />
-                  <Tooltip 
-                    formatter={(value: number) => [formatVolume(value), 'Volume']}
-                    labelStyle={{ color: '#666' }}
-                  />
+                  <XAxis dataKey="time" stroke="#666" fontSize={12} />
+                  <YAxis stroke="#666" fontSize={12} tickFormatter={formatVolume} />
+                  <Tooltip formatter={(value: number) => [formatVolume(value), 'Volume']} />
                   <Line 
                     type="monotone" 
                     dataKey="volume" 
                     stroke="#3b82f6" 
                     strokeWidth={2}
                     dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          ) : (
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
-              <div className="text-center">
-                <BarChart3 size={32} className="text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 font-medium">No Volume Data</p>
-                <p className="text-gray-500 text-sm mt-1">Start tracking to see volume trends</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Calls vs Volume</h3>
-            <button className="p-1 text-gray-400 hover:text-gray-600">
-              <MoreHorizontal size={16} />
-            </button>
           </div>
-          {isLoading ? (
-            <div className="h-64 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-gray-900">Calls vs Volume</h3>
+              <button className="p-1 text-gray-400 hover:text-gray-600">
+                <MoreHorizontal size={16} />
+              </button>
             </div>
-          ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={Array.isArray(volumeData) ? volumeData : []}>
+                <BarChart data={volumeData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#666"
-                    fontSize={12}
-                  />
-                  <YAxis 
-                    stroke="#666"
-                    fontSize={12}
-                  />
+                  <XAxis dataKey="time" stroke="#666" fontSize={12} />
+                  <YAxis stroke="#666" fontSize={12} />
                   <Tooltip />
                   <Bar dataKey="calls" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+
+        {/* Recent Calls */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Recent Calls</h3>
+              <p className="text-gray-500 text-sm">Latest trading signals and their performance</p>
+            </div>
+            <button className="p-1 text-gray-400 hover:text-gray-600">
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+          
+          {filteredCalls.length > 0 ? (
+            <div className="space-y-4">
+              {filteredCalls.map((call) => (
+                <div key={call.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <Users className="h-4 w-4 text-gray-400" />
+                        <span className="font-medium text-gray-900">{call.kol}</span>
+                      </div>
+                      <div className="text-gray-400">•</div>
+                      <span className="font-semibold text-blue-600">${call.token}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(call.status)}`}>
+                        {call.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {formatTime(call.callTime)}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500">1m Volume</p>
+                      <p className="font-semibold">{formatVolume(call.volume1m)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">5m Volume</p>
+                      <p className="font-semibold">{formatVolume(call.volume5m)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Price Change</p>
+                      <p className={`font-semibold ${getPriceChangeColor(call.priceChange)}`}>
+                        {call.priceChange > 0 ? '+' : ''}{call.priceChange.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Confidence</p>
+                      <p className="font-semibold">{call.confidence.toFixed(0)}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Signal strength: <span className="font-medium text-emerald-600">Strong</span>
+                    </div>
+                    <button className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center space-x-1">
+                      <span>View Details</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
-              <div className="text-center">
-                <Activity size={32} className="text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 font-medium">No Call Data</p>
-                <p className="text-gray-500 text-sm mt-1">Track calls to see volume correlation</p>
-              </div>
+            <div className="p-12 text-center">
+              <Clock size={32} className="text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">No Recent Calls</p>
+              <p className="text-gray-500 text-sm mt-1">
+                {searchTerm ? 'No calls match your search' : 'Trading signals will appear here'}
+              </p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Recent Calls */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">Recent Calls</h3>
-            <p className="text-gray-500 text-sm">Latest trading signals and their performance</p>
-          </div>
-          <button className="p-1 text-gray-400 hover:text-gray-600">
-            <MoreHorizontal size={16} />
-          </button>
-        </div>
-        
-        {(Array.isArray(filteredCalls) && filteredCalls.length > 0) ? (
-          <div className="space-y-4">
-            {filteredCalls.map((call) => (
-              <div key={call.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium text-gray-900">{call.kol}</span>
-                    </div>
-                    <div className="text-gray-400">•</div>
-                    <span className="font-semibold text-blue-600">${call.token}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(call.status)}`}>
-                      {call.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {formatTime(call.callTime)}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500">1m Volume</p>
-                    <p className="font-semibold">{formatVolume(call.volume1m)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">5m Volume</p>
-                    <p className="font-semibold">{formatVolume(call.volume5m)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Price Change</p>
-                    <p className={`font-semibold ${getPriceChangeColor(call.priceChange)}`}>
-                      {call.priceChange > 0 ? '+' : ''}{call.priceChange.toFixed(1)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Confidence</p>
-                    <p className="font-semibold">{call.confidence.toFixed(0)}%</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    Volume Change: <span className="font-medium text-emerald-600">+{call.volumeChange.toFixed(0)}%</span>
-                    {call.marketCap && (
-                      <span className="ml-3">
-                        Market Cap: <span className="font-medium">{formatVolume(call.marketCap)}</span>
-                      </span>
-                    )}
-                  </div>
-                  <button className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center space-x-1">
-                    <span>View Details</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-12 text-center">
-            <Clock size={32} className="text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">No Recent Calls</p>
-            <p className="text-gray-500 text-sm mt-1">
-              {searchTerm ? 'No calls match your search' : 'Trading signals will appear here'}
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
-}
+} 
