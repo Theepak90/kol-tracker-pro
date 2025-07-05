@@ -10,7 +10,16 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: corsOrigins,
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174', 
+      'http://localhost:5175',
+      'http://localhost:5176',
+      'https://kolnexus2.netlify.app',
+      'https://kolnexus-backend.onrender.com',
+      'https://kolnexus-telethon.onrender.com',
+      'https://6868fe2172ebe43ae9607379--kolnexus2.netlify.app'
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -31,7 +40,7 @@ let userIdCounter = 1;
 const gameRooms = new Map();
 const activeConnections = new Map(); // socketId -> userId
 
-// Middleware
+// CORS configuration
 const corsOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : [
