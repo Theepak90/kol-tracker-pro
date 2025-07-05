@@ -37,9 +37,9 @@ VITE_TELEGRAM_API_HASH=766760d2838474a5e6dd734d785aa7ad
 
 ### Main Backend Service
 **Service Type**: Web Service
-**Build Command**: `npm install --legacy-peer-deps && cd backend && npm install --legacy-peer-deps --production`
-**Start Command**: `npm run start`
-**Root Directory**: `/` (project root)
+**Build Command**: `npm install --legacy-peer-deps --production`
+**Start Command**: `node simple-server.js`
+**Root Directory**: `backend`
 
 #### Environment Variables:
 ```
