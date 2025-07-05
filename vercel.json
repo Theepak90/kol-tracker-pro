@@ -1,13 +1,21 @@
 {
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "npm run build:frontend",
+  "outputDirectory": "dist",
+  "installCommand": "npm install --legacy-peer-deps",
+  "devCommand": "npm run dev",
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "buildCommand": "npm run build:frontend",
-  "outputDirectory": "dist",
-  "framework": "vite",
+  "functions": {
+    "app.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "env": {
     "VITE_API_URL": "https://kolnexus-backend.onrender.com",
     "VITE_TELETHON_SERVICE_URL": "https://kolnexus-telethon.onrender.com"
