@@ -37,7 +37,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      'process.env': env
+      'process.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL),
+      'process.env.VITE_TELETHON_SERVICE_URL': JSON.stringify(env.VITE_TELETHON_SERVICE_URL),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || mode),
     }
   };
 });
