@@ -36,7 +36,7 @@ export default function KOLAnalyzer() {
   const [selectedKOL, setSelectedKOL] = useState<KOL | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'analysis'>('posts');
 
-  // Demo data
+  // Demo data - ensuring arrays are always defined
   const kols: KOL[] = [
     {
       id: '1',
@@ -110,26 +110,34 @@ export default function KOLAnalyzer() {
     riskLevel: 'Medium'
   };
 
-  const filteredKOLs = kols.filter(kol =>
-    kol.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    kol.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe filtering with array validation
+  const filteredKOLs = Array.isArray(kols) ? kols.filter(kol =>
+    kol && kol.name && kol.username &&
+    (kol.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     kol.username.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) : [];
 
   const formatNumber = (num: number): string => {
+    if (typeof num !== 'number' || isNaN(num)) return '0';
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
   };
 
   const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString();
+    if (!dateStr) return 'Unknown';
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours < 1) return 'Just now';
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return date.toLocaleDateString();
+    } catch (e) {
+      return 'Unknown';
+    }
   };
 
   return (
@@ -157,35 +165,42 @@ export default function KOLAnalyzer() {
               {/* KOL List */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-gray-900">KOLs ({filteredKOLs.length})</h3>
-                {filteredKOLs.map(kol => (
-                  <div
-                    key={kol.id}
-                    onClick={() => setSelectedKOL(kol)}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      selectedKOL?.id === kol.id
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{kol.name}</h4>
-                        <p className="text-sm text-gray-500">@{kol.username}</p>
+                {filteredKOLs.length > 0 ? (
+                  filteredKOLs.map(kol => (
+                    <div
+                      key={kol.id}
+                      onClick={() => setSelectedKOL(kol)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        selectedKOL?.id === kol.id
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{kol.name}</h4>
+                          <p className="text-sm text-gray-500">@{kol.username}</p>
+                        </div>
+                        <div className="text-right text-xs text-gray-500">
+                          <div>{kol.stats?.posts || 0} posts</div>
+                          <div>{formatNumber(kol.stats?.views || 0)} views</div>
+                        </div>
                       </div>
-                      <div className="text-right text-xs text-gray-500">
-                        <div>{kol.stats.posts} posts</div>
-                        <div>{formatNumber(kol.stats.views)} views</div>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.isArray(kol.tags) && kol.tags.map(tag => (
+                          <span key={tag} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {kol.tags.map(tag => (
-                        <span key={tag} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users size={32} className="mx-auto mb-2" />
+                    <p>No KOLs found</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -208,21 +223,21 @@ export default function KOLAnalyzer() {
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xl font-bold text-gray-900">{selectedKOL.stats.posts}</div>
+                          <div className="text-xl font-bold text-gray-900">{selectedKOL.stats?.posts || 0}</div>
                           <div className="text-sm text-gray-500">Posts</div>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xl font-bold text-gray-900">{formatNumber(selectedKOL.stats.views)}</div>
+                          <div className="text-xl font-bold text-gray-900">{formatNumber(selectedKOL.stats?.views || 0)}</div>
                           <div className="text-sm text-gray-500">Views</div>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xl font-bold text-gray-900">{formatNumber(selectedKOL.stats.forwards)}</div>
+                          <div className="text-xl font-bold text-gray-900">{formatNumber(selectedKOL.stats?.forwards || 0)}</div>
                           <div className="text-sm text-gray-500">Forwards</div>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">
-                      {selectedKOL.tags.map(tag => (
+                      {Array.isArray(selectedKOL.tags) && selectedKOL.tags.map(tag => (
                         <span key={tag} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                           {tag}
                         </span>
@@ -243,7 +258,7 @@ export default function KOLAnalyzer() {
                       >
                         <div className="flex items-center space-x-2">
                           <MessageCircle size={16} />
-                          <span>Posts ({posts.length})</span>
+                          <span>Posts ({Array.isArray(posts) ? posts.length : 0})</span>
                         </div>
                       </button>
                       <button
@@ -267,25 +282,32 @@ export default function KOLAnalyzer() {
                     {activeTab === 'posts' && (
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900">Recent Posts</h3>
-                        {posts.map(post => (
-                          <div key={post.id} className="bg-gray-50 rounded-lg p-4 border">
-                            <p className="text-gray-800 mb-3">{post.text}</p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <div className="flex items-center">
-                                <Clock size={14} className="mr-1" />
-                                {formatDate(post.date)}
-                              </div>
-                              <div className="flex items-center">
-                                <TrendingUp size={14} className="mr-1" />
-                                {formatNumber(post.views)} views
-                              </div>
-                              <div className="flex items-center">
-                                <MessageCircle size={14} className="mr-1" />
-                                {formatNumber(post.forwards)} forwards
+                        {Array.isArray(posts) && posts.length > 0 ? (
+                          posts.map(post => (
+                            <div key={post.id} className="bg-gray-50 rounded-lg p-4 border">
+                              <p className="text-gray-800 mb-3">{post.text}</p>
+                              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                <div className="flex items-center">
+                                  <Clock size={14} className="mr-1" />
+                                  {formatDate(post.date)}
+                                </div>
+                                <div className="flex items-center">
+                                  <TrendingUp size={14} className="mr-1" />
+                                  {formatNumber(post.views)} views
+                                </div>
+                                <div className="flex items-center">
+                                  <MessageCircle size={14} className="mr-1" />
+                                  {formatNumber(post.forwards)} forwards
+                                </div>
                               </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <MessageCircle size={32} className="mx-auto mb-2" />
+                            <p>No posts available</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
 
@@ -309,7 +331,7 @@ export default function KOLAnalyzer() {
                               <div>
                                 <p className="text-sm text-gray-500">Sentiment</p>
                                 <p className="text-lg font-semibold text-green-600">{analysis.sentiment}</p>
-                                <p className="text-xs text-gray-400">Score: {analysis.sentimentScore.toFixed(2)}</p>
+                                <p className="text-xs text-gray-400">Score: {analysis.sentimentScore?.toFixed(2) || '0.00'}</p>
                               </div>
                               <div className="p-2 bg-green-100 rounded-full">
                                 <TrendingUp className="h-5 w-5 text-green-600" />
@@ -321,7 +343,7 @@ export default function KOLAnalyzer() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm text-gray-500">Engagement Rate</p>
-                                <p className="text-lg font-semibold text-blue-600">{analysis.engagement}%</p>
+                                <p className="text-lg font-semibold text-blue-600">{analysis.engagement || 0}%</p>
                                 <p className="text-xs text-gray-400">Increasing</p>
                               </div>
                               <div className="p-2 bg-blue-100 rounded-full">
@@ -334,7 +356,7 @@ export default function KOLAnalyzer() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm text-gray-500">Influence Score</p>
-                                <p className="text-lg font-semibold text-purple-600">{analysis.influence}/100</p>
+                                <p className="text-lg font-semibold text-purple-600">{analysis.influence || 0}/100</p>
                                 <p className="text-xs text-gray-400">High</p>
                               </div>
                               <div className="p-2 bg-purple-100 rounded-full">
@@ -348,20 +370,26 @@ export default function KOLAnalyzer() {
                         <div className="bg-white p-6 rounded-lg border">
                           <h4 className="font-semibold text-gray-900 mb-4">Primary Topics</h4>
                           <div className="space-y-3">
-                            {analysis.topics.map((topic, index) => (
-                              <div key={index} className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700">{topic.name}</span>
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                                    <div 
-                                      className="bg-blue-600 h-2 rounded-full" 
-                                      style={{ width: `${topic.percentage}%` }}
-                                    />
+                            {Array.isArray(analysis.topics) && analysis.topics.length > 0 ? (
+                              analysis.topics.map((topic, index) => (
+                                <div key={index} className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-700">{topic.name}</span>
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                      <div 
+                                        className="bg-blue-600 h-2 rounded-full" 
+                                        style={{ width: `${topic.percentage || 0}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm text-gray-500 w-12 text-right">{topic.percentage || 0}%</span>
                                   </div>
-                                  <span className="text-sm text-gray-500 w-12 text-right">{topic.percentage}%</span>
                                 </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-4 text-gray-500">
+                                <p>No topic data available</p>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
 
@@ -370,7 +398,7 @@ export default function KOLAnalyzer() {
                           <h4 className="font-semibold text-gray-900 mb-4">Risk Assessment</h4>
                           <div className="flex items-center space-x-3 mb-3">
                             <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                              {analysis.riskLevel} Risk
+                              {analysis.riskLevel || 'Unknown'} Risk
                             </span>
                           </div>
                           <ul className="space-y-2">

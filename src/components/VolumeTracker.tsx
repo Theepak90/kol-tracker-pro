@@ -32,102 +32,126 @@ export function VolumeTracker() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKOL, setSelectedKOL] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [volumeData, setVolumeData] = useState<VolumeData[]>([]);
+  const [recentCalls, setRecentCalls] = useState<CallData[]>([]);
 
-  // Demo data
+  // Safe KOL list - always guaranteed to be an array
   const kols = ['all', 'CryptoGuru_X', 'TokenHunter', 'DeFiAlpha', 'ChainWatcher'];
 
   const generateVolumeData = (): VolumeData[] => {
-    const data: VolumeData[] = [];
-    const intervals = timeRange === '1h' ? 12 : timeRange === '4h' ? 16 : timeRange === '12h' ? 24 : 48;
-    const intervalMinutes = timeRange === '1h' ? 5 : timeRange === '4h' ? 15 : timeRange === '12h' ? 30 : 30;
+    try {
+      const data: VolumeData[] = [];
+      const intervals = timeRange === '1h' ? 12 : timeRange === '4h' ? 16 : timeRange === '12h' ? 24 : 48;
+      const intervalMinutes = timeRange === '1h' ? 5 : timeRange === '4h' ? 15 : timeRange === '12h' ? 30 : 30;
 
-    for (let i = intervals; i >= 0; i--) {
-      const time = new Date(Date.now() - (i * intervalMinutes * 60 * 1000));
-      const baseVolume = selectedKOL === 'all' ? 2000000 : 800000;
-      const randomMultiplier = 0.5 + Math.random() * 1.5;
-      
-      data.push({
-        time: time.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        volume: Math.floor(baseVolume * randomMultiplier),
-        calls: Math.floor(2 + Math.random() * 8)
-      });
+      for (let i = intervals; i >= 0; i--) {
+        const time = new Date(Date.now() - (i * intervalMinutes * 60 * 1000));
+        const baseVolume = selectedKOL === 'all' ? 2000000 : 800000;
+        const randomMultiplier = 0.5 + Math.random() * 1.5;
+        
+        data.push({
+          time: time.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          }),
+          volume: Math.floor(baseVolume * randomMultiplier),
+          calls: Math.floor(2 + Math.random() * 8)
+        });
+      }
+      return data;
+    } catch (error) {
+      console.error('Error generating volume data:', error);
+      return [];
     }
-    return data;
   };
 
   const generateRecentCalls = (): CallData[] => {
-    const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE'];
-    const kolNames = ['CryptoGuru_X', 'TokenHunter', 'DeFiAlpha', 'ChainWatcher'];
-    const calls: CallData[] = [];
+    try {
+      const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE'];
+      const kolNames = ['CryptoGuru_X', 'TokenHunter', 'DeFiAlpha', 'ChainWatcher'];
+      const calls: CallData[] = [];
 
-    for (let i = 0; i < 8; i++) {
-      const kol = kolNames[Math.floor(Math.random() * kolNames.length)];
-      const token = tokens[Math.floor(Math.random() * tokens.length)];
-      const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
-      
-      const baseVolume = 500000 + Math.random() * 2000000;
-      const priceChange = -20 + Math.random() * 250;
-      
-      let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
-      if (i > 2) {
-        if (priceChange > 100) status = 'success';
-        else if (priceChange > 20) status = 'moderate';
-        else status = 'failed';
+      for (let i = 0; i < 8; i++) {
+        const kol = kolNames[Math.floor(Math.random() * kolNames.length)];
+        const token = tokens[Math.floor(Math.random() * tokens.length)];
+        const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
+        
+        const baseVolume = 500000 + Math.random() * 2000000;
+        const priceChange = -20 + Math.random() * 250;
+        
+        let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
+        if (i > 2) {
+          if (priceChange > 100) status = 'success';
+          else if (priceChange > 20) status = 'moderate';
+          else status = 'failed';
+        }
+
+        calls.push({
+          id: `call-${i}`,
+          kol,
+          token,
+          callTime,
+          volume1m: Math.floor(baseVolume * 0.3),
+          volume5m: Math.floor(baseVolume * 0.7),
+          priceChange,
+          status,
+          confidence: 60 + Math.random() * 35
+        });
       }
-
-      calls.push({
-        id: `call-${i}`,
-        kol,
-        token,
-        callTime,
-        volume1m: Math.floor(baseVolume * 0.3),
-        volume5m: Math.floor(baseVolume * 0.7),
-        priceChange,
-        status,
-        confidence: 60 + Math.random() * 35
-      });
+      return calls;
+    } catch (error) {
+      console.error('Error generating recent calls:', error);
+      return [];
     }
-    return calls;
   };
-
-  const [volumeData, setVolumeData] = useState<VolumeData[]>(generateVolumeData());
-  const [recentCalls, setRecentCalls] = useState<CallData[]>(generateRecentCalls());
 
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setVolumeData(generateVolumeData());
       setRecentCalls(generateRecentCalls());
       setIsLoading(false);
     }, 500);
+
+    return () => clearTimeout(timer);
   }, [timeRange, selectedKOL]);
 
+  // Initialize data on component mount
+  useEffect(() => {
+    setVolumeData(generateVolumeData());
+    setRecentCalls(generateRecentCalls());
+  }, []);
+
+  // Safe stats calculation with array validation
   const stats: Stats = {
-    totalVolume: volumeData.reduce((sum, item) => sum + item.volume, 0),
-    activeCalls: volumeData.reduce((sum, item) => sum + item.calls, 0),
+    totalVolume: Array.isArray(volumeData) ? volumeData.reduce((sum, item) => sum + (item?.volume || 0), 0) : 0,
+    activeCalls: Array.isArray(volumeData) ? volumeData.reduce((sum, item) => sum + (item?.calls || 0), 0) : 0,
     avgResponseTime: 2.3 + Math.random() * 1.5,
     successRate: 65 + Math.random() * 25
   };
 
   const formatVolume = (volume: number): string => {
+    if (typeof volume !== 'number' || isNaN(volume)) return '$0';
     if (volume >= 1000000000) return `$${(volume / 1000000000).toFixed(1)}B`;
     if (volume >= 1000000) return `$${(volume / 1000000).toFixed(1)}M`;
     return `$${(volume / 1000).toFixed(0)}K`;
   };
 
   const formatTime = (timeString: string): string => {
-    const time = new Date(timeString);
-    const now = new Date();
-    const diffMs = now.getTime() - time.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return `${Math.floor(diffMins / 1440)}d ago`;
+    if (!timeString) return 'Unknown';
+    try {
+      const time = new Date(timeString);
+      const now = new Date();
+      const diffMs = now.getTime() - time.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+      return `${Math.floor(diffMins / 1440)}d ago`;
+    } catch (error) {
+      return 'Unknown';
+    }
   };
 
   const getStatusColor = (status: string): string => {
@@ -141,15 +165,21 @@ export function VolumeTracker() {
   };
 
   const getPriceChangeColor = (change: number): string => {
+    if (typeof change !== 'number' || isNaN(change)) return 'text-gray-500';
     if (change > 50) return 'text-emerald-600';
     if (change > 0) return 'text-emerald-500';
     return 'text-red-500';
   };
 
-  const filteredCalls = recentCalls.filter(call => 
-    call.kol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.token.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe filtering with array validation
+  const filteredCalls = Array.isArray(recentCalls) ? recentCalls.filter(call => 
+    call && call.kol && call.token &&
+    (call.kol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     call.token.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) : [];
+
+  // Safe chart data with validation
+  const safeVolumeData = Array.isArray(volumeData) ? volumeData : [];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -277,21 +307,30 @@ export function VolumeTracker() {
               </button>
             </div>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={volumeData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="time" stroke="#666" fontSize={12} />
-                  <YAxis stroke="#666" fontSize={12} tickFormatter={formatVolume} />
-                  <Tooltip formatter={(value: number) => [formatVolume(value), 'Volume']} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="volume" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {safeVolumeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={safeVolumeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="time" stroke="#666" fontSize={12} />
+                    <YAxis stroke="#666" fontSize={12} tickFormatter={formatVolume} />
+                    <Tooltip formatter={(value: number) => [formatVolume(value), 'Volume']} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="volume" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <BarChart3 size={32} className="mx-auto mb-2" />
+                    <p>No volume data available</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -303,15 +342,24 @@ export function VolumeTracker() {
               </button>
             </div>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={volumeData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="time" stroke="#666" fontSize={12} />
-                  <YAxis stroke="#666" fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="calls" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {safeVolumeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={safeVolumeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="time" stroke="#666" fontSize={12} />
+                    <YAxis stroke="#666" fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="calls" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <BarChart3 size={32} className="mx-auto mb-2" />
+                    <p>No calls data available</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
