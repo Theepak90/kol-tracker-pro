@@ -107,19 +107,18 @@ export const SUPPORTED_CHAINS = {
 
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
-const isProduction = import.meta.env.PROD;
 
 // Development URLs (local)
 const DEV_BACKEND_URL = 'http://localhost:3000';
 const DEV_TELETHON_URL = 'http://localhost:8000';
 
-// Production URLs - Using mock data for now until backend is deployed
-const PROD_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.jsonbin.io/v3/b'; // Temporary mock API
-const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_URL || 'https://api.jsonbin.io/v3/b'; // Temporary mock API
+// Production URLs - Will be updated once backend is deployed
+const PROD_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://kol-tracker-backend.onrender.com';
+const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_URL || 'https://kol-tracker-telethon.onrender.com';
 
 // Export the appropriate URLs based on environment
-export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : DEV_BACKEND_URL; // Use local for now
-export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : DEV_TELETHON_URL; // Use local for now
+export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;
+export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : PROD_TELETHON_URL;
 
 // WebSocket URL for games (if needed)
 export const WS_URL = isDevelopment 

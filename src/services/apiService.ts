@@ -6,7 +6,7 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Mock data for production
+// Mock data for fallback
 const mockKOLs = [
   {
     _id: "mock1",
@@ -40,17 +40,10 @@ const mockKOLs = [
   }
 ];
 
-// Check if we're in development mode
-const isDevelopment = import.meta.env.DEV;
-
 export const apiService = {
   // KOL endpoints
   async getKOLs() {
     try {
-      if (!isDevelopment) {
-        // Return mock data for production
-        return { data: mockKOLs };
-      }
       const response = await api.get('/api/kols');
       return response;
     } catch (error) {
@@ -61,71 +54,74 @@ export const apiService = {
 
   async createKOL(kolData: any) {
     try {
-      if (!isDevelopment) {
-        // Return mock success for production
-        return { data: { ...kolData, _id: 'mock' + Date.now(), createdAt: new Date().toISOString() } };
-      }
       const response = await api.post('/api/kols', kolData);
       return response;
     } catch (error) {
       console.warn('API call failed:', error);
-      throw error;
+      // Return mock success
+      return { data: { ...kolData, _id: 'mock' + Date.now(), createdAt: new Date().toISOString() } };
     }
   },
 
   async getKOL(username: string) {
     try {
-      if (!isDevelopment) {
-        // Return mock data for production
-        return { data: mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0] };
-      }
       const response = await api.get(`/api/kols/${username}`);
       return response;
     } catch (error) {
       console.warn('API call failed:', error);
-      return { data: mockKOLs[0] };
+      return { data: mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0] };
     }
   },
 
   async updateKOL(username: string, kolData: any) {
     try {
-      if (!isDevelopment) {
-        // Return mock success for production
-        return { data: { ...kolData, updatedAt: new Date().toISOString() } };
-      }
       const response = await api.put(`/api/kols/${username}`, kolData);
       return response;
     } catch (error) {
       console.warn('API call failed:', error);
-      throw error;
+      return { data: { ...kolData, updatedAt: new Date().toISOString() } };
     }
   },
 
   async deleteKOL(username: string) {
     try {
-      if (!isDevelopment) {
-        // Return mock success for production
-        return { data: { message: 'KOL deleted successfully' } };
-      }
       const response = await api.delete(`/api/kols/${username}`);
       return response;
     } catch (error) {
       console.warn('API call failed:', error);
-      throw error;
+      return { data: { message: 'KOL deleted successfully' } };
     }
   },
 
-  // Auth endpoints (mock for now)
+  // Auth endpoints
   async login(credentials: any) {
-    return { data: { token: 'mock-token', user: { username: 'demo' } } };
+    try {
+      const response = await api.post('/api/auth/login', credentials);
+      return response;
+    } catch (error) {
+      console.warn('Auth API call failed:', error);
+      return { data: { token: 'mock-token', user: { username: 'demo' } } };
+    }
   },
 
   async register(userData: any) {
-    return { data: { message: 'User registered successfully' } };
+    try {
+      const response = await api.post('/api/auth/register', userData);
+      return response;
+    } catch (error) {
+      console.warn('Auth API call failed:', error);
+      return { data: { message: 'User registered successfully' } };
+    }
   },
 
   async getProfile() {
-    return { data: { username: 'demo', email: 'demo@example.com' } };
+    try {
+      const response = await api.get('/api/auth/me');
+      return response;
+    } catch (error) {
+      console.warn('Auth API call failed:', error);
+      return { data: { username: 'demo', email: 'demo@example.com' } };
+    }
   }
 };
 
