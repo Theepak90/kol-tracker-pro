@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: kol-tracker-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: npm run start:simple
+    env:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api 

@@ -1,0 +1,66 @@
+headersOrigin = "config"
+redirectsOrigin = "config"
+plugins = []
+
+[dev]
+command = "npm run dev"
+port = 5173.0
+publish = "dist"
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/theepak/Downloads/project 2/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build"
+
+[build.environment]
+NODE_VERSION = "18"
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[redirects]]
+from = "/api/*"
+to = "https://your-backend-url.railway.app/api/:splat"
+status = 200.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
