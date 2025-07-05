@@ -42,19 +42,74 @@ export function VolumeTracker() {
     successRate: 0
   });
 
+  // Demo KOLs for fallback
+  const demoKOLs: KOL[] = [
+    {
+      _id: 'demo1',
+      telegramUsername: 'CryptoGuru_X',
+      displayName: 'Crypto Guru X',
+      description: 'Professional crypto analyst',
+      tags: ['crypto', 'trading'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      _id: 'demo2',
+      telegramUsername: 'TokenHunter',
+      displayName: 'Token Hunter',
+      description: 'Gem hunter and early stage investor',
+      tags: ['gems', 'altcoins'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      _id: 'demo3',
+      telegramUsername: 'DeFiAlpha',
+      displayName: 'DeFi Alpha',
+      description: 'DeFi protocol specialist',
+      tags: ['defi', 'yield'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      _id: 'demo4',
+      telegramUsername: 'ChainWatcher',
+      displayName: 'Chain Watcher',
+      description: 'On-chain analytics expert',
+      tags: ['onchain', 'analytics'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ];
+
   useEffect(() => {
     const initializeComponent = async () => {
       try {
-        await loadKOLs();
-        generateVolumeData();
+        setIsLoading(true);
+        
+        // Try to load KOLs from API
+        const apiKols = await apiService.getKOLs();
+        
+        // If API returns data, use it; otherwise use demo data
+        if (Array.isArray(apiKols) && apiKols.length > 0) {
+          setKols(apiKols);
+        } else {
+          console.log('Using demo KOLs for VolumeTracker');
+          setKols(demoKOLs);
+        }
+        
+        // Generate initial data
+        await generateVolumeData();
         generateRecentCalls();
+        
       } catch (error) {
         console.error('Failed to initialize VolumeTracker:', error);
-        toast.error('Failed to load data, using demo data');
-        // Set fallback data
-        setKols([]);
-        generateVolumeData();
+        // Use demo data as fallback
+        setKols(demoKOLs);
+        await generateVolumeData();
         generateRecentCalls();
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -67,27 +122,16 @@ export function VolumeTracker() {
       generateRecentCalls();
     } catch (error) {
       console.error('Failed to update data:', error);
-      toast.error('Failed to update data');
     }
   }, [timeRange, selectedKOL]);
 
-  const loadKOLs = async () => {
+  const generateVolumeData = async () => {
     try {
-      const response = await apiService.getKOLs();
-      // Ensure we always have an array
-      setKols(Array.isArray(response) ? response : []);
-    } catch (error) {
-      console.error('Failed to load KOLs:', error);
-      // Set empty array as fallback
-      setKols([]);
-    }
-  };
-
-  const generateVolumeData = () => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
+      setIsLoading(true);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const now = new Date();
       const data: VolumeData[] = [];
       const intervals = timeRange === '1h' ? 12 : timeRange === '4h' ? 16 : timeRange === '12h' ? 24 : 48;
@@ -122,63 +166,67 @@ export function VolumeTracker() {
         totalVolume: totalVol,
         activeCalls: totalCalls,
         avgResponseTime: 2.3 + Math.random() * 1.5,
-        successRate: (successfulCalls / totalCalls) * 100
+        successRate: totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0
       });
       
+    } catch (error) {
+      console.error('Error generating volume data:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const generateRecentCalls = () => {
-    const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE', 'SATS', 'ORDI'];
-    const calls: CallData[] = [];
-    
-    const safeKols = Array.isArray(kols) ? kols : [];
-    const filteredKOLs = selectedKOL === 'all' ? safeKols : safeKols.filter(k => k.telegramUsername === selectedKOL);
-    const kolsToUse = filteredKOLs.length > 0 ? filteredKOLs : [
-      { _id: 'demo1', telegramUsername: 'CryptoGuru_X', displayName: 'Crypto Guru X', description: '', tags: [], createdAt: '', updatedAt: '' },
-      { _id: 'demo2', telegramUsername: 'TokenHunter', displayName: 'Token Hunter', description: '', tags: [], createdAt: '', updatedAt: '' },
-      { _id: 'demo3', telegramUsername: 'DeFiAlpha', displayName: 'DeFi Alpha', description: '', tags: [], createdAt: '', updatedAt: '' },
-      { _id: 'demo4', telegramUsername: 'ChainWatcher', displayName: 'Chain Watcher', description: '', tags: [], createdAt: '', updatedAt: '' }
-    ];
+    try {
+      const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE', 'SATS', 'ORDI'];
+      const calls: CallData[] = [];
+      
+      // Ensure we have KOLs to work with
+      const safeKols = Array.isArray(kols) && kols.length > 0 ? kols : demoKOLs;
+      const filteredKOLs = selectedKOL === 'all' ? safeKols : safeKols.filter(k => k.telegramUsername === selectedKOL);
+      const kolsToUse = filteredKOLs.length > 0 ? filteredKOLs : demoKOLs;
 
-    for (let i = 0; i < 8; i++) {
-      const kol = kolsToUse[Math.floor(Math.random() * kolsToUse.length)];
-      const token = tokens[Math.floor(Math.random() * tokens.length)];
-      const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
-      
-      const baseVolume = 500000 + Math.random() * 2000000;
-      const priceChange = -20 + Math.random() * 250;
-      const volumeChange = 50 + Math.random() * 400;
-      
-      let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
-      if (i > 2) {
-        if (priceChange > 100) status = 'success';
-        else if (priceChange > 20) status = 'moderate';
-        else status = 'failed';
+      for (let i = 0; i < 8; i++) {
+        const kol = kolsToUse[Math.floor(Math.random() * kolsToUse.length)];
+        const token = tokens[Math.floor(Math.random() * tokens.length)];
+        const callTime = new Date(Date.now() - (i * 15 * 60 * 1000)).toISOString();
+        
+        const baseVolume = 500000 + Math.random() * 2000000;
+        const priceChange = -20 + Math.random() * 250;
+        const volumeChange = 50 + Math.random() * 400;
+        
+        let status: 'success' | 'moderate' | 'failed' | 'pending' = 'pending';
+        if (i > 2) {
+          if (priceChange > 100) status = 'success';
+          else if (priceChange > 20) status = 'moderate';
+          else status = 'failed';
+        }
+
+        calls.push({
+          id: `call-${i}`,
+          kol: kol.displayName || kol.telegramUsername,
+          token,
+          callTime,
+          volume1m: Math.floor(baseVolume * 0.3),
+          volume5m: Math.floor(baseVolume * 0.7),
+          volume15m: Math.floor(baseVolume),
+          volume1h: Math.floor(baseVolume * 1.5),
+          priceChange,
+          volumeChange,
+          status,
+          confidence: 60 + Math.random() * 35,
+          marketCap: 1000000 + Math.random() * 50000000
+        });
       }
 
-      calls.push({
-        id: `call-${i}`,
-        kol: kol.displayName || kol.telegramUsername,
-        token,
-        callTime,
-        volume1m: Math.floor(baseVolume * 0.3),
-        volume5m: Math.floor(baseVolume * 0.7),
-        volume15m: Math.floor(baseVolume),
-        volume1h: Math.floor(baseVolume * 1.5),
-        priceChange,
-        volumeChange,
-        status,
-        confidence: 60 + Math.random() * 35,
-        marketCap: 1000000 + Math.random() * 50000000
-      });
+      setRecentCalls(calls);
+    } catch (error) {
+      console.error('Error generating recent calls:', error);
+      setRecentCalls([]);
     }
-
-    setRecentCalls(calls);
   };
 
-  const formatVolume = (volume: number) => {
+  const formatVolume = (volume: number): string => {
     if (volume >= 1000000000) {
       return `$${(volume / 1000000000).toFixed(1)}B`;
     }
@@ -188,18 +236,23 @@ export function VolumeTracker() {
     return `$${(volume / 1000).toFixed(0)}K`;
   };
 
-  const formatTime = (timeString: string) => {
-    const time = new Date(timeString);
-    const now = new Date();
-    const diffMs = now.getTime() - time.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return `${Math.floor(diffMins / 1440)}d ago`;
+  const formatTime = (timeString: string): string => {
+    try {
+      const time = new Date(timeString);
+      const now = new Date();
+      const diffMs = now.getTime() - time.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+      return `${Math.floor(diffMins / 1440)}d ago`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Unknown time';
+    }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case 'success': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case 'moderate': return 'bg-amber-100 text-amber-700 border-amber-200';
@@ -209,16 +262,41 @@ export function VolumeTracker() {
     }
   };
 
-  const getPriceChangeColor = (change: number) => {
+  const getPriceChangeColor = (change: number): string => {
     if (change > 50) return 'text-emerald-600';
     if (change > 0) return 'text-emerald-500';
     return 'text-red-500';
   };
 
-  const filteredCalls = (Array.isArray(recentCalls) ? recentCalls : []).filter(call => 
-    call.kol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.token.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe filtering with proper error handling
+  const filteredCalls = React.useMemo(() => {
+    try {
+      const safeCalls = Array.isArray(recentCalls) ? recentCalls : [];
+      
+      if (!searchTerm) return safeCalls;
+      
+      const searchLower = searchTerm.toLowerCase();
+      return safeCalls.filter(call => {
+        try {
+          const kolName = call.kol || '';
+          const tokenName = call.token || '';
+          return kolName.toLowerCase().includes(searchLower) ||
+                 tokenName.toLowerCase().includes(searchLower);
+        } catch (error) {
+          console.warn('Error filtering call:', call, error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Error in filteredCalls:', error);
+      return [];
+    }
+  }, [recentCalls, searchTerm]);
+
+  // Safe KOLs list
+  const safeKols = React.useMemo(() => {
+    return Array.isArray(kols) && kols.length > 0 ? kols : demoKOLs;
+  }, [kols]);
 
   return (
     <div className="space-y-6">
@@ -268,8 +346,8 @@ export function VolumeTracker() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All KOLs</option>
-            {kols.map((kol) => (
-              <option key={kol.telegramUsername} value={kol.telegramUsername}>
+            {safeKols.map((kol) => (
+              <option key={kol._id || kol.telegramUsername} value={kol.telegramUsername}>
                 {kol.displayName || kol.telegramUsername}
               </option>
             ))}

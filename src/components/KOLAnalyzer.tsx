@@ -25,20 +25,20 @@ interface UserPost {
   channel_title: string;
 }
 
-// SIMPLIFIED VERSION WITH NO FILTER ERRORS
 export default function KOLAnalyzer() {
   // Basic state
   const [searchTerm, setSearchTerm] = useState('');
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('posts');
   
-  // Demo data for KOLs
-  const demoKols = [
+  // Demo data for KOLs - ensuring it's always an array
+  const demoKols: KOL[] = [
     {
       _id: "demo1",
       displayName: "Crypto Whale",
       telegramUsername: "cryptowhale",
-      description: "Leading crypto analyst and trader",
+      description: "Leading crypto analyst and trader with 5+ years experience",
       tags: ["crypto", "trading", "analysis"],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -53,7 +53,7 @@ export default function KOLAnalyzer() {
       _id: "demo2",
       displayName: "DeFi Expert",
       telegramUsername: "defiexpert",
-      description: "Decentralized finance specialist",
+      description: "Decentralized finance specialist and yield farming expert",
       tags: ["defi", "yield", "protocols"],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -68,7 +68,7 @@ export default function KOLAnalyzer() {
       _id: "demo3",
       displayName: "NFT Collector",
       telegramUsername: "nftcollector",
-      description: "NFT market analysis and trends",
+      description: "NFT market analysis and trend prediction specialist",
       tags: ["nft", "collectibles", "art"],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -82,10 +82,10 @@ export default function KOLAnalyzer() {
   ];
 
   // Demo posts
-  const demoPosts = [
+  const demoPosts: UserPost[] = [
     {
       message_id: 1001,
-      text: "🚀 New gem alert! $PEPE showing strong momentum with 50M volume in the last hour. This could be the next 100x!",
+      text: "🚀 New gem alert! $PEPE showing strong momentum with 50M volume in the last hour. This could be the next 100x! Entry: $0.00001, Target: $0.0001",
       date: new Date().toISOString(),
       views: 45000,
       forwards: 1200,
@@ -94,7 +94,7 @@ export default function KOLAnalyzer() {
     },
     {
       message_id: 1002,
-      text: "📈 Market update: BTC holding strong above $65K. Expecting a breakout to $70K soon. Alt season incoming?",
+      text: "📈 Market update: BTC holding strong above $65K. Expecting a breakout to $70K soon. Alt season incoming? Time to accumulate quality altcoins.",
       date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
       views: 38000,
       forwards: 950,
@@ -103,7 +103,7 @@ export default function KOLAnalyzer() {
     },
     {
       message_id: 1003,
-      text: "⚡ Quick scalp opportunity: $WOJAK forming a perfect cup and handle pattern. Entry: $0.0001, Target: $0.0003",
+      text: "⚡ Quick scalp opportunity: $WOJAK forming a perfect cup and handle pattern. Entry: $0.0001, Target: $0.0003, Stop: $0.00008",
       date: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
       views: 32000,
       forwards: 780,
@@ -113,11 +113,12 @@ export default function KOLAnalyzer() {
   ];
 
   // Demo AI analysis
-  const demoAnalysis = {
-    overview: "This KOL demonstrates strong engagement metrics with consistent growth in followers and post reach. Their content focuses primarily on cryptocurrency market analysis with an emphasis on altcoin opportunities.",
+  const demoAnalysis: AIAnalysis = {
+    overview: "This KOL demonstrates strong engagement metrics with consistent growth in followers and post reach. Their content focuses primarily on cryptocurrency market analysis with an emphasis on altcoin opportunities and technical analysis.",
     sentiment: {
-      label: "Bullish",
-      score: 0.75
+      label: "Positive",
+      score: 0.75,
+      confidence: 0.88
     },
     engagement: {
       rate: 8.2,
@@ -127,56 +128,98 @@ export default function KOLAnalyzer() {
     },
     influence: {
       score: 82,
-      level: "High"
+      level: "High",
+      marketImpact: "Significant"
     },
     topics: [
-      { name: "Altcoins", frequency: 45 },
-      { name: "Bitcoin", frequency: 30 },
-      { name: "Trading", frequency: 15 },
-      { name: "DeFi", frequency: 10 }
+      { name: "Altcoins", frequency: 45, sentiment: 0.7 },
+      { name: "Bitcoin", frequency: 30, sentiment: 0.8 },
+      { name: "Trading", frequency: 15, sentiment: 0.6 },
+      { name: "DeFi", frequency: 10, sentiment: 0.5 }
     ],
     riskAssessment: {
       level: "Medium",
-      factors: ["Occasional promotional content", "Some unverified claims"]
-    }
+      score: 60,
+      factors: ["Occasional promotional content", "Some unverified claims"],
+      recommendations: ["Verify all trading calls independently", "Monitor for potential conflicts of interest"]
+    },
+    insights: ["Strong technical analysis skills", "High community engagement", "Consistent posting schedule"]
   };
 
-  // States with demo data
-  const [kols, setKols] = useState(demoKols);
-  const [selectedKOL, setSelectedKOL] = useState(demoKols[0]);
-  const [userPosts, setUserPosts] = useState(demoPosts);
-  const [aiAnalysis, setAiAnalysis] = useState(demoAnalysis);
-  const [activeTab, setActiveTab] = useState('posts');
+  // States with properly initialized data
+  const [kols, setKols] = useState<KOL[]>(demoKols);
+  const [selectedKOL, setSelectedKOL] = useState<KOL | null>(demoKols[0]);
+  const [userPosts, setUserPosts] = useState<UserPost[]>(demoPosts);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis>(demoAnalysis);
 
-  // Loading simulation
+  // Initialize component
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    const initializeComponent = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Try to load KOLs from API
+        const apiKols = await apiService.getKOLs();
+        
+        // If API returns data, use it; otherwise use demo data
+        if (Array.isArray(apiKols) && apiKols.length > 0) {
+          setKols(apiKols);
+          setSelectedKOL(apiKols[0]);
+        } else {
+          // Use demo data - already set in state initialization
+          console.log('Using demo data for KOLs');
+        }
+        
+        // Simulate loading time
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Failed to initialize KOLAnalyzer:', error);
+        setIsLoading(false);
+        // Demo data is already set, no need to do anything
+      }
+    };
+    
+    initializeComponent();
   }, []);
 
-  // Safe filtered KOLs
+  // Safe filtered KOLs with proper error handling
   const filteredKOLs = React.useMemo(() => {
     try {
-      if (!searchTerm) return kols;
+      // Ensure kols is always an array
+      const safeKols = Array.isArray(kols) ? kols : demoKols;
+      
+      if (!searchTerm) return safeKols;
       
       const searchLower = searchTerm.toLowerCase();
-      return kols.filter(kol => {
+      return safeKols.filter(kol => {
         try {
-          return kol.displayName.toLowerCase().includes(searchLower) || 
-                 kol.telegramUsername.toLowerCase().includes(searchLower);
-        } catch {
+          const displayName = kol.displayName || '';
+          const username = kol.telegramUsername || '';
+          return displayName.toLowerCase().includes(searchLower) || 
+                 username.toLowerCase().includes(searchLower);
+        } catch (error) {
+          console.warn('Error filtering KOL:', kol, error);
           return false;
         }
       });
-    } catch {
-      return kols;
+    } catch (error) {
+      console.error('Error in filteredKOLs:', error);
+      return demoKols;
     }
   }, [kols, searchTerm]);
 
   // Handle KOL selection
   const handleSelectKOL = (kol: KOL) => {
-    setSelectedKOL(kol);
+    try {
+      setSelectedKOL(kol);
+      // In a real app, this would fetch posts for the selected KOL
+      // For now, we'll just use the demo posts
+    } catch (error) {
+      console.error('Error selecting KOL:', error);
+    }
   };
 
   // If there's an error, show a simple UI
@@ -191,7 +234,7 @@ export default function KOLAnalyzer() {
           <p className="text-gray-600 mb-4">We're having trouble loading the KOL Analyzer</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
           >
             Reload Page
           </button>
@@ -234,43 +277,48 @@ export default function KOLAnalyzer() {
               
               <div className="space-y-4">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="animate-spin" size={24} />
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-blue-500" size={24} />
                   </div>
                 ) : filteredKOLs.length === 0 ? (
-                  <div className="text-center text-gray-500 py-4">
-                    No KOLs found
+                  <div className="text-center text-gray-500 py-8">
+                    <Users size={32} className="mx-auto mb-3 text-gray-400" />
+                    <p>No KOLs found</p>
+                    <p className="text-sm mt-1">Try adjusting your search</p>
                   </div>
                 ) : (
                   filteredKOLs.map(kol => (
                     <div
-                      key={kol.telegramUsername}
-                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                      key={kol._id || kol.telegramUsername}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
                         selectedKOL?.telegramUsername === kol.telegramUsername
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'hover:bg-gray-50'
+                          ? 'bg-blue-50 border-blue-200 shadow-sm'
+                          : 'hover:bg-gray-50 border-gray-200'
                       }`}
                       onClick={() => handleSelectKOL(kol)}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold">{kol.displayName}</h3>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{kol.displayName}</h3>
                           <p className="text-sm text-gray-500">@{kol.telegramUsername}</p>
                         </div>
                         {kol.stats && (
                           <div className="text-right text-sm text-gray-500">
-                            <p>{kol.stats.totalPosts} posts</p>
-                            <p>{kol.stats.totalViews} views</p>
+                            <p className="font-medium">{kol.stats.totalPosts} posts</p>
+                            <p>{(kol.stats.totalViews / 1000).toFixed(0)}K views</p>
                           </div>
                         )}
                       </div>
                       {kol.tags && kol.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {kol.tags.map(tag => (
-                            <span key={tag} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {kol.tags.slice(0, 3).map(tag => (
+                            <span key={tag} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
                               {tag}
                             </span>
                           ))}
+                          {kol.tags.length > 3 && (
+                            <span className="text-xs text-gray-500">+{kol.tags.length - 3} more</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -288,53 +336,46 @@ export default function KOLAnalyzer() {
                   {/* KOL Header */}
                   <div className="p-6 border-b border-gray-200">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold">{selectedKOL.displayName}</h2>
-                        <div className="flex items-center space-x-2 text-gray-500 mt-1">
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-gray-900">{selectedKOL.displayName}</h2>
+                        <div className="flex items-center space-x-2 text-gray-500 mt-2">
                           <Link size={16} />
                           <a
                             href={`https://t.me/${selectedKOL.telegramUsername}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:text-blue-500"
+                            className="hover:text-blue-500 transition-colors"
                           >
                             @{selectedKOL.telegramUsername}
                           </a>
                         </div>
+                        {selectedKOL.description && (
+                          <p className="mt-3 text-gray-600 leading-relaxed">{selectedKOL.description}</p>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4 ml-4">
                         {selectedKOL.stats && (
                           <div className="grid grid-cols-3 gap-4 text-center">
-                            <div>
-                              <p className="text-2xl font-bold">{selectedKOL.stats.totalPosts}</p>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-xl font-bold text-gray-900">{selectedKOL.stats.totalPosts}</p>
                               <p className="text-sm text-gray-500">Posts</p>
                             </div>
-                            <div>
-                              <p className="text-2xl font-bold">{selectedKOL.stats.totalViews}</p>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-xl font-bold text-gray-900">{(selectedKOL.stats.totalViews / 1000).toFixed(0)}K</p>
                               <p className="text-sm text-gray-500">Views</p>
                             </div>
-                            <div>
-                              <p className="text-2xl font-bold">{selectedKOL.stats.totalForwards}</p>
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-xl font-bold text-gray-900">{(selectedKOL.stats.totalForwards / 1000).toFixed(1)}K</p>
                               <p className="text-sm text-gray-500">Forwards</p>
                             </div>
                           </div>
                         )}
-                        <button
-                          onClick={() => setActiveTab('analysis')}
-                          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                        >
-                          <Brain size={20} />
-                          <span>AI Analysis</span>
-                        </button>
                       </div>
                     </div>
-                    {selectedKOL.description && (
-                      <p className="mt-4 text-gray-600">{selectedKOL.description}</p>
-                    )}
                     {selectedKOL.tags && selectedKOL.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
                         {selectedKOL.tags.map(tag => (
-                          <span key={tag} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                          <span key={tag} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                             {tag}
                           </span>
                         ))}
@@ -347,7 +388,7 @@ export default function KOLAnalyzer() {
                     <nav className="-mb-px flex space-x-8">
                       <button
                         onClick={() => setActiveTab('posts')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                           activeTab === 'posts'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -360,16 +401,16 @@ export default function KOLAnalyzer() {
                       </button>
                       <button
                         onClick={() => setActiveTab('analysis')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                           activeTab === 'analysis'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-center space-x-2">
-                          <BarChart3 size={16} />
+                          <Brain size={16} />
                           <span>AI Analysis</span>
-                          {aiAnalysis && <CheckCircle size={16} className="text-green-500" />}
+                          <CheckCircle size={16} className="text-green-500" />
                         </div>
                       </button>
                     </nav>
@@ -379,36 +420,41 @@ export default function KOLAnalyzer() {
                   <div className="flex-1 overflow-y-auto p-6">
                     {activeTab === 'posts' && (
                       <div className="space-y-4">
-                        <h3 className="text-xl font-semibold">Recent Posts</h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-semibold text-gray-900">Recent Posts</h3>
+                          <span className="text-sm text-gray-500">Last 24 hours</span>
+                        </div>
                         {isLoading ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="animate-spin" size={32} />
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="animate-spin text-blue-500" size={32} />
                           </div>
                         ) : userPosts.length === 0 ? (
-                          <div className="text-center text-gray-500 py-8">
-                            No posts found
+                          <div className="text-center text-gray-500 py-12">
+                            <MessageCircle size={48} className="mx-auto mb-4 text-gray-400" />
+                            <p className="text-lg font-medium">No posts found</p>
+                            <p className="text-sm mt-1">This KOL hasn't posted recently</p>
                           </div>
                         ) : (
                           userPosts.map(post => (
-                            <div key={post.message_id} className="bg-gray-50 rounded-lg p-4">
+                            <div key={post.message_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <p className="text-gray-800 whitespace-pre-wrap">{post.text || 'No content'}</p>
-                                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                  <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{post.text || 'No content'}</p>
+                                  <div className="flex items-center space-x-6 mt-4 text-sm text-gray-500">
                                     <span className="flex items-center">
-                                      <Clock size={16} className="mr-1" />
-                                      {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown date'}
+                                      <Clock size={14} className="mr-1" />
+                                      {post.date ? new Date(post.date).toLocaleTimeString() : 'Unknown time'}
                                     </span>
                                     {post.views !== null && post.views !== undefined && (
                                       <span className="flex items-center">
-                                        <TrendingUp size={16} className="mr-1" />
-                                        {post.views} views
+                                        <TrendingUp size={14} className="mr-1" />
+                                        {post.views.toLocaleString()} views
                                       </span>
                                     )}
                                     {post.forwards !== null && post.forwards !== undefined && (
                                       <span className="flex items-center">
-                                        <MessageCircle size={16} className="mr-1" />
-                                        {post.forwards} forwards
+                                        <MessageCircle size={14} className="mr-1" />
+                                        {post.forwards.toLocaleString()} forwards
                                       </span>
                                     )}
                                   </div>
@@ -501,24 +547,46 @@ export default function KOLAnalyzer() {
                         {/* Topics */}
                         <div className="bg-white p-6 rounded-lg border border-gray-200">
                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Primary Topics</h3>
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {aiAnalysis.topics.map((topic, index) => (
                               <div key={index} className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">{topic.name}</span>
-                                <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-700">{topic.name}</span>
+                                <div className="flex items-center space-x-3">
                                   <div className="w-24 bg-gray-200 rounded-full h-2">
                                     <div 
-                                      className="bg-blue-600 h-2 rounded-full" 
+                                      className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
                                       style={{ width: `${topic.frequency}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-xs text-gray-500 w-10">
-                                    {topic.frequency.toFixed(0)}%
+                                  <span className="text-sm text-gray-500 w-12 text-right">
+                                    {topic.frequency}%
                                   </span>
                                 </div>
                               </div>
                             ))}
                           </div>
+                        </div>
+
+                        {/* Risk Assessment */}
+                        <div className="bg-white p-6 rounded-lg border border-gray-200">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Assessment</h3>
+                          <div className="flex items-center space-x-3 mb-3">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              aiAnalysis.riskAssessment.level === 'Low' ? 'bg-green-100 text-green-700' :
+                              aiAnalysis.riskAssessment.level === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {aiAnalysis.riskAssessment.level} Risk
+                            </span>
+                          </div>
+                          <ul className="space-y-2">
+                            {aiAnalysis.riskAssessment.factors.map((factor, index) => (
+                              <li key={index} className="flex items-start space-x-2">
+                                <AlertTriangle size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-gray-600">{factor}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
                     )}
@@ -527,7 +595,7 @@ export default function KOLAnalyzer() {
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
-                    <Users size={48} className="mx-auto mb-4" />
+                    <Users size={48} className="mx-auto mb-4 text-gray-400" />
                     <h3 className="text-lg font-semibold mb-2">Select a KOL to analyze</h3>
                     <p>Choose a KOL from the list to view their posts and analysis</p>
                   </div>
