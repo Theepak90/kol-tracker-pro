@@ -15,6 +15,7 @@
     "start:prod": "node dist/main",
     "start:simple": "node simple-server.js",
     "start:nest": "nest start",
+    "postbuild": "echo 'Build completed successfully'",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",

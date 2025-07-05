@@ -2,10 +2,10 @@ services:
   - type: web
     name: kolnexus-backend
     env: node
-    repo: https://github.com/theepak/kol-tracker-pro.git
+    repo: https://github.com/Theepak90/kol-tracker-pro.git
     rootDir: backend
-    buildCommand: npm install --legacy-peer-deps
-    startCommand: npm start
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm run start:prod
     plan: free
     region: oregon
     envVars:
@@ -18,16 +18,17 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://kolnexus.vercel.app
+        value: https://kolnexus.vercel.app,https://kolnexus2.netlify.app
     domains:
       - kolnexus-backend.onrender.com
 
   - type: web
     name: kolnexus-telethon
-    env: docker
-    repo: https://github.com/theepak/kol-tracker-pro.git
+    env: python
+    repo: https://github.com/Theepak90/kol-tracker-pro.git
     rootDir: backend/telethon_service
-    dockerfilePath: Dockerfile
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
     plan: free
     region: oregon
     envVars:
@@ -42,7 +43,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGIN
-        value: https://kolnexus.vercel.app
+        value: https://kolnexus.vercel.app,https://kolnexus2.netlify.app
       - key: PORT
         value: 8000
     domains:
