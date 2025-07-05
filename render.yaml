@@ -4,8 +4,8 @@ services:
     env: node
     repo: https://github.com/Theepak90/kol-tracker-pro.git
     rootDir: backend
-    buildCommand: npm install --legacy-peer-deps && npm run build
-    startCommand: npm run start:prod
+    buildCommand: npm install --legacy-peer-deps
+    startCommand: node simple-server.js
     plan: free
     region: oregon
     envVars:

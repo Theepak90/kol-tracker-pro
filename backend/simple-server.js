@@ -10,22 +10,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:5176",
-      "https://kolnexus2.netlify.app",
-      "https://kolnexus-backend.onrender.com",
-      "https://kolnexus-telethon.onrender.com"
-    ],
+    origin: corsOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
 });
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'your-super-secret-jwt-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kol_tracker';
@@ -40,17 +32,21 @@ const gameRooms = new Map();
 const activeConnections = new Map(); // socketId -> userId
 
 // Middleware
+const corsOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174', 
+      'http://localhost:5175',
+      'http://localhost:5176',
+      'https://kolnexus2.netlify.app',
+      'https://kolnexus-backend.onrender.com',
+      'https://kolnexus-telethon.onrender.com',
+      'https://6868fe2172ebe43ae9607379--kolnexus2.netlify.app'
+    ];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174', 
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'https://kolnexus2.netlify.app',
-    'https://kolnexus-backend.onrender.com',
-    'https://kolnexus-telethon.onrender.com',
-    'https://6868fe2172ebe43ae9607379--kolnexus2.netlify.app'
-  ],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());
