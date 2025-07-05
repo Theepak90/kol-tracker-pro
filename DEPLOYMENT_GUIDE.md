@@ -37,9 +37,9 @@ VITE_TELEGRAM_API_HASH=766760d2838474a5e6dd734d785aa7ad
 
 ### Main Backend Service
 **Service Type**: Web Service
-**Build Command**: `npm install --legacy-peer-deps --production`
-**Start Command**: `node simple-server.js`
-**Root Directory**: `backend`
+**Build Command**: `npm install --legacy-peer-deps && cd backend && npm install --legacy-peer-deps --production`
+**Start Command**: `npm run start`
+**Root Directory**: `/` (project root)
 
 #### Environment Variables:
 ```
@@ -88,9 +88,9 @@ PORT=8000
 ## 🔧 Current Service Status
 
 ### ✅ Working Locally:
-- **Frontend**: http://localhost:5173
-- **Backend**: http://localhost:3000
-- **Telethon**: http://localhost:8000
+- **Frontend**: http://localhost:5173 (`npm run dev`)
+- **Backend**: http://localhost:3000 (`npm run start`)
+- **Telethon**: http://localhost:8000 (`cd backend/telethon_service && python main.py`)
 - **Telegram API**: Connected and authenticated
 
 ### 🚀 Production URLs:
@@ -144,6 +144,24 @@ PORT=8000
 
 ---
 
+## 🛠️ Available NPM Scripts
+
+### Frontend:
+- `npm run dev` - Start development server (http://localhost:5173)
+- `npm run build:frontend` - Build for production
+- `npm run preview` - Preview production build
+
+### Backend:
+- `npm run start` - Start backend server (http://localhost:3000)
+- `npm run build:backend` - Install backend dependencies
+- `npm run start:backend` - Alternative start command
+
+### Development:
+- `npm run start-all` - Start all services (frontend + backend)
+- `npm run stop-all` - Stop all services
+
+---
+
 ## 🧪 Testing Deployment
 
 ### Frontend Testing:
@@ -162,6 +180,9 @@ curl https://your-backend-url.onrender.com/api
 
 # Test Telethon service
 curl https://your-telethon-service-url.onrender.com/health
+
+# Local backend testing
+npm run start  # Starts backend on localhost:3000
 ```
 
 ### Integration Testing:
