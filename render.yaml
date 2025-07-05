@@ -3,9 +3,8 @@ services:
     name: kolnexus-backend
     env: node
     repo: https://github.com/Theepak90/kol-tracker-pro.git
-    rootDir: backend
-    buildCommand: npm ci --only=production
-    startCommand: node simple-server.js
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
     plan: free
     region: oregon
     envVars:
@@ -27,9 +26,8 @@ services:
     name: kolnexus-telethon
     env: python
     repo: https://github.com/Theepak90/kol-tracker-pro.git
-    rootDir: backend/telethon_service
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    buildCommand: cd backend/telethon_service && pip install -r requirements.txt
+    startCommand: cd backend/telethon_service && python main.py
     plan: free
     region: oregon
     envVars:
