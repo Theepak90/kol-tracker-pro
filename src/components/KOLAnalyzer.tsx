@@ -119,11 +119,23 @@ export default function KOLAnalyzer() {
   };
 
   const loadKOLPosts = async (kol: KOL) => {
+    if (!kol || !kol.telegramUsername) {
+      console.error('Invalid KOL data provided');
+      toast.error('Invalid KOL selected');
+      return;
+    }
+
     try {
       setIsLoadingPosts(true);
       
       // First check if Telethon service is available
-      const isHealthy = await telegramService.checkHealth();
+      let isHealthy = false;
+      try {
+        isHealthy = await telegramService.checkHealth();
+      } catch (healthError) {
+        console.warn('Health check failed:', healthError);
+        isHealthy = false;
+      }
       
       if (!isHealthy) {
         console.warn('Telethon service is not available, using demo data');
@@ -142,8 +154,11 @@ export default function KOLAnalyzer() {
           }
         };
         
-        // Update the KOL in the list
-        setKols(kols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k));
+        // Update the KOL in the list safely
+        setKols(prevKols => Array.isArray(prevKols) ? 
+          prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
+          [updatedKOL]
+        );
         setSelectedKOL(updatedKOL);
         
         // Save updated stats to backend
@@ -171,8 +186,11 @@ export default function KOLAnalyzer() {
         }
       };
       
-      // Update the KOL in the list
-      setKols(kols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k));
+      // Update the KOL in the list safely
+      setKols(prevKols => Array.isArray(prevKols) ? 
+        prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
+        [updatedKOL]
+      );
       setSelectedKOL(updatedKOL);
       
       // Save updated stats to backend
@@ -196,7 +214,10 @@ export default function KOLAnalyzer() {
         }
       };
       
-      setKols(kols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k));
+      setKols(prevKols => Array.isArray(prevKols) ? 
+        prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
+        [updatedKOL]
+      );
       setSelectedKOL(updatedKOL);
       
       toast.error('Failed to load real posts, using demo data for testing');
@@ -207,28 +228,38 @@ export default function KOLAnalyzer() {
 
   // Generate demo posts data for testing
   const generateDemoPostsData = (username: string) => {
+    const posts: UserPost[] = [];
+    const now = new Date();
+    
     const demoTexts = [
-      "🚀 Bitcoin breaking through $45,000! The bulls are back in control. This could be the start of a major rally. #BTC #Crypto",
-      "⚡ Ethereum 2.0 staking rewards looking juicy. Just locked up another 32 ETH. The future is bright for $ETH holders! 💎",
-      "🔥 DeFi summer is back! Uniswap V4 announcement has me extremely bullish. $UNI to the moon! 🌙",
-      "📊 Market analysis: We're seeing strong support at $40k for Bitcoin. If we hold here, next target is $50k. Technical indicators looking good.",
-      "💡 Alpha alert: Keep an eye on Layer 2 solutions. Arbitrum and Optimism are gaining serious traction. The scaling wars are heating up!",
-      "⚠️ Risk management reminder: Always take profits on the way up. Don't get caught holding bags when the music stops. Stay safe out there!",
-      "🎯 Solana ecosystem is exploding! New projects launching daily. $SOL might surprise everyone this cycle. DYOR as always.",
-      "📈 Portfolio update: 40% BTC, 30% ETH, 20% alts, 10% stablecoins. Keeping it balanced in these volatile times.",
-      "🌟 NFT space is evolving. Utility-based projects are the future. Art for art's sake is dead. Focus on real-world applications.",
-      "🔮 Prediction: We'll see Bitcoin at $100k before end of 2024. The institutional adoption is just getting started. Buckle up! 🎢"
+      `🚀 New gem alert! $PEPE showing strong momentum with 50M volume in the last hour. This could be the next 100x!`,
+      `📈 Market update: BTC holding strong above $65K. Expecting a breakout to $70K soon. Alt season incoming?`,
+      `⚡ Quick scalp opportunity: $WOJAK forming a perfect cup and handle pattern. Entry: $0.0001, Target: $0.0003`,
+      `🔥 DeFi play: New yield farming pool launched on Uniswap. 200% APY for the first week. DYOR!`,
+      `💎 Diamond hands needed: $SHIB accumulation phase complete. Next stop: moon! 🌙`,
+      `📊 Technical analysis: RSI oversold on most alts. Perfect buying opportunity for patient investors.`,
+      `🎯 Trade update: $DOGE call from yesterday hit 150% profit. Taking profits and moving stop to breakeven.`,
+      `⚠️ Risk management reminder: Never invest more than you can afford to lose. Crypto is volatile!`,
+      `🏆 Portfolio update: Up 300% this month thanks to careful position sizing and risk management.`,
+      `🔍 Research note: New L2 solution launching next week. Could be the next big infrastructure play.`
     ];
 
-    const posts: UserPost[] = demoTexts.map((text, index) => ({
-      message_id: 1000 + index,
-      text,
-      date: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(),
-      views: Math.floor(Math.random() * 50000) + 5000,
-      forwards: Math.floor(Math.random() * 1000) + 100,
-      channel_id: 123456789,
-      channel_title: `${username}'s Crypto Channel`
-    }));
+    for (let i = 0; i < 15; i++) {
+      const postDate = new Date(now.getTime() - (i * 2 * 60 * 60 * 1000)); // Every 2 hours
+      const text = demoTexts[Math.floor(Math.random() * demoTexts.length)];
+      const views = Math.floor(1000 + Math.random() * 50000);
+      const forwards = Math.floor(views * 0.1 * Math.random());
+      
+      posts.push({
+        message_id: 1000 + i,
+        text,
+        date: postDate.toISOString(),
+        views,
+        forwards,
+        channel_id: 123456789,
+        channel_title: `${username}_channel`
+      });
+    }
 
     const total_views = posts.reduce((sum, post) => sum + (post.views || 0), 0);
     const total_forwards = posts.reduce((sum, post) => sum + (post.forwards || 0), 0);

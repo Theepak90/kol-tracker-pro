@@ -43,14 +43,32 @@ export function VolumeTracker() {
   });
 
   useEffect(() => {
-    loadKOLs();
-    generateVolumeData();
-    generateRecentCalls();
+    const initializeComponent = async () => {
+      try {
+        await loadKOLs();
+        generateVolumeData();
+        generateRecentCalls();
+      } catch (error) {
+        console.error('Failed to initialize VolumeTracker:', error);
+        toast.error('Failed to load data, using demo data');
+        // Set fallback data
+        setKols([]);
+        generateVolumeData();
+        generateRecentCalls();
+      }
+    };
+    
+    initializeComponent();
   }, []);
 
   useEffect(() => {
-    generateVolumeData();
-    generateRecentCalls();
+    try {
+      generateVolumeData();
+      generateRecentCalls();
+    } catch (error) {
+      console.error('Failed to update data:', error);
+      toast.error('Failed to update data');
+    }
   }, [timeRange, selectedKOL]);
 
   const loadKOLs = async () => {
@@ -118,10 +136,10 @@ export function VolumeTracker() {
     const safeKols = Array.isArray(kols) ? kols : [];
     const filteredKOLs = selectedKOL === 'all' ? safeKols : safeKols.filter(k => k.telegramUsername === selectedKOL);
     const kolsToUse = filteredKOLs.length > 0 ? filteredKOLs : [
-      { telegramUsername: 'CryptoGuru_X', displayName: 'Crypto Guru X' },
-      { telegramUsername: 'TokenHunter', displayName: 'Token Hunter' },
-      { telegramUsername: 'DeFiAlpha', displayName: 'DeFi Alpha' },
-      { telegramUsername: 'ChainWatcher', displayName: 'Chain Watcher' }
+      { _id: 'demo1', telegramUsername: 'CryptoGuru_X', displayName: 'Crypto Guru X', description: '', tags: [], createdAt: '', updatedAt: '' },
+      { _id: 'demo2', telegramUsername: 'TokenHunter', displayName: 'Token Hunter', description: '', tags: [], createdAt: '', updatedAt: '' },
+      { _id: 'demo3', telegramUsername: 'DeFiAlpha', displayName: 'DeFi Alpha', description: '', tags: [], createdAt: '', updatedAt: '' },
+      { _id: 'demo4', telegramUsername: 'ChainWatcher', displayName: 'Chain Watcher', description: '', tags: [], createdAt: '', updatedAt: '' }
     ];
 
     for (let i = 0; i < 8; i++) {
@@ -335,7 +353,7 @@ export function VolumeTracker() {
             <div className="h-64 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
-          ) : volumeData.length > 0 ? (
+          ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={volumeData}>
@@ -387,7 +405,7 @@ export function VolumeTracker() {
             <div className="h-64 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
-          ) : volumeData.length > 0 ? (
+          ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={volumeData}>
@@ -430,7 +448,7 @@ export function VolumeTracker() {
           </button>
         </div>
         
-        {filteredCalls.length > 0 ? (
+        {(Array.isArray(filteredCalls) && filteredCalls.length > 0) ? (
           <div className="space-y-4">
             {filteredCalls.map((call) => (
               <div key={call.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
