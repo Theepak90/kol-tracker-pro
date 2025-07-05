@@ -16,13 +16,13 @@ The deployment is failing because the `bcrypt` module can't be found. This happe
 ```
 Repository: https://github.com/Theepak90/kol-tracker-pro.git
 Branch: main
-Root Directory: backend
+Root Directory: (leave blank)
 ```
 
 #### **Build & Deploy:**
 ```
-Build Command: npm install --legacy-peer-deps --production
-Start Command: node simple-server.js
+Build Command: cd backend && npm install --legacy-peer-deps --production
+Start Command: cd backend && node simple-server.js
 ```
 
 #### **Environment Variables:**
@@ -36,9 +36,9 @@ CORS_ORIGIN=https://kol-tracker-pro.vercel.app
 
 ### **Why This Fixes the Issue:**
 
-🎯 **Root Directory = backend**: Tells Render to use the backend folder as the service root
-📦 **Backend package.json**: Contains all necessary dependencies including bcrypt
-🔧 **Direct start command**: Runs `node simple-server.js` directly from backend directory
+🎯 **Explicit Directory Navigation**: Using `cd backend` ensures commands run from the correct directory
+📦 **Backend package.json**: Build command installs from backend/package.json which contains bcrypt
+🔧 **Consistent Environment**: Both build and start commands run from the same backend directory
 
 ## 🔄 **Alternative: Using render.yaml (Updated)**
 
@@ -50,9 +50,8 @@ services:
     name: kolnexus-backend
     env: node
     repo: https://github.com/Theepak90/kol-tracker-pro.git
-    rootDir: backend  # This is the key fix!
-    buildCommand: npm install --legacy-peer-deps --production
-    startCommand: node simple-server.js
+    buildCommand: cd backend && npm install --legacy-peer-deps --production
+    startCommand: cd backend && node simple-server.js
     plan: free
     region: oregon
     envVars:
@@ -105,7 +104,7 @@ The backend includes these critical dependencies:
 ## 🆘 **If Still Having Issues:**
 
 Check these common problems:
-- ✅ **Root Directory**: Must be set to `backend`
-- ✅ **Build Command**: Should not include `cd backend` if root directory is set
+- ✅ **Build Command**: Must include `cd backend` to navigate to backend directory
+- ✅ **Start Command**: Must include `cd backend` to run from backend directory
 - ✅ **Environment Variables**: Must be properly configured
 - ✅ **MongoDB Connection**: Check connection string format 
