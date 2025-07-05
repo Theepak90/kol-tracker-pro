@@ -95,7 +95,8 @@ export function VolumeTracker() {
           setKols(apiKols);
         } else {
           console.log('Using demo KOLs for VolumeTracker');
-          setKols(demoKOLs);
+          // Ensure demo KOLs is always an array
+          setKols(Array.isArray(demoKOLs) ? demoKOLs : []);
         }
         
         // Generate initial data
@@ -105,7 +106,7 @@ export function VolumeTracker() {
       } catch (error) {
         console.error('Failed to initialize VolumeTracker:', error);
         // Use demo data as fallback
-        setKols(demoKOLs);
+        setKols(Array.isArray(demoKOLs) ? demoKOLs : []);
         await generateVolumeData();
         generateRecentCalls();
       } finally {
@@ -155,7 +156,13 @@ export function VolumeTracker() {
         });
       }
 
-      setVolumeData(data);
+      // Ensure we only set valid array data
+      if (Array.isArray(data)) {
+        setVolumeData(data);
+      } else {
+        console.error('Generated volume data is not an array:', data);
+        setVolumeData([]);
+      }
       
       // Calculate stats
       const totalVol = data.reduce((sum, item) => sum + item.volume, 0);
@@ -219,7 +226,13 @@ export function VolumeTracker() {
         });
       }
 
-      setRecentCalls(calls);
+      // Ensure we only set valid array data
+      if (Array.isArray(calls)) {
+        setRecentCalls(calls);
+      } else {
+        console.error('Generated calls data is not an array:', calls);
+        setRecentCalls([]);
+      }
     } catch (error) {
       console.error('Error generating recent calls:', error);
       setRecentCalls([]);
@@ -268,34 +281,51 @@ export function VolumeTracker() {
     return 'text-red-500';
   };
 
-  // Safe filtering with proper error handling
+  // Safe filtering with proper error handling - absolutely ensure it returns an array
   const filteredCalls = React.useMemo(() => {
     try {
+      // Ensure recentCalls is always an array
       const safeCalls = Array.isArray(recentCalls) ? recentCalls : [];
       
-      if (!searchTerm) return safeCalls;
+      if (!searchTerm || searchTerm.trim() === '') {
+        return safeCalls;
+      }
       
-      const searchLower = searchTerm.toLowerCase();
-      return safeCalls.filter(call => {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const filtered = safeCalls.filter(call => {
         try {
-          const kolName = call.kol || '';
-          const tokenName = call.token || '';
+          if (!call || typeof call !== 'object') return false;
+          
+          const kolName = (call.kol || '').toString();
+          const tokenName = (call.token || '').toString();
           return kolName.toLowerCase().includes(searchLower) ||
                  tokenName.toLowerCase().includes(searchLower);
         } catch (error) {
-          console.warn('Error filtering call:', call, error);
+          console.warn('Error filtering individual call:', call, error);
           return false;
         }
       });
+      
+      // Double-check the result is an array
+      return Array.isArray(filtered) ? filtered : [];
     } catch (error) {
       console.error('Error in filteredCalls:', error);
       return [];
     }
   }, [recentCalls, searchTerm]);
 
-  // Safe KOLs list
+  // Safe KOLs list - absolutely ensure it's always an array
   const safeKols = React.useMemo(() => {
-    return Array.isArray(kols) && kols.length > 0 ? kols : demoKOLs;
+    try {
+      if (Array.isArray(kols) && kols.length > 0) {
+        return kols;
+      }
+      // Always return demo data if kols is not a valid array
+      return Array.isArray(demoKOLs) ? demoKOLs : [];
+    } catch (error) {
+      console.error('Error in safeKols:', error);
+      return [];
+    }
   }, [kols]);
 
   return (
@@ -434,7 +464,7 @@ export function VolumeTracker() {
           ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={volumeData}>
+                <LineChart data={Array.isArray(volumeData) ? volumeData : []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="time" 
@@ -486,7 +516,7 @@ export function VolumeTracker() {
           ) : (Array.isArray(volumeData) && volumeData.length > 0) ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={volumeData}>
+                <BarChart data={Array.isArray(volumeData) ? volumeData : []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis 
                     dataKey="time" 
