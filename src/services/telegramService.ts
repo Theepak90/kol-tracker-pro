@@ -50,7 +50,7 @@ interface APIResponse {
 }
 
 // Telethon service URL (running on port 8000)
-const TELETHON_BASE_URL = 'http://localhost:8000';
+const TELETHON_BASE_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'http://localhost:8000';
 
 export async function scanChannel(channelUrl: string): Promise<APIResponse> {
   try {

@@ -35,11 +35,12 @@ class TelegramScanner:
         self.session_name = os.getenv('SESSION_NAME', 'telegram_session')
         
         # MongoDB configuration
-        self.mongodb_url = os.getenv('MONGODB_URL', 'mongodb://localhost:27017')
+        self.mongodb_url = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
         
         logger.info(f"API_ID: {self.api_id}")
         logger.info(f"API_HASH: {'set' if self.api_hash else 'not set'}")
         logger.info(f"SESSION_NAME: {self.session_name}")
+        logger.info(f"MONGODB_URI: {'set' if self.mongodb_url != 'mongodb://localhost:27017' else 'using default'}")
         
         if not self.api_id or not self.api_hash:
             logger.error("API_ID and API_HASH must be set in .env file")
@@ -109,7 +110,20 @@ class UserPostsResponse(BaseModel):
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177", "http://localhost:5178", "http://localhost:5179", "http://localhost:3000", "http://localhost:4173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://localhost:5177",
+        "http://localhost:5178",
+        "http://localhost:5179",
+        "http://localhost:3000",
+        "http://localhost:4173",
+        "https://kolnexus2.netlify.app",
+        "https://kolnexus-backend.onrender.com",
+        "https://kolnexus-telethon.onrender.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

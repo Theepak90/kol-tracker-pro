@@ -112,9 +112,9 @@ const isDevelopment = import.meta.env.DEV;
 const DEV_BACKEND_URL = 'http://localhost:3000';
 const DEV_TELETHON_URL = 'http://localhost:8000';
 
-// Production URLs - Will be updated once backend is deployed
-const PROD_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://kol-tracker-backend.onrender.com';
-const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_URL || 'https://kol-tracker-telethon.onrender.com';
+// Production URLs
+const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kolnexus-backend.up.railway.app';
+const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kolnexus-telethon.up.railway.app';
 
 // Export the appropriate URLs based on environment
 export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: kol-tracker-backend
+    name: kolnexus-backend
     env: node
     repo: https://github.com/theepak/kol-tracker-pro.git
     rootDir: backend
@@ -12,8 +12,38 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        value: mongodb://localhost:27017/kol_tracker
-      - key: PORT
         sync: false
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://kolnexus.vercel.app
     domains:
-      - kol-tracker-backend.onrender.com 
+      - kolnexus-backend.onrender.com
+
+  - type: web
+    name: kolnexus-telethon
+    env: docker
+    repo: https://github.com/theepak/kol-tracker-pro.git
+    rootDir: backend/telethon_service
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: API_ID
+        value: 28152923
+      - key: API_HASH
+        sync: false
+      - key: SESSION_NAME
+        value: telegram_session
+      - key: MONGODB_URI
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://kolnexus.vercel.app
+      - key: PORT
+        value: 8000
+    domains:
+      - kolnexus-telethon.onrender.com 

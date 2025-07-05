@@ -43,11 +43,11 @@ export default function KOLAnalyzer() {
   const [newTag, setNewTag] = useState('');
   const [activeTab, setActiveTab] = useState<'posts' | 'analysis'>('posts');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newKOL, setNewKOL] = useState({
+  const [newKOL, setNewKOL] = useState<KOLFormData>({
     telegramUsername: '',
     displayName: '',
-    category: '',
-    tags: [] as string[],
+    description: '',
+    tags: [],
   });
 
   useEffect(() => {
@@ -57,8 +57,8 @@ export default function KOLAnalyzer() {
   const loadKOLs = async () => {
     try {
       setIsLoadingKOLs(true);
-      const response = await apiService.getKOLs();
-      setKols(response);
+      const kols = await apiService.getKOLs();
+      setKols(kols);
     } catch (error) {
       console.error('Failed to load KOLs:', error);
       toast.error('Failed to load KOLs');
@@ -112,7 +112,7 @@ export default function KOLAnalyzer() {
             totalPosts: demoResponse.total_posts,
             totalViews: demoResponse.total_views,
             totalForwards: demoResponse.total_forwards,
-            lastUpdated: new Date()
+            lastUpdated: new Date().toISOString()
           }
         };
         
@@ -141,7 +141,7 @@ export default function KOLAnalyzer() {
           totalPosts: response.total_posts,
           totalViews: response.total_views,
           totalForwards: response.total_forwards,
-          lastUpdated: new Date()
+          lastUpdated: new Date().toISOString()
         }
       };
       
@@ -166,7 +166,7 @@ export default function KOLAnalyzer() {
           totalPosts: demoResponse.total_posts,
           totalViews: demoResponse.total_views,
           totalForwards: demoResponse.total_forwards,
-          lastUpdated: new Date()
+          lastUpdated: new Date().toISOString()
         }
       };
       
@@ -263,13 +263,13 @@ export default function KOLAnalyzer() {
     });
   };
 
-  const filteredKOLs = kols.filter(kol =>
-    kol.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    kol.telegramUsername.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    kol.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-
+  const filteredKOLs = searchTerm
+    ? kols.filter(kol => 
+        kol.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kol.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kol.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : kols;
 
   const renderAIAnalysis = () => {
     if (!aiAnalysis) return null;
@@ -480,7 +480,7 @@ export default function KOLAnalyzer() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search KOLs..."
+              placeholder="Search KOLs by name, username, or tags..."
               className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

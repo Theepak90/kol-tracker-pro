@@ -16,8 +16,13 @@ async function bootstrap() {
       'http://localhost:5178',
       'http://localhost:5179',
       'http://localhost:3000',
-      'http://localhost:4173'
+      'http://localhost:4173',
+      'https://kolnexus2.netlify.app',
+      'https://kolnexus-backend.onrender.com',
+      'https://kolnexus-telethon.onrender.com',
+      'https://kolnexus.vercel.app'
     ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 

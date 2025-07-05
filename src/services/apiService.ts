@@ -1,9 +1,28 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 
+export interface KOL {
+  _id: string;
+  displayName: string;
+  telegramUsername: string;
+  description: string;
+  tags: string[];
+  stats?: {
+    totalPosts: number;
+    totalViews: number;
+    totalForwards: number;
+    lastUpdated: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 // Mock data for fallback
@@ -40,57 +59,40 @@ const mockKOLs = [
   }
 ];
 
-export const apiService = {
+const apiService = {
   // KOL endpoints
-  async getKOLs() {
+  getKOLs: async (): Promise<KOL[]> => {
     try {
-      const response = await api.get('/api/kols');
-      return response;
+      const response = await api.get<KOL[]>('/api/kols');
+      return response.data;
     } catch (error) {
-      console.warn('API call failed, using mock data:', error);
-      return { data: mockKOLs };
+      console.error('Error fetching KOLs:', error);
+      return [];
     }
   },
 
-  async createKOL(kolData: any) {
+  createKOL: async (kolData: Omit<KOL, '_id' | 'createdAt' | 'updatedAt' | 'stats'>): Promise<KOL> => {
+    const response = await api.post<KOL>('/api/kols', kolData);
+    return response.data;
+  },
+
+  getKOL: async (username: string): Promise<KOL> => {
     try {
-      const response = await api.post('/api/kols', kolData);
-      return response;
+      const response = await api.get<KOL>(`/api/kols/${username}`);
+      return response.data;
     } catch (error) {
       console.warn('API call failed:', error);
-      // Return mock success
-      return { data: { ...kolData, _id: 'mock' + Date.now(), createdAt: new Date().toISOString() } };
+      return mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0];
     }
   },
 
-  async getKOL(username: string) {
-    try {
-      const response = await api.get(`/api/kols/${username}`);
-      return response;
-    } catch (error) {
-      console.warn('API call failed:', error);
-      return { data: mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0] };
-    }
+  updateKOL: async (username: string, kolData: Partial<KOL>): Promise<KOL> => {
+    const response = await api.put<KOL>(`/api/kols/${username}`, kolData);
+    return response.data;
   },
 
-  async updateKOL(username: string, kolData: any) {
-    try {
-      const response = await api.put(`/api/kols/${username}`, kolData);
-      return response;
-    } catch (error) {
-      console.warn('API call failed:', error);
-      return { data: { ...kolData, updatedAt: new Date().toISOString() } };
-    }
-  },
-
-  async deleteKOL(username: string) {
-    try {
-      const response = await api.delete(`/api/kols/${username}`);
-      return response;
-    } catch (error) {
-      console.warn('API call failed:', error);
-      return { data: { message: 'KOL deleted successfully' } };
-    }
+  deleteKOL: async (username: string): Promise<void> => {
+    await api.delete(`/api/kols/${username}`);
   },
 
   // Auth endpoints
@@ -125,4 +127,4 @@ export const apiService = {
   }
 };
 
-export default apiService; 
+export { apiService }; 
