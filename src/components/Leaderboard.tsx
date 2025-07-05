@@ -410,7 +410,7 @@ export default function Leaderboard() {
               <p className="text-surface-600 text-sm">Total KOLs</p>
                 <p className="text-2xl font-semibold text-surface-900">{stats.totalKOLs}</p>
                 <p className="text-surface-500 text-xs">Top Performer: {stats.topPerformer}</p>
-              </div>
+            </div>
           </div>
         </div>
 
@@ -423,7 +423,7 @@ export default function Leaderboard() {
               <p className="text-surface-600 text-sm">Avg Win Rate</p>
                 <p className="text-2xl font-semibold text-surface-900">{stats.avgWinRate}%</p>
                 <p className="text-surface-500 text-xs">Biggest Gainer: {stats.biggestGainer}</p>
-              </div>
+            </div>
           </div>
         </div>
 
@@ -436,7 +436,7 @@ export default function Leaderboard() {
               <p className="text-surface-600 text-sm">Avg Volume</p>
                 <p className="text-2xl font-semibold text-surface-900">{formatCurrency(stats.avgVolume)}</p>
                 <p className="text-surface-500 text-xs">Most Consistent: {stats.mostConsistent}</p>
-              </div>
+            </div>
           </div>
         </div>
 
