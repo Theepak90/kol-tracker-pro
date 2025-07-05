@@ -50,6 +50,47 @@ export default function KOLAnalyzer() {
     tags: [],
   });
   const [hasError, setHasError] = useState(false);
+  const [componentError, setComponentError] = useState<string | null>(null);
+
+  // Error boundary for this component
+  const handleError = (error: any, context: string) => {
+    console.error(`Error in ${context}:`, error);
+    setComponentError(`Error in ${context}: ${error.message || 'Unknown error'}`);
+    setHasError(true);
+  };
+
+  // Safe state setters
+  const safeSetKols = (newKols: KOL[] | ((prev: KOL[]) => KOL[])) => {
+    try {
+      if (typeof newKols === 'function') {
+        setKols(prev => {
+          const result = newKols(Array.isArray(prev) ? prev : []);
+          return Array.isArray(result) ? result : [];
+        });
+      } else {
+        setKols(Array.isArray(newKols) ? newKols : []);
+      }
+    } catch (error) {
+      handleError(error, 'safeSetKols');
+      setKols([]);
+    }
+  };
+
+  const safeSetUserPosts = (newPosts: UserPost[] | ((prev: UserPost[]) => UserPost[])) => {
+    try {
+      if (typeof newPosts === 'function') {
+        setUserPosts(prev => {
+          const result = newPosts(Array.isArray(prev) ? prev : []);
+          return Array.isArray(result) ? result : [];
+        });
+      } else {
+        setUserPosts(Array.isArray(newPosts) ? newPosts : []);
+      }
+    } catch (error) {
+      handleError(error, 'safeSetUserPosts');
+      setUserPosts([]);
+    }
+  };
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -96,7 +137,7 @@ export default function KOLAnalyzer() {
         ...kol,
         tags: Array.isArray(kol.tags) ? kol.tags : []
       })) : [];
-      setKols(validKols);
+      safeSetKols(validKols);
     } catch (error) {
       console.error('Failed to load KOLs:', error);
       toast.error('Failed to load KOLs, using demo data');
@@ -131,7 +172,7 @@ export default function KOLAnalyzer() {
     try {
       setIsAddingKOL(true);
       const newKOL = await apiService.createKOL(formData);
-      setKols([...kols, newKOL]);
+      safeSetKols(prevKols => [...prevKols, newKOL]);
       setFormData({
         displayName: '',
         telegramUsername: '',
@@ -174,7 +215,7 @@ export default function KOLAnalyzer() {
         console.warn('Telethon service is not available, using demo data');
         // Use demo data for testing
         const demoResponse = generateDemoPostsData(kol.telegramUsername);
-        setUserPosts(demoResponse.posts);
+        safeSetUserPosts(demoResponse.posts);
         
         // Update KOL stats
         const updatedKOL = {
@@ -188,7 +229,7 @@ export default function KOLAnalyzer() {
         };
         
         // Update the KOL in the list safely
-        setKols(prevKols => Array.isArray(prevKols) ? 
+        safeSetKols(prevKols => Array.isArray(prevKols) ? 
           prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
           [updatedKOL]
         );
@@ -206,7 +247,7 @@ export default function KOLAnalyzer() {
       }
       
       const response = await telegramService.trackUserPosts(kol.telegramUsername);
-      setUserPosts(response.posts);
+      safeSetUserPosts(response.posts);
       
       // Update KOL stats
       const updatedKOL = {
@@ -220,7 +261,7 @@ export default function KOLAnalyzer() {
       };
       
       // Update the KOL in the list safely
-      setKols(prevKols => Array.isArray(prevKols) ? 
+      safeSetKols(prevKols => Array.isArray(prevKols) ? 
         prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
         [updatedKOL]
       );
@@ -234,7 +275,7 @@ export default function KOLAnalyzer() {
       // Fallback to demo data
       console.warn('Using demo data as fallback');
       const demoResponse = generateDemoPostsData(kol.telegramUsername);
-      setUserPosts(demoResponse.posts);
+      safeSetUserPosts(demoResponse.posts);
       
       // Update KOL stats with demo data
       const updatedKOL = {
@@ -247,7 +288,7 @@ export default function KOLAnalyzer() {
         }
       };
       
-      setKols(prevKols => Array.isArray(prevKols) ? 
+      safeSetKols(prevKols => Array.isArray(prevKols) ? 
         prevKols.map(k => k.telegramUsername === kol.telegramUsername ? updatedKOL : k) : 
         [updatedKOL]
       );
@@ -592,320 +633,419 @@ export default function KOLAnalyzer() {
     );
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-4">
-          <h2 className="text-2xl font-bold">KOL Analyzer</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search KOLs by name, username, or tags..."
-              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+  // If there's a component error, show error UI
+  if (componentError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <div className="text-red-500 mb-4">
+            <AlertTriangle size={48} className="mx-auto" />
           </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Component Error</h2>
+          <p className="text-gray-600 mb-4">{componentError}</p>
+          <button
+            onClick={() => {
+              setComponentError(null);
+              setHasError(false);
+              window.location.reload();
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Reload Page
+          </button>
         </div>
       </div>
+    );
+  }
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* KOL List */}
-        <div className="w-1/3 border-r overflow-y-auto p-4">
-          <div className="mb-4">
-            <form onSubmit={handleAddKOL} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Display Name"
-                className="w-full p-2 border rounded"
-                value={formData.displayName}
-                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                required
-              />
-              <div className="flex items-center space-x-2">
-                <AtSign size={20} className="text-gray-400" />
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row lg:space-x-8">
+          {/* Left Panel */}
+          <div className="lg:w-1/3 space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                KOL Analyzer
+              </h1>
+              <p className="text-gray-600 text-sm mt-1">Analyze and track Key Opinion Leaders</p>
+            </div>
+
+            {/* Search */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <input
                   type="text"
-                  placeholder="Telegram Username"
-                  className="flex-1 p-2 border rounded"
-                  value={formData.telegramUsername}
-                  onChange={(e) => setFormData({ ...formData, telegramUsername: e.target.value })}
-                  required
+                  placeholder="Search KOLs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <textarea
-                placeholder="Description"
-                className="w-full p-2 border rounded"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  placeholder="Add tag"
-                  className="flex-1 p-2 border rounded"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map(tag => (
-                  <span key={tag} className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded">
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={14} />
-                    </button>
-                  </span>
-                ))}
-              </div>
+            </div>
+
+            {/* Add KOL Button */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <button
-                type="submit"
-                disabled={isAddingKOL}
-                className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {isAddingKOL ? (
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                    Adding KOL...
-                  </div>
-                ) : (
-                  'Add KOL'
-                )}
+                <Plus size={16} />
+                <span>Add New KOL</span>
               </button>
-            </form>
-          </div>
+            </div>
 
-          <div className="space-y-4">
-            {isLoadingKOLs ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="animate-spin" size={24} />
-              </div>
-            ) : filteredKOLs.length === 0 ? (
-              <div className="text-center text-gray-500 py-4">
-                No KOLs found
-              </div>
-            ) : (
-              filteredKOLs.map(kol => (
-                <div
-                  key={kol.telegramUsername}
-                  className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                    selectedKOL?.telegramUsername === kol.telegramUsername
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleSelectKOL(kol)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{kol.displayName}</h3>
-                      <p className="text-sm text-gray-500">@{kol.telegramUsername}</p>
-                    </div>
-                    {kol.stats && (
-                      <div className="text-right text-sm text-gray-500">
-                        <p>{kol.stats.totalPosts} posts</p>
-                        <p>{kol.stats.totalViews} views</p>
-                      </div>
-                    )}
+            {/* Add KOL Form */}
+            {showAddForm && (
+              <div className="bg-white rounded-lg shadow-sm p-4">
+                <form onSubmit={handleAddKOL} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Telegram Username
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.telegramUsername}
+                      onChange={(e) => setFormData({...formData, telegramUsername: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="@username"
+                    />
                   </div>
-                  {kol.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {kol.tags.map(tag => (
-                        <span key={tag} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {tag}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.displayName}
+                      onChange={(e) => setFormData({...formData, displayName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Display Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Brief description..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tags
+                    </label>
+                    <div className="flex space-x-2 mb-2">
+                      <input
+                        type="text"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Add tag..."
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddTag}
+                        className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(Array.isArray(formData.tags) ? formData.tags : []).map(tag => (
+                        <span key={tag} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center space-x-1">
+                          <span>{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="hover:text-blue-600"
+                          >
+                            <X size={12} />
+                          </button>
                         </span>
                       ))}
                     </div>
-                  )}
-                </div>
-              ))
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      type="submit"
+                      disabled={isAddingKOL}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isAddingKOL ? 'Adding...' : 'Add KOL'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddForm(false)}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* KOL Details */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {selectedKOL ? (
-            <div>
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">{selectedKOL.displayName}</h2>
-                    <div className="flex items-center space-x-2 text-gray-500 mt-1">
-                      <Link size={16} />
-                      <a
-                        href={`https://t.me/${selectedKOL.telegramUsername}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-blue-500"
-                      >
-                        @{selectedKOL.telegramUsername}
-                      </a>
-                    </div>
+            {/* KOL List */}
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="text-lg font-semibold mb-4">KOLs ({(Array.isArray(kols) ? kols : []).length})</h2>
+              
+              <div className="space-y-4">
+                {isLoadingKOLs ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="animate-spin" size={24} />
                   </div>
-                  <div className="flex items-center space-x-4">
-                    {selectedKOL.stats && (
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <p className="text-2xl font-bold">{selectedKOL.stats.totalPosts}</p>
-                          <p className="text-sm text-gray-500">Posts</p>
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold">{selectedKOL.stats.totalViews}</p>
-                          <p className="text-sm text-gray-500">Views</p>
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold">{selectedKOL.stats.totalForwards}</p>
-                          <p className="text-sm text-gray-500">Forwards</p>
-                        </div>
-                      </div>
-                    )}
-                    <button
-                      onClick={handleAnalyzeKOL}
-                      disabled={isAnalyzing || userPosts.length === 0}
-                      className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Brain size={20} />
-                      <span>{isAnalyzing ? 'Analyzing...' : 'AI Analysis'}</span>
-                      {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
-                    </button>
+                ) : (Array.isArray(filteredKOLs) ? filteredKOLs : []).length === 0 ? (
+                  <div className="text-center text-gray-500 py-4">
+                    No KOLs found
                   </div>
-                </div>
-                {selectedKOL.description && (
-                  <p className="mt-4 text-gray-600">{selectedKOL.description}</p>
-                )}
-                {selectedKOL.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {selectedKOL.tags.map(tag => (
-                      <span key={tag} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Tabs */}
-              <div className="mb-6">
-                <div className="border-b border-gray-200">
-                  <nav className="-mb-px flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab('posts')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'posts'
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <MessageCircle size={16} />
-                        <span>Posts ({userPosts.length})</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('analysis')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'analysis'
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <BarChart3 size={16} />
-                        <span>AI Analysis</span>
-                        {aiAnalysis && <CheckCircle size={16} className="text-green-500" />}
-                      </div>
-                    </button>
-                  </nav>
-                </div>
-              </div>
-
-              {/* Tab Content */}
-              {activeTab === 'posts' && (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">Recent Posts</h3>
-                  {isLoadingPosts ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="animate-spin" size={32} />
-                    </div>
-                  ) : (!Array.isArray(userPosts) || userPosts.length === 0) ? (
-                    <div className="text-center text-gray-500 py-8">
-                      No posts found
-                    </div>
-                  ) : (
-                    userPosts
-                      .filter(post => post && typeof post === 'object' && post.message_id)
-                      .map(post => (
-                        <div key={post.message_id} className="bg-white rounded-lg shadow-sm p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-gray-800 whitespace-pre-wrap">{post.text || 'No content'}</p>
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span className="flex items-center">
-                                  <Clock size={16} className="mr-1" />
-                                  {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown date'}
-                                </span>
-                                {post.views !== null && post.views !== undefined && (
-                                  <span className="flex items-center">
-                                    <TrendingUp size={16} className="mr-1" />
-                                    {post.views} views
-                                  </span>
-                                )}
-                                {post.forwards !== null && post.forwards !== undefined && (
-                                  <span className="flex items-center">
-                                    <MessageCircle size={16} className="mr-1" />
-                                    {post.forwards} forwards
-                                  </span>
-                                )}
+                ) : (
+                  (Array.isArray(filteredKOLs) ? filteredKOLs : []).map(kol => {
+                    try {
+                      return (
+                        <div
+                          key={kol.telegramUsername}
+                          className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                            selectedKOL?.telegramUsername === kol.telegramUsername
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => handleSelectKOL(kol)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold">{kol.displayName}</h3>
+                              <p className="text-sm text-gray-500">@{kol.telegramUsername}</p>
+                            </div>
+                            {kol.stats && (
+                              <div className="text-right text-sm text-gray-500">
+                                <p>{kol.stats.totalPosts} posts</p>
+                                <p>{kol.stats.totalViews} views</p>
                               </div>
+                            )}
+                          </div>
+                          {Array.isArray(kol.tags) && kol.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {kol.tags.map(tag => (
+                                <span key={tag} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error('Error rendering KOL:', kol, error);
+                      return null;
+                    }
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="lg:w-2/3 mt-6 lg:mt-0">
+            <div className="bg-white rounded-lg shadow-sm h-full min-h-[600px]">
+              {selectedKOL ? (
+                <div className="h-full flex flex-col">
+                  {/* KOL Header */}
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold">{selectedKOL.displayName}</h2>
+                        <div className="flex items-center space-x-2 text-gray-500 mt-1">
+                          <Link size={16} />
+                          <a
+                            href={`https://t.me/${selectedKOL.telegramUsername}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-blue-500"
+                          >
+                            @{selectedKOL.telegramUsername}
+                          </a>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        {selectedKOL.stats && (
+                          <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                              <p className="text-2xl font-bold">{selectedKOL.stats.totalPosts}</p>
+                              <p className="text-sm text-gray-500">Posts</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold">{selectedKOL.stats.totalViews}</p>
+                              <p className="text-sm text-gray-500">Views</p>
+                            </div>
+                            <div>
+                              <p className="text-2xl font-bold">{selectedKOL.stats.totalForwards}</p>
+                              <p className="text-sm text-gray-500">Forwards</p>
                             </div>
                           </div>
-                        </div>
-                      ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'analysis' && (
-                <div className="space-y-6">
-                  {!aiAnalysis ? (
-                    <div className="text-center py-8">
-                      <Brain size={48} className="mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-600 mb-2">No AI Analysis Available</h3>
-                      <p className="text-gray-500 mb-4">Click the "AI Analysis" button to analyze this KOL's posts</p>
-                      <button
-                        onClick={handleAnalyzeKOL}
-                        disabled={isAnalyzing || userPosts.length === 0}
-                        className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
-                      >
-                        <Brain size={20} />
-                        <span>{isAnalyzing ? 'Analyzing...' : 'Start AI Analysis'}</span>
-                        {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
-                      </button>
+                        )}
+                        <button
+                          onClick={handleAnalyzeKOL}
+                          disabled={isAnalyzing || (Array.isArray(userPosts) ? userPosts : []).length === 0}
+                          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Brain size={20} />
+                          <span>{isAnalyzing ? 'Analyzing...' : 'AI Analysis'}</span>
+                          {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
+                        </button>
+                      </div>
                     </div>
-                  ) : (
-                    renderAIAnalysis()
-                  )}
+                    {selectedKOL.description && (
+                      <p className="mt-4 text-gray-600">{selectedKOL.description}</p>
+                    )}
+                    {Array.isArray(selectedKOL.tags) && selectedKOL.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {selectedKOL.tags.map(tag => (
+                          <span key={tag} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="px-6 border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                      <button
+                        onClick={() => setActiveTab('posts')}
+                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                          activeTab === 'posts'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <MessageCircle size={16} />
+                          <span>Posts ({(Array.isArray(userPosts) ? userPosts : []).length})</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('analysis')}
+                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                          activeTab === 'analysis'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <BarChart3 size={16} />
+                          <span>AI Analysis</span>
+                          {aiAnalysis && <CheckCircle size={16} className="text-green-500" />}
+                        </div>
+                      </button>
+                    </nav>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {activeTab === 'posts' && (
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-semibold">Recent Posts</h3>
+                        {isLoadingPosts ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="animate-spin" size={32} />
+                          </div>
+                        ) : (!Array.isArray(userPosts) || userPosts.length === 0) ? (
+                          <div className="text-center text-gray-500 py-8">
+                            No posts found
+                          </div>
+                        ) : (
+                          (Array.isArray(userPosts) ? userPosts : [])
+                            .filter(post => {
+                              try {
+                                return post && typeof post === 'object' && post.message_id;
+                              } catch (error) {
+                                console.error('Error filtering post:', post, error);
+                                return false;
+                              }
+                            })
+                            .map(post => {
+                              try {
+                                return (
+                                  <div key={post.message_id} className="bg-gray-50 rounded-lg p-4">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <p className="text-gray-800 whitespace-pre-wrap">{post.text || 'No content'}</p>
+                                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                          <span className="flex items-center">
+                                            <Clock size={16} className="mr-1" />
+                                            {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown date'}
+                                          </span>
+                                          {post.views !== null && post.views !== undefined && (
+                                            <span className="flex items-center">
+                                              <TrendingUp size={16} className="mr-1" />
+                                              {post.views} views
+                                            </span>
+                                          )}
+                                          {post.forwards !== null && post.forwards !== undefined && (
+                                            <span className="flex items-center">
+                                              <MessageCircle size={16} className="mr-1" />
+                                              {post.forwards} forwards
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              } catch (error) {
+                                console.error('Error rendering post:', post, error);
+                                return null;
+                              }
+                            })
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === 'analysis' && (
+                      <div className="space-y-6">
+                        {!aiAnalysis ? (
+                          <div className="text-center py-8">
+                            <Brain size={48} className="mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-2">No AI Analysis Available</h3>
+                            <p className="text-gray-500 mb-4">Click the "AI Analysis" button to analyze this KOL's posts</p>
+                            <button
+                              onClick={handleAnalyzeKOL}
+                              disabled={isAnalyzing || (Array.isArray(userPosts) ? userPosts : []).length === 0}
+                              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                            >
+                              <Brain size={20} />
+                              <span>{isAnalyzing ? 'Analyzing...' : 'Start AI Analysis'}</span>
+                              {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
+                            </button>
+                          </div>
+                        ) : (
+                          renderAIAnalysis()
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="text-center">
+                    <Users size={48} className="mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Select a KOL to analyze</h3>
+                    <p>Choose a KOL from the list to view their posts and analysis</p>
+                  </div>
                 </div>
               )}
             </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Select a KOL to view details
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
