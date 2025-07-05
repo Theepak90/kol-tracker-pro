@@ -11,13 +11,10 @@
       "destination": "/index.html"
     }
   ],
-  "functions": {
-    "app.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "env": {
     "VITE_API_URL": "https://kolnexus-backend.onrender.com",
-    "VITE_TELETHON_SERVICE_URL": "https://kolnexus-telethon.onrender.com"
+    "VITE_TELETHON_SERVICE_URL": "https://kolnexus-telethon.onrender.com",
+    "VITE_TELEGRAM_API_ID": "28152923",
+    "VITE_TELEGRAM_API_HASH": "766760d2838474a5e6dd734d785aa7ad"
   }
 } 
