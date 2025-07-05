@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 
 export function BotDetector() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterTerm, setFilterTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -21,7 +22,7 @@ export function BotDetector() {
 
   useEffect(() => {
     // Update stats whenever results change
-    if (results.length > 0) {
+    if (Array.isArray(results) && results.length > 0) {
       const newStats = botDetectionService.calculateStats(results);
       setStats(newStats);
     }
@@ -47,7 +48,7 @@ export function BotDetector() {
         toast.success('User analysis completed!');
       }
 
-      setResults(prev => [result, ...prev]);
+      setResults(prev => Array.isArray(prev) ? [result, ...prev] : [result]);
       setSearchTerm('');
       
     } catch (error) {
@@ -90,8 +91,9 @@ export function BotDetector() {
   };
 
   const filteredResults = (Array.isArray(results) ? results : []).filter(result => {
-    const matchesSearch = result.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         result.displayName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !filterTerm || 
+      result.username.toLowerCase().includes(filterTerm.toLowerCase()) ||
+      result.displayName.toLowerCase().includes(filterTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || result.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -231,6 +233,24 @@ export function BotDetector() {
           </div>
         </div>
       </div>
+
+      {/* Results Filter */}
+      {results.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Filter results by username..."
+                value={filterTerm}
+                onChange={(e) => setFilterTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detection Results */}
       <div className="space-y-3">
