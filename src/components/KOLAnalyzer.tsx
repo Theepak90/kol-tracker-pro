@@ -49,9 +49,42 @@ export default function KOLAnalyzer() {
     description: '',
     tags: [],
   });
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    loadKOLs();
+    const initializeComponent = async () => {
+      try {
+        setHasError(false);
+        await loadKOLs();
+      } catch (error) {
+        console.error('Failed to initialize KOL Analyzer:', error);
+        setHasError(true);
+        toast.error('Failed to initialize component, using demo data');
+        // Set fallback demo data
+        setKols([
+          {
+            _id: "demo1",
+            displayName: "Crypto Whale",
+            telegramUsername: "cryptowhale",
+            description: "Leading crypto analyst and trader",
+            tags: ["crypto", "trading", "analysis"],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            _id: "demo2",
+            displayName: "DeFi Expert",
+            telegramUsername: "defiexpert",
+            description: "Decentralized finance specialist",
+            tags: ["defi", "yield", "protocols"],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]);
+      }
+    };
+    
+    initializeComponent();
   }, []);
 
   const loadKOLs = async () => {
@@ -320,13 +353,44 @@ export default function KOLAnalyzer() {
     });
   };
 
-  const filteredKOLs = searchTerm
-    ? (Array.isArray(kols) ? kols : []).filter(kol => 
-        kol.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        kol.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (Array.isArray(kol.tags) ? kol.tags : []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    : (Array.isArray(kols) ? kols : []);
+  // Enhanced filteredKOLs with multiple safety layers
+  const filteredKOLs = React.useMemo(() => {
+    try {
+      // Ensure kols is always an array
+      const safeKols = Array.isArray(kols) ? kols : [];
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return safeKols;
+      }
+      
+      const searchLower = searchTerm.toLowerCase();
+      
+      return safeKols.filter(kol => {
+        try {
+          // Multiple safety checks for each property
+          const displayNameMatch = kol?.displayName && typeof kol.displayName === 'string' 
+            ? kol.displayName.toLowerCase().includes(searchLower) 
+            : false;
+            
+          const usernameMatch = kol?.telegramUsername && typeof kol.telegramUsername === 'string'
+            ? kol.telegramUsername.toLowerCase().includes(searchLower)
+            : false;
+            
+          const tagsMatch = Array.isArray(kol?.tags) && kol.tags.length > 0
+            ? kol.tags.some(tag => typeof tag === 'string' && tag.toLowerCase().includes(searchLower))
+            : false;
+            
+          return displayNameMatch || usernameMatch || tagsMatch;
+        } catch (filterError) {
+          console.warn('Error filtering KOL:', kol, filterError);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Error in filteredKOLs calculation:', error);
+      return Array.isArray(kols) ? kols : [];
+    }
+  }, [kols, searchTerm]);
 
   const renderAIAnalysis = () => {
     if (!aiAnalysis) return null;
@@ -776,38 +840,40 @@ export default function KOLAnalyzer() {
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="animate-spin" size={32} />
                     </div>
-                  ) : userPosts.length === 0 ? (
+                  ) : (!Array.isArray(userPosts) || userPosts.length === 0) ? (
                     <div className="text-center text-gray-500 py-8">
                       No posts found
                     </div>
                   ) : (
-                    userPosts.map(post => (
-                      <div key={post.message_id} className="bg-white rounded-lg shadow-sm p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-gray-800 whitespace-pre-wrap">{post.text}</p>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                              <span className="flex items-center">
-                                <Clock size={16} className="mr-1" />
-                                {new Date(post.date).toLocaleDateString()}
-                              </span>
-                              {post.views !== null && (
+                    userPosts
+                      .filter(post => post && typeof post === 'object' && post.message_id)
+                      .map(post => (
+                        <div key={post.message_id} className="bg-white rounded-lg shadow-sm p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-gray-800 whitespace-pre-wrap">{post.text || 'No content'}</p>
+                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                                 <span className="flex items-center">
-                                  <TrendingUp size={16} className="mr-1" />
-                                  {post.views} views
+                                  <Clock size={16} className="mr-1" />
+                                  {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown date'}
                                 </span>
-                              )}
-                              {post.forwards !== null && (
-                                <span className="flex items-center">
-                                  <MessageCircle size={16} className="mr-1" />
-                                  {post.forwards} forwards
-                                </span>
-                              )}
+                                {post.views !== null && post.views !== undefined && (
+                                  <span className="flex items-center">
+                                    <TrendingUp size={16} className="mr-1" />
+                                    {post.views} views
+                                  </span>
+                                )}
+                                {post.forwards !== null && post.forwards !== undefined && (
+                                  <span className="flex items-center">
+                                    <MessageCircle size={16} className="mr-1" />
+                                    {post.forwards} forwards
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               )}
