@@ -89,7 +89,7 @@ export function BotDetector() {
     return 'text-red-600';
   };
 
-  const filteredResults = results.filter(result => {
+  const filteredResults = (Array.isArray(results) ? results : []).filter(result => {
     const matchesSearch = result.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          result.displayName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || result.status === filterStatus;

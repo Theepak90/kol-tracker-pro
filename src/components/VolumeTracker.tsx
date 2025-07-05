@@ -56,9 +56,12 @@ export function VolumeTracker() {
   const loadKOLs = async () => {
     try {
       const response = await apiService.getKOLs();
-      setKols(response);
+      // Ensure we always have an array
+      setKols(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Failed to load KOLs:', error);
+      // Set empty array as fallback
+      setKols([]);
     }
   };
 
@@ -112,7 +115,8 @@ export function VolumeTracker() {
     const tokens = ['PEPE', 'WOJAK', 'SHIB', 'DOGE', 'FLOKI', 'BONK', 'MEME', 'APE', 'SATS', 'ORDI'];
     const calls: CallData[] = [];
     
-    const filteredKOLs = selectedKOL === 'all' ? kols : kols.filter(k => k.telegramUsername === selectedKOL);
+    const safeKols = Array.isArray(kols) ? kols : [];
+    const filteredKOLs = selectedKOL === 'all' ? safeKols : safeKols.filter(k => k.telegramUsername === selectedKOL);
     const kolsToUse = filteredKOLs.length > 0 ? filteredKOLs : [
       { telegramUsername: 'CryptoGuru_X', displayName: 'Crypto Guru X' },
       { telegramUsername: 'TokenHunter', displayName: 'Token Hunter' },
@@ -193,7 +197,7 @@ export function VolumeTracker() {
     return 'text-red-500';
   };
 
-  const filteredCalls = recentCalls.filter(call => 
+  const filteredCalls = (Array.isArray(recentCalls) ? recentCalls : []).filter(call => 
     call.kol.toLowerCase().includes(searchTerm.toLowerCase()) ||
     call.token.toLowerCase().includes(searchTerm.toLowerCase())
   );

@@ -58,10 +58,36 @@ export default function KOLAnalyzer() {
     try {
       setIsLoadingKOLs(true);
       const kols = await apiService.getKOLs();
-      setKols(kols);
+      // Ensure we always have an array and each KOL has proper tags
+      const validKols = Array.isArray(kols) ? kols.map(kol => ({
+        ...kol,
+        tags: Array.isArray(kol.tags) ? kol.tags : []
+      })) : [];
+      setKols(validKols);
     } catch (error) {
       console.error('Failed to load KOLs:', error);
-      toast.error('Failed to load KOLs');
+      toast.error('Failed to load KOLs, using demo data');
+      // Set fallback demo data
+      setKols([
+        {
+          _id: "demo1",
+          displayName: "Crypto Whale",
+          telegramUsername: "cryptowhale",
+          description: "Leading crypto analyst and trader",
+          tags: ["crypto", "trading", "analysis"],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          _id: "demo2",
+          displayName: "DeFi Expert",
+          telegramUsername: "defiexpert",
+          description: "Decentralized finance specialist",
+          tags: ["defi", "yield", "protocols"],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]);
     } finally {
       setIsLoadingKOLs(false);
     }
@@ -264,12 +290,12 @@ export default function KOLAnalyzer() {
   };
 
   const filteredKOLs = searchTerm
-    ? kols.filter(kol => 
+    ? (Array.isArray(kols) ? kols : []).filter(kol => 
         kol.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         kol.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        kol.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        (Array.isArray(kol.tags) ? kol.tags : []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
       )
-    : kols;
+    : (Array.isArray(kols) ? kols : []);
 
   const renderAIAnalysis = () => {
     if (!aiAnalysis) return null;
