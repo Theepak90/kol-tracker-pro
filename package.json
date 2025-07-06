@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "cd backend && npm install --legacy-peer-deps --production",
-    "build:backend": "cd backend && npm install --legacy-peer-deps",
-    "build:frontend": "vite build",
+    "build": "tsc && vite build",
+    "build:backend": "cd backend && npm install --legacy-peer-deps --production",
+    "build:frontend": "npm install --legacy-peer-deps && tsc && vite build",
     "start": "cd backend && node simple-server.js",
     "start:backend": "cd backend && node simple-server.js",
-    "lint": "eslint .",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "setup": "chmod +x setup.sh && ./setup.sh",
     "start-all": "chmod +x start.sh && ./start.sh",
@@ -21,8 +21,15 @@
   "dependencies": {
     "@grammyjs/types": "^3.5.2",
     "@solana/spl-token": "^0.1.8",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-solflare": "^0.6.32",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.2",
     "axios": "^1.10.0",
+    "bcrypt": "^5.1.1",
     "big-integer": "^1.6.52",
     "cors": "^2.8.5",
     "date-fns": "^2.30.0",
@@ -40,8 +47,7 @@
     "recharts": "^2.10.3",
     "socket.io-client": "^4.8.1",
     "web3": "^4.5.0",
-    "ws": "^8.16.0",
-    "bcrypt": "^5.1.1"
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

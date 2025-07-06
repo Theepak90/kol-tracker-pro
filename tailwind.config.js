@@ -43,6 +43,9 @@ export default {
       animation: {
         'gradient': 'gradient 8s linear infinite',
         'glow': 'glow 2s ease-in-out infinite',
+        'subtle-bounce': 'subtle-bounce 2s infinite',
+        'border-animation': 'border-animation 2s linear infinite',
+        'shine': 'shine 3s infinite',
       },
       keyframes: {
         gradient: {
@@ -62,6 +65,19 @@ export default {
           '50%': {
             opacity: 0.5,
           },
+        },
+        'subtle-bounce': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-4px)' },
+        },
+        'border-animation': {
+          '0%': { opacity: '1' },
+          '50%': { opacity: '0.5' },
+          '100%': { opacity: '1' },
+        },
+        'shine': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
     },

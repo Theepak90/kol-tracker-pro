@@ -4,6 +4,7 @@ import { BarChart3, Users, TrendingUp, Shield, Activity, AlertTriangle, ArrowUpR
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { TelegramUsageGuide } from './TelegramUsageGuide';
+import { TypewriterText } from './TypewriterText';
 
 interface DashboardStats {
   totalKOLs: number;
@@ -50,13 +51,13 @@ export default function Dashboard() {
   // Simple test to ensure component renders
   if (typeof isAuthenticated === 'undefined') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-full flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-white animate-pulse" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Auth Context Loading...</h1>
-          <p className="text-gray-600">Waiting for authentication context to initialize</p>
+          <h1 className="text-2xl font-bold text-white mb-4">Auth Context Loading...</h1>
+          <p className="text-gray-400">Waiting for authentication context to initialize</p>
         </div>
       </div>
     );
@@ -65,10 +66,10 @@ export default function Dashboard() {
   // Fallback to ensure something renders
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6c5dd3] mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -171,41 +172,52 @@ export default function Dashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Hero Section */}
           <div className="text-center mb-20">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-3xl opacity-10 rounded-full"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] blur-3xl opacity-10 rounded-full"></div>
               <div className="relative">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <div className="w-20 h-20 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                   <Rocket className="w-10 h-10 text-white" />
                 </div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-6">
-                  Welcome to KOL Nexus
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-[#6c5dd3] to-[#8d7ff0] bg-clip-text text-transparent mb-6">
+                  <TypewriterText 
+                    text="Welcome to KOL Nexus"
+                    speed={150}
+                    className="bg-gradient-to-r from-white via-[#6c5dd3] to-[#8d7ff0] bg-clip-text text-transparent"
+                  />
                 </h1>
-                <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+                <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
                   Your all-in-one platform for tracking and analyzing Key Opinion Leaders in the crypto space. 
                   Discover insights, monitor trends, and stay ahead of the market.
                 </p>
                 <div className="flex justify-center gap-4 mb-8">
                   <Link
                     to="/register"
-                    className="group relative inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-2xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                    className="group relative inline-flex items-center px-8 py-4 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 animate-[subtle-bounce_2s_infinite] hover:animate-none"
                   >
-                    <UserPlus className="mr-2 h-5 w-5" />
-                    Get Started Free
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#6c5dd3] via-[#8d7ff0] to-[#6c5dd3] rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 animate-[border-animation_2s_linear_infinite] blur-sm"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-[#6c5dd3] via-[#8d7ff0] to-[#6c5dd3] rounded-[16px] opacity-30 group-hover:opacity-50 transition-all duration-500 animate-[border-animation_2s_linear_infinite] blur"></div>
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] opacity-100 group-hover:opacity-90 transition-all duration-500"></div>
+                    <div className="relative flex items-center">
+                      <UserPlus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="group-hover:tracking-wider transition-all duration-300">Get Started Free</span>
+                    </div>
                   </Link>
                   <Link
                     to="/login"
-                    className="group inline-flex items-center px-8 py-4 bg-white text-gray-700 font-semibold rounded-2xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                    className="group relative inline-flex items-center px-8 py-4 bg-[#1f1f1f]/80 backdrop-blur-sm text-white font-semibold rounded-2xl border border-[#2f2f2f] hover:border-[#6c5dd3] hover:bg-[#2f2f2f] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                   >
-                    <LogIn className="mr-2 h-5 w-5" />
-                    Sign In
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#6c5dd3] via-[#8d7ff0] to-[#6c5dd3] rounded-2xl opacity-0 group-hover:opacity-10 transition-all duration-500 blur-sm"></div>
+                    <div className="relative flex items-center">
+                      <LogIn className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="group-hover:tracking-wider transition-all duration-300">Sign In</span>
+                    </div>
                   </Link>
                 </div>
-                <div className="flex justify-center items-center gap-8 text-sm text-gray-500">
+                <div className="flex justify-center items-center gap-8 text-sm text-gray-400">
                   <div className="flex items-center gap-2">
                     <Eye className="w-4 h-4" />
                     <span>Real-time Analytics</span>
@@ -225,114 +237,128 @@ export default function Dashboard() {
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Users className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">KOL Analysis</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Track and analyze influential crypto personalities and their market impact with advanced metrics and insights.
+                </p>
+                <Link
+                  to="/kol-analyzer"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  Explore Features <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">KOL Analysis</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Track and analyze influential crypto personalities and their market impact with advanced metrics and insights.
-              </p>
-              <Link
-                to="/kol-analyzer"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                Explore Features <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <TrendingUp className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Volume Tracking</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Monitor trading volumes and market movements in real-time with comprehensive analytics and alerts.
+                </p>
+                <Link
+                  to="/volume-tracker"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  Explore Features <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Volume Tracking</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Monitor trading volumes and market movements in real-time with comprehensive analytics and alerts.
-              </p>
-              <Link
-                to="/volume-tracker"
-                className="inline-flex items-center text-green-600 hover:text-green-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                Start Tracking <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Shield className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Bot Detection</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Identify and filter out automated trading activities with AI-powered detection algorithms.
+                </p>
+                <Link
+                  to="/bot-detector"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  Detect Bots <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Bot Detection</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Identify and filter out automated trading activities with AI-powered detection algorithms.
-              </p>
-              <Link
-                to="/bot-detector"
-                className="inline-flex items-center text-purple-600 hover:text-purple-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                Detect Bots <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Search className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Search className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Channel Scanner</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Discover and analyze crypto-focused channels and communities with deep insights and metrics.
+                </p>
+                <Link
+                  to="/channel-scanner"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  Scan Channels <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Channel Scanner</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Discover and analyze crypto-focused channels and communities with deep insights and metrics.
-              </p>
-              <Link
-                to="/channel-scanner"
-                className="inline-flex items-center text-orange-600 hover:text-orange-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                Scan Channels <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Trophy className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Trophy className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Leaderboard</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Track top performers and success rates across the platform with comprehensive rankings.
+                </p>
+                <Link
+                  to="/leaderboard"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  View Rankings <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Leaderboard</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Track top performers and success rates across the platform with comprehensive rankings.
-              </p>
-              <Link
-                to="/leaderboard"
-                className="inline-flex items-center text-yellow-600 hover:text-yellow-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                View Rankings <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
 
-            <div className="group bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Gamepad2 className="h-8 w-8 text-white" />
+            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
+              <div className="content">
+                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <Gamepad2 className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Interactive Games</h3>
+                <p className="text-gray-400 mb-6 leading-relaxed">
+                  Engage with the community through interactive crypto games and prediction challenges.
+                </p>
+                <Link
+                  to="/games"
+                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  Play Games <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Interactive Games</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Engage with the community through interactive crypto games and prediction challenges.
-              </p>
-              <Link
-                to="/games"
-                className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-semibold group-hover:translate-x-1 transition-transform duration-300"
-              >
-                Play Games <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
             </div>
           </div>
 
           {/* CTA Section */}
-          <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-white">
-            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-            <p className="text-xl mb-8 opacity-90">Join thousands of traders and analysts already using KOL Nexus</p>
-            <Link
-              to="/register"
-              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-2xl hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              <Rocket className="mr-2 h-5 w-5" />
-              Start Your Journey
-            </Link>
+          <div className="text-center bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-3xl p-12 text-white network-pattern relative">
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+              <p className="text-xl mb-8 opacity-90">Join thousands of traders and analysts already using KOL Nexus</p>
+              <Link
+                to="/register"
+                className="inline-flex items-center px-8 py-4 bg-[#1f1f1f] text-[#6c5dd3] font-semibold rounded-2xl hover:bg-[#2f2f2f] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <Rocket className="mr-2 h-5 w-5" />
+                Start Your Journey
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -344,16 +370,16 @@ export default function Dashboard() {
   const topKOLs = generateTopKOLs();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-[#0f0f0f]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-[#6c5dd3] bg-clip-text text-transparent">
                 Dashboard Overview
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-400 mt-1">
                 {currentTime.toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -364,7 +390,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={handleExportReport}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              className="px-6 py-3 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] text-white font-semibold rounded-xl hover:from-[#5a4ec0] hover:to-[#7b6de0] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               Export Report
             </button>
@@ -373,17 +399,17 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="group bg-[#1f1f1f] p-6 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <Users className="h-7 w-7 text-white" />
               </div>
               <button className="text-gray-400 hover:text-gray-600 transition-colors">
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">150</h3>
-            <p className="text-gray-600 mb-4">Total KOLs</p>
+            <h3 className="text-3xl font-bold text-white mb-1">150</h3>
+            <p className="text-gray-400 mb-4">Total KOLs</p>
             <div className="flex items-center text-sm">
               <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
               <span className="text-green-500 font-semibold">12%</span>
@@ -391,17 +417,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="group bg-[#1f1f1f] p-6 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <Activity className="h-7 w-7 text-white" />
               </div>
               <button className="text-gray-400 hover:text-gray-600 transition-colors">
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">45</h3>
-            <p className="text-gray-600 mb-4">Active Channels</p>
+            <h3 className="text-3xl font-bold text-white mb-1">45</h3>
+            <p className="text-gray-400 mb-4">Active Channels</p>
             <div className="flex items-center text-sm">
               <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
               <span className="text-green-500 font-semibold">8%</span>
@@ -409,17 +435,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="group bg-[#1f1f1f] p-6 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <AlertTriangle className="h-7 w-7 text-white" />
               </div>
               <button className="text-gray-400 hover:text-gray-600 transition-colors">
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">23</h3>
-            <p className="text-gray-600 mb-4">Detected Bots</p>
+            <h3 className="text-3xl font-bold text-white mb-1">23</h3>
+            <p className="text-gray-400 mb-4">Detected Bots</p>
             <div className="flex items-center text-sm">
               <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
               <span className="text-red-500 font-semibold">5%</span>
@@ -427,17 +453,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="group bg-[#1f1f1f] p-6 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <BarChart3 className="h-7 w-7 text-white" />
               </div>
               <button className="text-gray-400 hover:text-gray-600 transition-colors">
                 <MoreHorizontal className="h-5 w-5" />
               </button>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">$1.25M</h3>
-            <p className="text-gray-600 mb-4">Total Volume</p>
+            <h3 className="text-3xl font-bold text-white mb-1">$1.25M</h3>
+            <p className="text-gray-400 mb-4">Total Volume</p>
             <div className="flex items-center text-sm">
               <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
               <span className="text-green-500 font-semibold">15%</span>
@@ -455,82 +481,82 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <button
             onClick={handleScanChannels}
-            className="group flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+            className="group flex items-center justify-between p-6 bg-[#1f1f1f] rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
           >
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
                 <Search className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-bold text-gray-900">Scan Channels</h3>
-                <p className="text-gray-600">Analyze new groups</p>
+                <h3 className="text-lg font-bold text-white">Scan Channels</h3>
+                <p className="text-gray-400">Analyze new groups</p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-300" />
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6c5dd3] group-hover:translate-x-1 transition-all duration-300" />
           </button>
 
           <Link
             to="/kol-analyzer"
-            className="group flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+            className="group flex items-center justify-between p-6 bg-[#1f1f1f] rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
           >
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-bold text-gray-900">KOL Analysis</h3>
-                <p className="text-gray-600">Track influencers</p>
+                <h3 className="text-lg font-bold text-white">KOL Analysis</h3>
+                <p className="text-gray-400">Track influencers</p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-green-500 group-hover:translate-x-1 transition-all duration-300" />
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6c5dd3] group-hover:translate-x-1 transition-all duration-300" />
           </Link>
 
           <Link
             to="/bot-detector"
-            className="group flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+            className="group flex items-center justify-between p-6 bg-[#1f1f1f] rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
           >
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
                 <Bot className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-bold text-gray-900">Bot Detection</h3>
-                <p className="text-gray-600">Identify automation</p>
+                <h3 className="text-lg font-bold text-white">Bot Detection</h3>
+                <p className="text-gray-400">Identify automation</p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-300" />
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6c5dd3] group-hover:translate-x-1 transition-all duration-300" />
           </Link>
 
           <Link
             to="/volume-tracker"
-            className="group flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+            className="group flex items-center justify-between p-6 bg-[#1f1f1f] rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
           >
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300">
                 <TrendingUp className="h-6 w-6 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-bold text-gray-900">Volume Tracking</h3>
-                <p className="text-gray-600">Monitor trades</p>
+                <h3 className="text-lg font-bold text-white">Volume Tracking</h3>
+                <p className="text-gray-400">Monitor trades</p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all duration-300" />
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6c5dd3] group-hover:translate-x-1 transition-all duration-300" />
           </Link>
         </div>
 
         {/* Top KOLs */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+        <div className="bg-[#1f1f1f] rounded-2xl shadow-lg border border-[#2f2f2f] overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Top KOLs</h2>
+              <h2 className="text-xl font-bold text-white">Top KOLs</h2>
               <Link
                 to="/leaderboard"
-                className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center"
+                className="text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold text-sm flex items-center"
               >
                 View All <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
             </div>
-            <p className="text-gray-600 text-sm mt-1">Performance overview of leading influencers</p>
+            <p className="text-gray-400 text-sm mt-1">Performance overview of leading influencers</p>
           </div>
           
           <div className="overflow-x-auto">
@@ -549,7 +575,7 @@ export default function Dashboard() {
                   <tr key={kol.username} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-full flex items-center justify-center mr-3">
                           <span className="text-white font-semibold text-sm">{kol.username.charAt(0).toUpperCase()}</span>
                         </div>
                         <div>
@@ -566,7 +592,7 @@ export default function Dashboard() {
                         <div className="text-sm font-semibold text-green-600">{kol.successRate}%</div>
                         <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
                           <div 
-                            className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" 
+                            className="bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] h-2 rounded-full" 
                             style={{ width: `${kol.successRate}%` }}
                           ></div>
                         </div>

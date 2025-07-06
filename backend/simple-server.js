@@ -68,6 +68,42 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Telegram service status check
+app.get('/api/telegram-status', async (req, res) => {
+  try {
+    const telethonUrl = process.env.TELETHON_URL || 'http://localhost:8000';
+    const response = await fetch(`${telethonUrl}/health`, {
+      timeout: 5000
+    });
+    
+    if (response.ok) {
+      const healthData = await response.json();
+      res.json({
+        connected: true,
+        status: 'online',
+        uptime: healthData.uptime || 'unknown',
+        lastCheck: new Date().toISOString(),
+        service: 'telethon'
+      });
+    } else {
+      res.json({
+        connected: false,
+        status: 'service_error',
+        lastCheck: new Date().toISOString(),
+        service: 'telethon'
+      });
+    }
+  } catch (error) {
+    res.json({
+      connected: false,
+      status: 'offline',
+      error: error.message,
+      lastCheck: new Date().toISOString(),
+      service: 'telethon'
+    });
+  }
+});
+
 // Get all KOLs
 app.get('/api/kols', async (req, res) => {
   try {
@@ -942,6 +978,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Ping handler for connection testing
+  socket.on('ping', (data) => {
+    socket.emit('pong', { timestamp: Date.now(), received: data });
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`🔴 User disconnected: ${socket.id}`);
@@ -1236,24 +1277,65 @@ const mockKOLs = [
 // Connect to MongoDB
 async function connectDB() {
   try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    db = client.db('kol_tracker');
+    const client = await MongoClient.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    
     console.log('Connected to MongoDB');
+    db = client.db();
+    
+    // Handle MongoDB disconnection
+    client.on('close', () => {
+      console.log('MongoDB connection closed. Attempting to reconnect...');
+      setTimeout(connectDB, 5000);
+    });
+    
+    client.on('error', (error) => {
+      console.error('MongoDB connection error:', error);
+      setTimeout(connectDB, 5000);
+    });
+    
+    return client;
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('Failed to connect to MongoDB:', error);
+    console.log('Retrying connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
+    return null;
   }
 }
 
 // Start server
 async function startServer() {
-  await connectDB();
-  
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 KOL Tracker API running on port ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/api`);
-    console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
-  });
+  try {
+    await connectDB();
+    
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log('Connected to MongoDB');
+      console.log(`🚀 KOL Tracker API running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api`);
+      console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
+      console.log(`🎮 Socket.IO enabled for real-time gaming`);
+    });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Trying again in 5 seconds...`);
+        setTimeout(() => {
+          server.close();
+          server.listen(PORT, '0.0.0.0');
+        }, 5000);
+      } else {
+        console.error('Server error:', error);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-startServer().catch(console.error); 
+startServer(); 

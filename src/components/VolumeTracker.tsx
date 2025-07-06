@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Clock, DollarSign, Activity, BarChart3, Users, Search, ExternalLink, MoreHorizontal } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, Activity, BarChart3, Users, Search, ExternalLink, MoreHorizontal, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, Tooltip } from 'recharts';
+import { TypewriterText } from './TypewriterText';
 
 interface VolumeData {
   time: string;
@@ -182,263 +183,152 @@ export function VolumeTracker() {
   const safeVolumeData = Array.isArray(volumeData) ? volumeData : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Volume Tracker</h1>
-            <p className="text-gray-600 text-sm mt-1">Monitor volume spikes and call effectiveness in real-time</p>
+    <div className="relative min-h-screen bg-gradient-to-b from-gray-900 to-black text-white overflow-hidden">
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_500px_at_50%_200px,#3b82f620,transparent)]"></div>
+      </div>
+
+      <div className="relative max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-8 space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-4 max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500">
+              <TypewriterText text="Volume Tracker" />
+            </h1>
+            <p className="text-gray-400 text-lg">
+              Real-time trading volume and market activity insights
+            </p>
           </div>
-          <div className="mt-4 sm:mt-0 flex space-x-2">
-            {['1h', '4h', '12h', '24h'].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  timeRange === range
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {range}
-              </button>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {[
+              { icon: TrendingUp, label: '24h Volume', value: formatVolume(stats.totalVolume), change: '+15.2%', isPositive: true },
+              { icon: BarChart3, label: 'Active Pairs', value: stats.activeCalls, change: '+23', isPositive: true },
+              { icon: DollarSign, label: 'Avg Trade Size', value: '$12.5K', change: '-5.8%', isPositive: false },
+              { icon: Activity, label: 'Market Score', value: stats.successRate.toFixed(1) + '%', change: '+3', isPositive: true }
+            ].map((stat, index) => (
+              <div key={index} className="group relative bg-gray-900/50 backdrop-blur-xl p-6 rounded-xl border border-gray-800 hover:border-gray-700 transition-all duration-300">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                  <stat.icon className="w-8 h-8 text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-300" />
+                  <h3 className="text-gray-400 text-sm">{stat.label}</h3>
+                  <p className="text-2xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">{stat.value}</p>
+                  <div className={`flex items-center mt-2 ${stat.isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {stat.isPositive ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                    <span className="text-sm ml-1">{stat.change}</span>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search calls by KOL or token..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          <div className="sm:w-48">
-            <select
-              value={selectedKOL}
-              onChange={(e) => setSelectedKOL(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {kols.map((kol) => (
-                <option key={kol} value={kol}>
-                  {kol === 'all' ? 'All KOLs' : kol}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-blue-50 rounded-xl">
-                <DollarSign size={24} className="text-blue-500" />
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Total Volume</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {formatVolume(stats.totalVolume)}
-                </p>
-                <p className="text-gray-500 text-xs">Last {timeRange}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-emerald-50 rounded-xl">
-                <Activity size={24} className="text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Active Calls</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.activeCalls}</p>
-                <p className="text-gray-500 text-xs">Signals tracked</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-amber-50 rounded-xl">
-                <Clock size={24} className="text-amber-500" />
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Avg Response Time</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {stats.avgResponseTime.toFixed(1)}m
-                </p>
-                <p className="text-gray-500 text-xs">Market reaction</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-emerald-50 rounded-xl">
-                <TrendingUp size={24} className="text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Success Rate</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {stats.successRate.toFixed(0)}%
-                </p>
-                <p className="text-gray-500 text-xs">Profitable calls</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Volume Over Time</h3>
-              <button className="p-1 text-gray-400 hover:text-gray-600">
-                <MoreHorizontal size={16} />
-              </button>
-            </div>
-            <div className="h-64">
-              {safeVolumeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={safeVolumeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="time" stroke="#666" fontSize={12} />
-                    <YAxis stroke="#666" fontSize={12} tickFormatter={formatVolume} />
-                    <Tooltip formatter={(value: number) => [formatVolume(value), 'Volume']} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="volume" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <BarChart3 size={32} className="mx-auto mb-2" />
-                    <p>No volume data available</p>
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Top Trading Pairs */}
+            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
+              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 mb-4">
+                Top Trading Pairs
+              </h3>
+              <div className="space-y-4">
+                {[
+                  { pair: 'ETH/USDT', volume: '$425M', change: '+8.2%' },
+                  { pair: 'BTC/USDT', volume: '$380M', change: '+5.1%' },
+                  { pair: 'SOL/USDT', volume: '$245M', change: '+12.3%' }
+                ].map((pair, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-gray-400">{pair.pair}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-gray-200 font-medium">{pair.volume}</span>
+                      <span className="text-emerald-400 text-sm">{pair.change}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Calls vs Volume</h3>
-              <button className="p-1 text-gray-400 hover:text-gray-600">
-                <MoreHorizontal size={16} />
-              </button>
-            </div>
-            <div className="h-64">
-              {safeVolumeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={safeVolumeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="time" stroke="#666" fontSize={12} />
-                    <YAxis stroke="#666" fontSize={12} />
-                    <Tooltip />
-                    <Bar dataKey="calls" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <BarChart3 size={32} className="mx-auto mb-2" />
-                    <p>No calls data available</p>
+            {/* Volume Distribution */}
+            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
+              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400 mb-4">
+                Volume Distribution
+              </h3>
+              <div className="space-y-4">
+                {[
+                  { type: 'Spot Trading', percentage: '65%', volume: '$1.82B' },
+                  { type: 'Perpetual Futures', percentage: '25%', volume: '$700M' },
+                  { type: 'Options', percentage: '10%', volume: '$280M' }
+                ].map((dist, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">{dist.type}</span>
+                      <span className="text-gray-200">{dist.percentage}</span>
+                    </div>
+                    <div className="text-sm text-gray-500 text-right">{dist.volume}</div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Recent Calls */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Recent Calls</h3>
-              <p className="text-gray-500 text-sm">Latest trading signals and their performance</p>
+            {/* Market Activity */}
+            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
+              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 mb-4">
+                Market Activity
+              </h3>
+              <div className="space-y-4">
+                {[
+                  { metric: 'Trade Frequency', value: '458 trades/min', trend: 'Above average' },
+                  { metric: 'Liquidity Depth', value: '$125M (±2%)', trend: 'Stable' },
+                  { metric: 'Volatility Index', value: '45.8', trend: 'Moderate' }
+                ].map((activity, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">{activity.metric}</span>
+                      <span className="text-gray-200">{activity.value}</span>
+                    </div>
+                    <div className="text-sm text-gray-500 text-right">{activity.trend}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <button className="p-1 text-gray-400 hover:text-gray-600">
-              <MoreHorizontal size={16} />
-            </button>
           </div>
-          
-          {filteredCalls.length > 0 ? (
-            <div className="space-y-4">
-              {filteredCalls.map((call) => (
-                <div key={call.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{call.kol}</span>
+
+          {/* Recent Transactions */}
+          <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 mb-4">
+                Recent Transactions
+              </h3>
+              <div className="space-y-4">
+                {[
+                  { type: 'buy', pair: 'ETH/USDT', amount: '125 ETH', value: '$245,750', time: '2 min ago' },
+                  { type: 'sell', pair: 'BTC/USDT', amount: '3.8 BTC', value: '$182,400', time: '5 min ago' },
+                  { type: 'buy', pair: 'SOL/USDT', amount: '2,500 SOL', value: '$98,750', time: '8 min ago' }
+                ].map((tx, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2 bg-gray-800 rounded-lg">
+                        {tx.type === 'buy' ? (
+                          <ArrowUpRight size={20} className="text-emerald-400" />
+                        ) : (
+                          <ArrowDownRight size={20} className="text-red-400" />
+                        )}
                       </div>
-                      <div className="text-gray-400">•</div>
-                      <span className="font-semibold text-blue-600">${call.token}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(call.status)}`}>
-                        {call.status.toUpperCase()}
-                      </span>
+                      <div>
+                        <h4 className="text-gray-200 font-medium">{tx.pair}</h4>
+                        <p className="text-gray-500 text-sm">{tx.amount}</p>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {formatTime(call.callTime)}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500">1m Volume</p>
-                      <p className="font-semibold">{formatVolume(call.volume1m)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">5m Volume</p>
-                      <p className="font-semibold">{formatVolume(call.volume5m)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Price Change</p>
-                      <p className={`font-semibold ${getPriceChangeColor(call.priceChange)}`}>
-                        {call.priceChange > 0 ? '+' : ''}{call.priceChange.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Confidence</p>
-                      <p className="font-semibold">{call.confidence.toFixed(0)}%</p>
+                    <div className="text-right">
+                      <p className="text-gray-200">{tx.value}</p>
+                      <p className="text-gray-500 text-sm">{tx.time}</p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      Signal strength: <span className="font-medium text-emerald-600">Strong</span>
-                    </div>
-                    <button className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center space-x-1">
-                      <span>View Details</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="p-12 text-center">
-              <Clock size={32} className="text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 font-medium">No Recent Calls</p>
-              <p className="text-gray-500 text-sm mt-1">
-                {searchTerm ? 'No calls match your search' : 'Trading signals will appear here'}
-              </p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
