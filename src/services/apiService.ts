@@ -68,17 +68,25 @@ class ApiService {
 
   private async checkConnectivity(): Promise<boolean> {
     try {
+      // For local testing, always try the backend first
       const response = await fetch(`${this.baseUrl}/api/health`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(10000) // Increased timeout for local testing
       });
       this.isOnline = response.ok;
+      
+      if (this.isOnline) {
+        console.log('✅ Backend connected successfully');
+      } else {
+        console.warn('⚠️ Backend responded but not healthy');
+      }
+      
       return this.isOnline;
     } catch (error) {
-      console.warn('Backend service unavailable, using fallback data');
+      console.error('❌ Backend connection failed:', error);
       this.isOnline = false;
       return false;
     }
@@ -90,8 +98,7 @@ class ApiService {
       const isBackendAvailable = await this.checkConnectivity();
       
       if (!isBackendAvailable) {
-        console.log('📱 Using demo data - backend service unavailable');
-        return FALLBACK_KOLS;
+        throw new Error('Backend service not available - check if local backend is running on port 3000');
       }
 
       const response = await fetch(`${this.baseUrl}/api/kols`, {
@@ -108,11 +115,11 @@ class ApiService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : FALLBACK_KOLS;
+      console.log('📊 Loaded KOLs from backend:', data.length || 0);
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('❌ Error fetching KOLs:', error);
-      console.log('📱 Using demo data as fallback');
-      return FALLBACK_KOLS;
+      throw error; // Don't use fallback, let the error bubble up
     }
   }
 

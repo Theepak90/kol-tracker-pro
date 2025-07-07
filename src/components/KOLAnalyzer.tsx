@@ -128,6 +128,7 @@ export default function KOLAnalyzer() {
   const loadKOLs = async () => {
     try {
       setError(null);
+      console.log('🔄 Loading KOLs from backend...');
       const data = await apiService.getKOLs();
       
       // Transform data to match expected format
@@ -146,15 +147,17 @@ export default function KOLAnalyzer() {
       })) : [];
       
       setKols(transformedKOLs);
+      console.log(`✅ Loaded ${transformedKOLs.length} KOLs successfully`);
       
-      // Check if backend is working
-      const backendStatus = apiService.getConnectionStatus();
-      if (!backendStatus) {
-        setError('⚠️ Backend service is starting up. Some features may use demo data temporarily.');
+      // Show success message
+      if (transformedKOLs.length > 0) {
+        setError(null);
+      } else {
+        setError('ℹ️ No KOLs found. Add some KOLs to get started.');
       }
     } catch (error) {
-      console.error('Error loading KOLs:', error);
-      setError('Failed to connect to backend. Please check your connection.');
+      console.error('❌ Error loading KOLs:', error);
+      setError(`❌ Failed to connect to backend: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setKols([]);
     }
   };

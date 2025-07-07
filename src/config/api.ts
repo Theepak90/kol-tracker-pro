@@ -1,6 +1,9 @@
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
 
+// Force local development for testing
+const FORCE_LOCAL = true; // Set to false when Render backend is working
+
 // Development URLs (local)
 const DEV_BACKEND_URL = 'http://localhost:3000';
 const DEV_TELETHON_URL = 'http://localhost:8000';
@@ -12,9 +15,9 @@ const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://
 const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kolnexus-backend.onrender.com';
 
 // Export the appropriate URLs based on environment
-export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;
-export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : PROD_TELETHON_URL;
-export const WS_URL = isDevelopment ? DEV_WS_URL : PROD_WS_URL;
+export const API_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_BACKEND_URL : PROD_BACKEND_URL;
+export const TELETHON_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_TELETHON_URL : PROD_TELETHON_URL;
+export const WS_URL = (isDevelopment || FORCE_LOCAL) ? DEV_WS_URL : PROD_WS_URL;
 
 // Ensure URLs are properly formatted
 export const ensureHttps = (url: string) => {
