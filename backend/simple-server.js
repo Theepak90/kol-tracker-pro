@@ -1057,32 +1057,42 @@ async function connectDB() {
   }
 }
 
+// Keep-alive mechanism for Render free tier
+if (process.env.KEEP_ALIVE === 'true') {
+  const SELF_PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  const selfPingUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  
+  setInterval(async () => {
+    try {
+      const response = await fetch(`${selfPingUrl}/health`);
+      if (response.ok) {
+        console.log(`🏓 Keep-alive ping successful at ${new Date().toISOString()}`);
+      }
+    } catch (error) {
+      console.log(`❌ Keep-alive ping failed: ${error.message}`);
+    }
+  }, SELF_PING_INTERVAL);
+  
+  console.log('🔄 Keep-alive mechanism enabled');
+}
+
 // Start server
 async function startServer() {
   try {
-  await connectDB();
-  
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log('Connected to MongoDB');
-    console.log(`🚀 KOL Tracker API running on port ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/api`);
+    await connectDB();
+    
+    server.listen(PORT, () => {
+      console.log(`🚀 KOL Tracker API running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api`);
       console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
-      console.log(`🎮 Socket.IO enabled for real-time gaming`);
-    });
-
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. Trying again in 5 seconds...`);
-        setTimeout(() => {
-          server.close();
-          server.listen(PORT, '0.0.0.0');
-        }, 5000);
-      } else {
-        console.error('Server error:', error);
+      console.log('🎮 Socket.IO enabled for real-time gaming');
+      
+      if (process.env.KEEP_ALIVE === 'true') {
+        console.log('🔄 Keep-alive pings will start in 10 minutes');
       }
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
