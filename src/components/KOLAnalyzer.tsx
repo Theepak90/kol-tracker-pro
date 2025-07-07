@@ -92,8 +92,8 @@ export default function KOLAnalyzer() {
     loadKOLs();
     checkTelegramStatus();
     
-    // Check Telegram status every 30 seconds
-    const statusInterval = setInterval(checkTelegramStatus, 30000);
+    // Check Telegram status every 5 minutes instead of 30 seconds to reduce errors
+    const statusInterval = setInterval(checkTelegramStatus, 300000);
     return () => clearInterval(statusInterval);
   }, []);
 
@@ -106,13 +106,22 @@ export default function KOLAnalyzer() {
         lastCheck: new Date().toISOString(),
         uptime: status.uptime
       });
-    } catch (error) {
-      console.error('Telegram status check failed:', error);
-      setTelegramError('Unable to connect to Telegram service');
+      
+      // Only show error if we haven't shown demo mode message
+      if (!status.connected && !error?.includes('Demo Mode')) {
+        setTelegramError('Telegram service unavailable - using demo data');
+      }
+    } catch (err) {
+      // Silently handle connection errors when in demo mode
+      console.log('Telegram service check - using demo mode');
       setTelegramStatus({
         connected: false,
         lastCheck: new Date().toISOString()
       });
+      
+      if (!error?.includes('Demo Mode')) {
+        setTelegramError('Telegram service unavailable - using demo data');
+      }
     }
   };
 
@@ -138,14 +147,14 @@ export default function KOLAnalyzer() {
       
       setKols(transformedKOLs);
       
-      // Show demo mode indicator if using fallback data
-      const isUsingFallback = data.some(kol => kol.discoveredFrom === 'Demo Data');
-      if (isUsingFallback) {
-        setError('📱 Demo Mode: Backend services unavailable, showing demo data');
+      // Check if backend is working
+      const backendStatus = apiService.getConnectionStatus();
+      if (!backendStatus) {
+        setError('⚠️ Backend service is starting up. Some features may use demo data temporarily.');
       }
     } catch (error) {
       console.error('Error loading KOLs:', error);
-      setError('Failed to load KOLs. Using demo data.');
+      setError('Failed to connect to backend. Please check your connection.');
       setKols([]);
     }
   };
@@ -505,30 +514,41 @@ export default function KOLAnalyzer() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1c1c1c] text-white p-6">
-      {/* Service Status */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">KOL Analyzer</h1>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-[#333]">
+        <div>
+          <h1 className="text-2xl font-bold text-white">KOL Analyzer</h1>
+          <TypewriterText 
+            text="Discover and analyze Key Opinion Leaders in crypto communities"
+            className="text-neutral-400 text-sm mt-1"
+          />
+        </div>
+        
+        {/* Status Indicators */}
         <div className="flex items-center space-x-4">
+          {/* Demo Mode Banner */}
+          {error?.includes('Demo Mode') && (
+            <div className="flex items-center space-x-2 bg-blue-600/20 border border-blue-500/30 rounded-lg px-3 py-1">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <span className="text-blue-300 text-sm">Demo Mode</span>
+            </div>
+          )}
+          
+          {/* Telegram Status */}
           <div className="flex items-center space-x-2">
             {telegramStatus.connected ? (
               <>
-                <Wifi className="w-5 h-5 text-green-400" />
-                <span className="text-sm text-green-400">Telegram Connected</span>
+                <Wifi className="w-4 h-4 text-green-400" />
+                <span className="text-green-400 text-sm">Telegram Connected</span>
               </>
             ) : (
               <>
-                <WifiOff className="w-5 h-5 text-red-400" />
-                <span className="text-sm text-red-400">Telegram Disconnected</span>
+                <WifiOff className="w-4 h-4 text-red-400" />
+                <span className="text-red-400 text-sm">Telegram Disconnected</span>
               </>
             )}
           </div>
-          {telegramError && (
-            <div className="text-sm text-red-400 flex items-center space-x-1">
-              <AlertTriangle className="w-4 h-4" />
-              <span>{telegramError}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -577,7 +597,7 @@ export default function KOLAnalyzer() {
                     <Plus className="w-5 h-5" />
                   )}
                 </button>
-            </div>
+              </div>
 
               {/* Group Scanner */}
               <div className="relative">
@@ -613,9 +633,9 @@ export default function KOLAnalyzer() {
                 <span>{error}</span>
               </div>
             )}
-            </div>
+          </div>
 
-            {/* KOL List */}
+          {/* KOL List */}
           <div className="space-y-2">
             {filteredKOLs.map(kol => (
               <button
@@ -643,34 +663,34 @@ export default function KOLAnalyzer() {
                     <div className="font-medium text-neutral-300">{formatNumber(kol.stats.posts)}</div>
                     <div>Posts</div>
                   </div>
-                        <div>
+                  <div>
                     <div className="font-medium text-neutral-300">{formatNumber(kol.stats.views)}</div>
                     <div>Views</div>
-                        </div>
+                  </div>
                   <div>
                     <div className="font-medium text-neutral-300">{formatNumber(kol.stats.forwards)}</div>
                     <div>Forwards</div>
-              </div>
+                  </div>
                 </div>
               </button>
             ))}
-            </div>
           </div>
+        </div>
 
         {/* Main Content Area */}
         <div className="col-span-12 lg:col-span-9">
-              {selectedKOL ? (
+          {selectedKOL ? (
             <div className="space-y-6">
-                  {/* KOL Header */}
+              {/* KOL Header */}
               <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
-                    <div className="flex items-start justify-between">
-                      <div>
+                <div className="flex items-start justify-between">
+                  <div>
                     <h2 className="text-xl font-bold">{selectedKOL.name}</h2>
                     <p className="text-neutral-400">@{selectedKOL.username}</p>
                     <p className="mt-2 text-sm text-neutral-300">{selectedKOL.description}</p>
-                        </div>
+                  </div>
                   <div className="flex items-center space-x-2">
-                        <button
+                    <button
                       onClick={refreshPosts}
                       disabled={fetchingPosts}
                       className="p-2 rounded-lg bg-[#1c1c1c] border border-[#333]
@@ -678,26 +698,26 @@ export default function KOLAnalyzer() {
                         disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Activity className={`w-5 h-5 ${fetchingPosts ? 'animate-spin' : ''}`} />
-                        </button>
-                      </div>
-                    </div>
+                    </button>
+                  </div>
+                </div>
 
                 <div className="mt-4 flex items-center space-x-4">
-                        {selectedKOL.tags.map(tag => (
+                  {selectedKOL.tags.map(tag => (
                     <span
                       key={tag}
                       className="px-3 py-1 text-sm bg-[#1c1c1c] text-neutral-300 rounded-full border border-[#333]"
                     >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                  </div>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-                  {/* Tabs */}
+              {/* Tabs */}
               <div className="flex items-center space-x-4 border-b border-[#333] pb-4">
-                      <button
-                        onClick={() => setActiveView('posts')}
+                <button
+                  onClick={() => setActiveView('posts')}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
                     ${activeView === 'posts'
                       ? 'bg-[#242424] text-white'
@@ -706,9 +726,9 @@ export default function KOLAnalyzer() {
                 >
                   <MessageCircle className="w-5 h-5" />
                   <span>Posts</span>
-                      </button>
-                      <button
-                        onClick={() => setActiveView('analysis')}
+                </button>
+                <button
+                  onClick={() => setActiveView('analysis')}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
                     ${activeView === 'analysis'
                       ? 'bg-[#242424] text-white'
@@ -717,8 +737,8 @@ export default function KOLAnalyzer() {
                 >
                   <Brain className="w-5 h-5" />
                   <span>Analysis</span>
-                      </button>
-                  </div>
+                </button>
+              </div>
 
               {/* Content */}
               <div className="space-y-4">
@@ -832,8 +852,8 @@ export default function KOLAnalyzer() {
                                 >
                                   {analysis.overall_sentiment.label}
                                 </span>
-                        </div>
-                            <div className="flex items-center justify-between">
+                              </div>
+                              <div className="flex items-center justify-between">
                                 <span>Sentiment Score</span>
                                 <span>{(analysis.overall_sentiment.score * 100).toFixed(1)}%</span>
                               </div>
@@ -929,7 +949,7 @@ export default function KOLAnalyzer() {
                                   {analysis.influence_metrics.market_impact_potential}
                                 </span>
                               </div>
-                            <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between">
                                 <span>Credibility Score</span>
                                 <span>{analysis.influence_metrics.credibility_score.toFixed(1)}%</span>
                               </div>
@@ -944,7 +964,7 @@ export default function KOLAnalyzer() {
                                       {area}
                                     </span>
                                   ))}
-                              </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1012,8 +1032,8 @@ export default function KOLAnalyzer() {
                                 >
                                   <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                                   <p>{insight}</p>
-                              </div>
-                            ))}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         </div>
@@ -1024,10 +1044,10 @@ export default function KOLAnalyzer() {
                       </div>
                     )}
                   </>
-                    )}
-                  </div>
-                </div>
-              ) : (
+                )}
+              </div>
+            </div>
+          ) : (
             <div className="flex flex-col items-center justify-center py-24 text-neutral-400">
               <Users className="w-12 h-12 mb-4" />
               <p>Select a KOL to view details</p>

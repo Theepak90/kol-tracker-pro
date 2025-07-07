@@ -69,9 +69,12 @@ class ApiService {
   private async checkConnectivity(): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/api/health`, {
-        method: 'HEAD',
-        timeout: 5000
-      } as RequestInit);
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(5000)
+      });
       this.isOnline = response.ok;
       return this.isOnline;
     } catch (error) {

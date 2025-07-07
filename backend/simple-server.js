@@ -93,6 +93,27 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Additional health endpoint for consistency
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    message: 'KOL Tracker API is running!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
+  });
+});
+
+// Root health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    service: 'kol-tracker-backend',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Telegram service status check
 app.get('/api/telegram-status', async (req, res) => {
   try {

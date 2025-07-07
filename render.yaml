@@ -17,7 +17,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://kol-tracker-pro.vercel.app,https://kolnexus-backend.onrender.com
+        value: https://kol-tracker-pro.vercel.app,https://kolnexus-backend.onrender.com,https://kolnexus.vercel.app
     healthCheckPath: /api
     domains:
       - kolnexus-backend.onrender.com
