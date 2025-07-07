@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { WS_URL } from '../config/api';
 
 export interface GameRoom {
   id: string;
@@ -35,7 +36,7 @@ class WebSocketService {
   connect() {
     if (this.socket?.connected) return;
 
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(WS_URL, {
       transports: ['websocket'],
       autoConnect: true,
     });

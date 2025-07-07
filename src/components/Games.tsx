@@ -423,7 +423,7 @@ function PracticeMode({ onBack }: { onBack: () => void }) {
       maxBet: 15
     }
   ];
-
+  
   return (
     <div className="min-h-screen relative">
       <div className="fixed inset-0 z-0" style={{
@@ -443,7 +443,7 @@ function PracticeMode({ onBack }: { onBack: () => void }) {
                 className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
               >
                 <ArrowLeft size={20} className="text-white" />
-              </button>
+          </button>
               <div>
                 <h1 className="text-3xl font-bold text-white">Practice Mode</h1>
                 <p className="text-gray-400">Learn without risk using virtual coins</p>
@@ -455,7 +455,7 @@ function PracticeMode({ onBack }: { onBack: () => void }) {
                 <span className="text-white font-semibold">{practiceCoins} Practice Coins</span>
               </div>
             </div>
-          </div>
+        </div>
 
           {/* Practice Games Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -468,7 +468,7 @@ function PracticeMode({ onBack }: { onBack: () => void }) {
                     <div className="flex items-center gap-4 mb-4">
                       <div className={`w-12 h-12 bg-gradient-to-r ${game.color} rounded-xl flex items-center justify-center`}>
                         <Icon className="w-6 h-6 text-white" />
-                      </div>
+          </div>
                       <div className="px-3 py-1 bg-emerald-400/20 text-emerald-400 text-xs rounded-full font-medium">
                         PRACTICE
                       </div>
@@ -496,7 +496,7 @@ function PracticeMode({ onBack }: { onBack: () => void }) {
                 </div>
               );
             })}
-          </div>
+        </div>
 
           {/* Practice Benefits */}
           <div className="mt-12 bg-black/30 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
@@ -690,7 +690,7 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
             Back to Games
           </button>
         </div>
-      </div>
+            </div>
 
       {/* JACKPOT Header */}
       <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
@@ -709,10 +709,10 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-400">Bet Amount ~$0</span>
-                <input
-                  type="number"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(Number(e.target.value))}
+                  <input
+                    type="number"
+                    value={betAmount}
+                    onChange={(e) => setBetAmount(Number(e.target.value))}
                   className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="0"
                   step="0.001"
@@ -729,7 +729,7 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
                 >
                   +1
                 </button>
-              </div>
+                  </div>
               <button 
                 onClick={handlePlaceBet}
                 disabled={betAmount <= 0 || isSpinning || isPlacingBet || !walletConnected}
@@ -737,10 +737,10 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
               >
                 {isPlacingBet ? 'Placing Bet...' : isSpinning ? 'Spinning...' : 'Place Bet'}
               </button>
+                </div>
+              </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Game Area */}
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -761,11 +761,11 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
               <div className="flex items-center justify-center space-x-2">
                 <Coins size={24} className="text-gray-400" />
                 <span>{userWager.toFixed(3)}</span>
-              </div>
             </div>
-            <div className="text-gray-400 font-medium">Your Wager</div>
           </div>
-          
+            <div className="text-gray-400 font-medium">Your Wager</div>
+        </div>
+
           <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-700 p-6 text-center shadow-lg">
             <div className="text-3xl font-bold text-white mb-2">{userChance.toFixed(2)}%</div>
             <div className="text-gray-400 font-medium">Your Chance</div>
@@ -774,7 +774,7 @@ function MegaJackpot({ onBack }: { onBack: () => void }) {
           <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-700 p-6 text-center shadow-lg">
             <div className={`text-3xl font-bold mb-2 ${timeRemaining <= 10 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
               {formatTime(timeRemaining)}
-            </div>
+          </div>
             <div className="text-gray-400 font-medium">Time Remaining</div>
           </div>
         </div>
@@ -1314,7 +1314,7 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
   const getJoinButton = (game: any) => {
     switch (game.status) {
       case 'waiting':
-        return (
+    return (
           <button className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
             Join
           </button>
@@ -1352,10 +1352,10 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
             className="flex items-center text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft size={20} className="mr-2" />
-            Back to Games
-          </button>
-        </div>
-      </div>
+              Back to Games
+            </button>
+          </div>
+            </div>
 
       {/* COINFLIP Header */}
       <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
@@ -1367,15 +1367,15 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                 <span className="text-2xl font-bold">COINFLIP</span>
               </div>
               <span className="text-gray-400">The classic 50/50 game mode.</span>
-            </div>
-            
+          </div>
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-400">Bet Amount ~$0</span>
-                <input
-                  type="number"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(Number(e.target.value))}
+                    <input
+                      type="number"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(Number(e.target.value))}
                   className="w-24 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="0"
                 />
@@ -1385,26 +1385,26 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                 <button className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors">
                   +1
                 </button>
-              </div>
+                    </div>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
                   <Coins size={16} className="text-white" />
-                </div>
+                  </div>
                 <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                   <DollarSign size={16} className="text-white" />
                 </div>
-              </div>
-              <button 
+                </div>
+              <button
                 onClick={handleCreateGame}
                 disabled={isCreating || !walletConnected}
                 className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreating ? 'Creating...' : 'Create Game'}
               </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Game List Header */}
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -1413,12 +1413,12 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
             <div className="flex items-center space-x-2">
               <span className="text-lg font-semibold">ALL GAMES</span>
               <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-sm">64</span>
-            </div>
+          </div>
             <div className="flex items-center space-x-2 text-sm text-gray-400">
               <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
               <span>Payouts are settled in SOL</span>
-            </div>
-          </div>
+        </div>
+      </div>
           
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -1442,7 +1442,7 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                 <option value="All">All</option>
                 <option value="Amount">Amount</option>
               </select>
-            </div>
+          </div>
           </div>
         </div>
 
@@ -1452,7 +1452,7 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-4">No active games</div>
               <div className="text-gray-500">Create a game to start playing!</div>
-            </div>
+              </div>
           ) : (
             sortedGames.map((game) => {
               const player1 = game.players[0];
@@ -1467,36 +1467,36 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-lg">
                           {player1.avatar || '🎮'}
-                        </div>
+                  </div>
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="bg-purple-500 text-white px-2 py-1 rounded text-xs font-bold">
                               {player1.level || 1}
                             </span>
                             <span className="font-semibold">{player1.username}</span>
-                          </div>
-                        </div>
-                      </div>
+                    </div>
+            </div>
+          </div>
 
                       {/* VS */}
                       <div className="flex items-center space-x-3">
                         <Swords size={20} className="text-gray-400" />
-                      </div>
+              </div>
 
                       {/* Player 2 */}
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-lg">
                           {player2.avatar || '⏳'}
-                        </div>
+                </div>
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold">
                               {player2.level || 1}
                             </span>
                             <span className="font-semibold">{player2.username}</span>
-                          </div>
-                        </div>
-                      </div>
+              </div>
+                </div>
+              </div>
                     </div>
 
                     <div className="flex items-center space-x-6">
@@ -1505,26 +1505,26 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                         <div className="flex items-center space-x-2">
                           <Coins size={16} className="text-purple-400" />
                           <span className="text-lg font-bold">{game.betAmount} {game.currency}</span>
-                        </div>
-                      </div>
+                </div>
+                  </div>
 
                       {/* Status */}
                       <div className="min-w-[120px] text-center">
                         {game.status === 'waiting' && <span className="text-gray-400">Waiting...</span>}
                         {game.status === 'playing' && <span className="text-yellow-400">Playing...</span>}
                         {game.status === 'finished' && <span className="text-green-400 bg-green-400/20 px-2 py-1 rounded text-sm">Finished</span>}
-                      </div>
+                </div>
 
                       {/* Action Button */}
                       <div className="flex items-center space-x-2">
                         {isWaitingForPlayer && (
-                          <button 
+                <button
                             onClick={() => handleJoinGame(game.id)}
                             disabled={isJoining === game.id || !walletConnected}
                             className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isJoining === game.id ? 'Joining...' : 'Join'}
-                          </button>
+                </button>
                         )}
                         {!isWaitingForPlayer && (
                           <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
@@ -1533,14 +1533,14 @@ function MultiplayerCoinflip({ onBack }: { onBack: () => void }) {
                         )}
                         <button className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-lg flex items-center justify-center transition-colors">
                           <Play size={16} className="text-white" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  </button>
+              </div>
+            </div>
+            </div>
+          </div>
               );
             })
-          )}
+        )}
         </div>
       </div>
     </div>
@@ -1598,7 +1598,7 @@ export default function Games() {
     if (!welcomeShown) {
       setShowWelcomeModal(true);
     }
-
+    
     return () => {
       if (unsubscribe) {
         unsubscribe();
@@ -1623,13 +1623,13 @@ export default function Games() {
     switch (activeGame) {
       case 'practice':
         return <PracticeMode onBack={() => setActiveGame(null)} />;
-      case 'coinflip':
+    case 'coinflip':
         return <MultiplayerCoinflip onBack={() => setActiveGame(null)} />;
-      case 'jackpot':
+    case 'jackpot':
         return <MegaJackpot onBack={() => setActiveGame(null)} />;
-      case 'kol_predictor':
+    case 'kol_predictor':
         return <KOLBattleRoyale onBack={() => setActiveGame(null)} />;
-      case 'market_master':
+    case 'market_master':
         return <MarketMasterArena onBack={() => setActiveGame(null)} />;
       // Add new account menu items
       case 'beginner_guide':
@@ -1643,12 +1643,12 @@ export default function Games() {
       case 'help':
         return <HelpSupport />;
       default:
-        return (
-          <div className="min-h-screen relative">
+  return (
+    <div className="min-h-screen relative">
             <div className="fixed inset-0 z-0" style={{
               backgroundImage: `url(${blurBg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
               filter: 'blur(8px) brightness(0.4)',
             }} />
             
@@ -1656,12 +1656,12 @@ export default function Games() {
               {/* Hero Section */}
               <div className="text-center pt-12 pb-8">
                 <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-                  KOL NEXUS ARENA
-                </h1>
+              KOL NEXUS ARENA
+            </h1>
                 <p className="text-xl text-gray-300 mb-8">
-                  Real-time multiplayer crypto gaming • Battle players worldwide • Instant rewards
-                </p>
-                
+              Real-time multiplayer crypto gaming • Battle players worldwide • Instant rewards
+            </p>
+            
                 {/* Stats */}
                 <div className="flex justify-center gap-8 mb-12">
                   <div 
@@ -1689,11 +1689,11 @@ export default function Games() {
                         <span className="text-red-400">Disconnected (Click to reconnect)</span>
                       </>
                     )}
-                  </div>
+              </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full backdrop-blur-xl">
                     <Users size={16} className="text-blue-400" />
                     <span className="text-blue-400">{onlineUsers} Players Online</span>
-                  </div>
+              </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full backdrop-blur-xl">
                     {walletConnected ? (
                       <>
@@ -1706,9 +1706,9 @@ export default function Games() {
                         <span className="text-amber-400">Connect Wallet</span>
                       </>
                     )}
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
 
               {/* Game Grid */}
               <div className="max-w-[1800px] mx-auto px-8">
@@ -1745,14 +1745,14 @@ export default function Games() {
                         <div className="text-lg font-semibold text-orange-400">1.8x</div>
                       </div>
                       <div className="space-y-2">
-                        <button
+                <button
                           onClick={() => handleGameSelect('coinflip')}
                           className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={!isConnected}
                         >
                           <Play size={18} />
                           {!isConnected ? 'CONNECTING...' : 'ENTER ARENA'}
-                        </button>
+                </button>
                         <button
                           onClick={() => handleTutorialClick('coinflip')}
                           className="w-full bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300"
@@ -1761,8 +1761,8 @@ export default function Games() {
                           Tutorial
                         </button>
                       </div>
-                    </div>
-                  </div>
+            </div>
+          </div>
 
                   {/* Mega Jackpot */}
                   <div className="group relative">
@@ -1810,9 +1810,9 @@ export default function Games() {
                           <BookOpen size={16} />
                           Tutorial
                         </button>
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                              </div>
+                          </div>
 
                   {/* KOL Battle Royale */}
                   <div className="group relative">
@@ -1861,10 +1861,10 @@ export default function Games() {
                           <BookOpen size={16} />
                           Tutorial
                         </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
+                    
                   {/* Market Master Arena */}
                   <div className="group relative">
                     <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600/50 to-teal-600/50 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
@@ -1872,11 +1872,11 @@ export default function Games() {
                       <div className="flex items-center justify-between mb-6">
                         <div className="w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
                           <Star className="w-6 h-6 text-white" />
-                        </div>
+                      </div>
                         <div className="flex items-center">
                           <div className="px-2 py-1 rounded-full bg-purple-400/20 text-purple-400 text-xs font-medium">BETA</div>
                           <span className="text-xs font-medium text-gray-400 ml-2">4 playing</span>
-                        </div>
+                      </div>
                       </div>
                       <h3 className="text-xl font-bold text-white mb-2">Market Master Arena</h3>
                       <p className="text-gray-400 text-sm mb-6">Coming Soon</p>
@@ -1904,9 +1904,9 @@ export default function Games() {
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-
+                      </div>
+                    </div>
+                    
               {/* New User Help Section */}
               <div className="mt-16 bg-black/30 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
                 <div className="text-center mb-8">
@@ -1932,7 +1932,7 @@ export default function Games() {
                   <div className="text-center">
                     <div className="w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <BookOpen size={32} className="text-white" />
-                    </div>
+                </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Interactive Tutorials</h3>
                     <p className="text-gray-400 mb-4">Step-by-step guides for each game</p>
                     <button
@@ -1941,12 +1941,12 @@ export default function Games() {
                     >
                       View Tutorials
                     </button>
-                  </div>
-                  
+          </div>
+
                   <div className="text-center">
                     <div className="w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Shield size={32} className="text-white" />
-                    </div>
+            </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Beginner Rates</h3>
                     <p className="text-gray-400 mb-4">Lower minimum bets starting from 0.01 SOL</p>
                     <button
@@ -1955,11 +1955,11 @@ export default function Games() {
                     >
                       Already Active!
                     </button>
-                  </div>
-                </div>
-              </div>
+            </div>
             </div>
           </div>
+        </div>
+      </div>
         );
     }
   };

@@ -94,6 +94,16 @@ export const API_CONFIG = {
   auth: {
     baseUrl: '/api',
   },
+
+  TELETHON_SERVICE: {
+    BASE_URL: process.env.TELETHON_SERVICE_URL || 'http://localhost:8000',
+    ENDPOINTS: {
+      HEALTH: '/health',
+      SCAN_CHANNEL: (username: string) => `/scan/${username}`,
+      SCAN_HISTORY: (username: string) => `/scan-history/${username}`,
+      TRACK_POSTS: (username: string) => `/track-posts/${username}`
+    }
+  }
 };
 
 export const SUPPORTED_CHAINS = {
@@ -120,10 +130,10 @@ const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://
 export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;
 export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : PROD_TELETHON_URL;
 
-// WebSocket URL for games (if needed)
+// WebSocket URL for games
 export const WS_URL = isDevelopment 
   ? 'ws://localhost:3000' 
-  : `wss://${PROD_BACKEND_URL.replace('https://', '')}`;
+  : PROD_BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 console.log('🔧 API Configuration:', {
   environment: isDevelopment ? 'development' : 'production',

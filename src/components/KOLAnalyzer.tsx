@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Users, MessageCircle, TrendingUp, BarChart3, Brain, Clock, Link, Zap, AlertTriangle, Plus, Loader, Eye, Share, Activity, Wifi, WifiOff } from 'lucide-react';
 import { TypewriterText } from './TypewriterText';
+import { telegramService } from '../services/telegramService';
+import { aiAnalysisService } from '../services/aiAnalysisService';
+import type { KOLAnalysisResult } from '../services/aiAnalysisService';
 
 interface KOL {
   id: string;
@@ -23,37 +26,19 @@ interface Post {
   views: number;
   forwards: number;
   username: string;
-  source?: string;
-  channel_id?: number;
-  channel_title?: string;
-}
-
-interface Analysis {
-  username: string;
-  sentiment: string;
-  sentimentScore: number;
-  engagement: number;
-  influence: number;
-  topics: Array<{ name: string; percentage: number }>;
-  riskLevel: string;
-  metrics: {
-    totalPosts: number;
-    totalViews: number;
-    totalForwards: number;
-    avgViews: number;
-    avgForwards: number;
-    engagementRate: number;
-  };
-  generatedAt: string;
+  source: string;
+  channel_id: number;
+  channel_title: string;
 }
 
 interface TelegramStatus {
   connected: boolean;
   lastCheck: string;
-  uptime?: string;
+  uptime?: number;
 }
 
 export default function KOLAnalyzer() {
+  // State management
   const [searchTerm, setSearchTerm] = useState('');
   const [manualUsername, setManualUsername] = useState('');
   const [groupName, setGroupName] = useState('');
@@ -61,16 +46,24 @@ export default function KOLAnalyzer() {
   const [activeTab, setActiveTab] = useState<'posts' | 'analysis'>('posts');
   const [kols, setKols] = useState<KOL[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysis, setAnalysis] = useState<KOLAnalysisResult | null>(null);
+  
+  // Loading states
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [groupScanLoading, setGroupScanLoading] = useState(false);
+  const [fetchingPosts, setFetchingPosts] = useState(false);
+  
+  // Error handling
+  const [error, setError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [telegramError, setTelegramError] = useState<string | null>(null);
+  
+  // Telegram service status
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>({
     connected: false,
     lastCheck: new Date().toISOString()
   });
-  const [fetchingPosts, setFetchingPosts] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Load initial KOLs and check Telegram status
   useEffect(() => {
@@ -84,21 +77,16 @@ export default function KOLAnalyzer() {
 
   const checkTelegramStatus = async () => {
     try {
-      const response = await fetch('/api/telegram-status');
-      if (response.ok) {
-        const status = await response.json();
-        setTelegramStatus({
-          connected: true,
-          lastCheck: new Date().toISOString(),
-          uptime: status.uptime
-        });
-      } else {
-        setTelegramStatus({
-          connected: false,
-          lastCheck: new Date().toISOString()
-        });
-      }
+      setTelegramError(null);
+      const status = await telegramService.checkStatus();
+      setTelegramStatus({
+        connected: status.connected,
+        lastCheck: new Date().toISOString(),
+        uptime: status.uptime
+      });
     } catch (error) {
+      console.error('Telegram status check failed:', error);
+      setTelegramError('Unable to connect to Telegram service');
       setTelegramStatus({
         connected: false,
         lastCheck: new Date().toISOString()
@@ -110,6 +98,9 @@ export default function KOLAnalyzer() {
     try {
       setError(null);
       const response = await fetch('/api/kols');
+      if (!response.ok) {
+        throw new Error('Failed to fetch KOLs');
+      }
       const data = await response.json();
       
       // Transform data to match expected format
@@ -119,7 +110,7 @@ export default function KOLAnalyzer() {
         username: kol.telegramUsername || kol.username,
         description: kol.description || 'No description available',
         tags: kol.tags || [],
-      stats: {
+        stats: {
           posts: kol.stats?.totalPosts || 0,
           views: kol.stats?.totalViews || 0,
           forwards: kol.stats?.totalForwards || 0
@@ -130,13 +121,21 @@ export default function KOLAnalyzer() {
       setKols(transformedKOLs);
     } catch (error) {
       console.error('Error loading KOLs:', error);
-      setError('Failed to load KOLs');
+      setError('Failed to load KOLs. Please try again later.');
       setKols([]);
     }
   };
 
   const addManualKOL = async () => {
-    if (!manualUsername.trim()) return;
+    if (!manualUsername.trim()) {
+      setError('Please enter a username');
+      return;
+    }
+    
+    if (!telegramStatus.connected) {
+      setError('Telegram service is not available. Please try again later.');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -151,124 +150,142 @@ export default function KOLAnalyzer() {
         return;
       }
 
+      // Scan channel/user using Telethon service
+      const channelInfo = await telegramService.scanChannel(manualUsername);
+      
       // Create new KOL entry
       const response = await fetch('/api/kols', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          displayName: manualUsername,
-          telegramUsername: manualUsername.replace('@', ''),
-          description: 'Manually added KOL',
-          tags: ['Manual']
+          displayName: channelInfo.title || manualUsername,
+          telegramUsername: channelInfo.username || manualUsername.replace('@', ''),
+          description: channelInfo.description || 'Telegram KOL',
+          tags: ['Telegram'],
+      stats: {
+            totalPosts: 0,
+            totalViews: channelInfo.member_count || 0,
+            totalForwards: 0
+          }
         })
       });
 
-      if (response.ok) {
-        const newKOLData = await response.json();
-        const newKOL: KOL = {
-          id: newKOLData._id || `manual_${Date.now()}`,
-          name: newKOLData.displayName || manualUsername,
-          username: newKOLData.telegramUsername || manualUsername,
-          description: newKOLData.description || 'Manually added KOL',
-          tags: newKOLData.tags || ['Manual'],
-          stats: newKOLData.stats || { posts: 0, views: 0, forwards: 0 }
-        };
-
-        setKols(prev => [newKOL, ...prev]);
-        setSelectedKOL(newKOL);
-        await loadPostsForKOL(newKOL.username);
-        setManualUsername('');
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to create KOL');
       }
+
+      const newKOLData = await response.json();
+      const newKOL: KOL = {
+        id: newKOLData._id || `manual_${Date.now()}`,
+        name: channelInfo.title || manualUsername,
+        username: channelInfo.username || manualUsername.replace('@', ''),
+        description: channelInfo.description || 'Telegram KOL',
+        tags: ['Telegram'],
+        stats: {
+          posts: 0,
+          views: channelInfo.member_count || 0,
+          forwards: 0
+        }
+      };
+
+      setKols(prev => [newKOL, ...prev]);
+      setSelectedKOL(newKOL);
+      await loadPostsForKOL(newKOL.username);
+      setManualUsername('');
     } catch (error) {
       console.error('Error adding manual KOL:', error);
-      setError('Failed to add KOL');
+      setError(error instanceof Error ? error.message : 'Failed to add KOL. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   const scanGroupForKOLs = async () => {
-    if (!groupName.trim()) return;
+    if (!groupName.trim()) {
+      setError('Please enter a group name');
+      return;
+    }
+    
+    if (!telegramStatus.connected) {
+      setError('Telegram service is not available. Please try again later.');
+      return;
+    }
     
     setGroupScanLoading(true);
     setError(null);
     
     try {
-      const response = await fetch(`/api/groups/${encodeURIComponent(groupName)}/kols`);
-      const data = await response.json();
+      const channelInfo = await telegramService.scanChannel(groupName);
       
-      if (data.success && data.kols.length > 0) {
-        const newKOLs = data.kols.map((kol: any) => ({
-          id: `group_${kol.user_id || Date.now()}_${Math.random()}`,
-          name: kol.first_name || kol.username,
-          username: kol.username,
-          description: `KOL discovered from ${groupName}${kol.is_admin ? ' (Admin)' : ''}`,
-          tags: ['Group Scan', groupName, ...(kol.is_admin ? ['Admin'] : [])],
+      if (channelInfo.kol_details.length > 0) {
+        const newKOLs = channelInfo.kol_details.map(kol => ({
+          id: `group_${kol.user_id}_${Date.now()}`,
+          name: kol.first_name || kol.username || 'Unknown KOL',
+          username: kol.username || `user_${kol.user_id}`,
+          description: `KOL discovered from ${channelInfo.title}${kol.is_admin ? ' (Admin)' : ''}`,
+          tags: ['Group Scan', channelInfo.title || groupName, ...(kol.is_admin ? ['Admin'] : [])],
           stats: { posts: 0, views: 0, forwards: 0 },
-          discoveredFrom: groupName
+          discoveredFrom: channelInfo.title || groupName
         }));
         
         setKols(prev => [...newKOLs, ...prev]);
         setGroupName('');
         setError(null);
       } else {
-        setError(data.message || 'No KOLs found in this group');
+        setError('No KOLs found in this group');
       }
     } catch (error) {
       console.error('Error scanning group:', error);
-      setError('Error scanning group. Make sure the Telethon service is running.');
+      setError(error instanceof Error ? error.message : 'Failed to scan group. Please try again later.');
     } finally {
       setGroupScanLoading(false);
     }
   };
 
   const loadPostsForKOL = async (username: string) => {
+    if (!telegramStatus.connected) {
+      setError('Telegram service is not available. Please try again later.');
+      return;
+    }
+
     setFetchingPosts(true);
     setError(null);
+    setAnalysis(null); // Clear previous analysis
     
     try {
-      const response = await fetch(`/api/kols/${encodeURIComponent(username)}/posts?limit=20`);
-      const data = await response.json();
+      const postsData = await telegramService.trackUserPosts(username);
 
       // Transform posts data
-      const transformedPosts = Array.isArray(data) ? data.map(post => ({
-        id: post.id || post.message_id || `post_${Date.now()}_${Math.random()}`,
+      const transformedPosts = postsData.posts.map(post => ({
+        id: `post_${post.message_id}_${Date.now()}`,
         text: post.text || 'No content',
-        date: post.date || new Date().toISOString(),
+        date: post.date,
         views: post.views || 0,
         forwards: post.forwards || 0,
-        username: post.username || username,
-        source: post.source || 'telegram',
+        username: username,
+        source: 'telegram',
         channel_id: post.channel_id,
         channel_title: post.channel_title
-      })) : [];
+      }));
       
       setPosts(transformedPosts);
-      setAnalysis(null); // Clear previous analysis
       
-      // Auto-update KOL stats
-      if (transformedPosts.length > 0) {
-        const totalViews = transformedPosts.reduce((sum, post) => sum + post.views, 0);
-        const totalForwards = transformedPosts.reduce((sum, post) => sum + post.forwards, 0);
-        
-        setKols(prev => prev.map(kol => 
-          kol.username === username 
-            ? {
-                ...kol,
-                stats: {
-                  posts: transformedPosts.length,
-                  views: totalViews,
-                  forwards: totalForwards
-                }
+      // Update KOL stats
+      setKols(prev => prev.map(kol => 
+        kol.username === username 
+          ? {
+              ...kol,
+              stats: {
+                posts: postsData.total_posts,
+                views: postsData.total_views,
+                forwards: postsData.total_forwards
               }
-            : kol
-        ));
-      }
+            }
+          : kol
+      ));
     } catch (error) {
       console.error('Error loading posts:', error);
-      setError('Failed to load posts');
+      setError(error instanceof Error ? error.message : 'Failed to load posts. Please try again later.');
       setPosts([]);
     } finally {
       setFetchingPosts(false);
@@ -276,37 +293,33 @@ export default function KOLAnalyzer() {
   };
 
   const performAIAnalysis = async () => {
-    if (!selectedKOL || posts.length === 0) return;
+    if (!selectedKOL || posts.length === 0) {
+      setAnalysisError('No posts available for analysis');
+      return;
+    }
     
     setAnalysisLoading(true);
-    setError(null);
+    setAnalysisError(null);
     
     try {
-      const response = await fetch(`/api/kols/${encodeURIComponent(selectedKOL.username)}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          posts: posts.map(post => ({
-            id: post.id,
-            text: post.text,
-            date: post.date,
-            views: post.views,
-            forwards: post.forwards
-          })), 
-          analysisType: 'comprehensive' 
-        })
-      });
+      const analysisResult = await aiAnalysisService.analyzeKOL(
+        selectedKOL.username,
+        posts.map(post => ({
+          message_id: parseInt(post.id.split('_')[1]),
+          text: post.text,
+          date: post.date,
+          views: post.views,
+          forwards: post.forwards,
+          channel_id: post.channel_id,
+          channel_title: post.channel_title
+        }))
+      );
       
-      if (response.ok) {
-        const analysisData = await response.json();
-        setAnalysis(analysisData);
-        setActiveTab('analysis');
-      } else {
-        throw new Error('Analysis failed');
-        }
+      setAnalysis(analysisResult);
+      setActiveTab('analysis');
     } catch (error) {
       console.error('Error performing AI analysis:', error);
-      setError('Failed to perform AI analysis');
+      setAnalysisError(error instanceof Error ? error.message : 'Failed to perform AI analysis. Please try again later.');
     } finally {
       setAnalysisLoading(false);
     }
@@ -371,165 +384,516 @@ export default function KOLAnalyzer() {
   };
 
     return (
-    <div className="relative min-h-screen bg-gradient-to-b from-gray-900 to-black text-white overflow-hidden">
-      {/* Animated Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_500px_at_50%_200px,#3b82f620,transparent)]"></div>
+    <div className="min-h-screen bg-[#1c1c1c] text-white p-6">
+      {/* Service Status */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">KOL Analyzer</h1>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            {telegramStatus.connected ? (
+              <>
+                <Wifi className="w-5 h-5 text-green-400" />
+                <span className="text-sm text-green-400">Telegram Connected</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-5 h-5 text-red-400" />
+                <span className="text-sm text-red-400">Telegram Disconnected</span>
+              </>
+            )}
+          </div>
+          {telegramError && (
+            <div className="text-sm text-red-400 flex items-center space-x-1">
+              <AlertTriangle className="w-4 h-4" />
+              <span>{telegramError}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="relative max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-8 space-y-8">
-            {/* Header */}
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
-              <TypewriterText text="KOL Analyzer" />
-              </h1>
-            <p className="text-gray-400 text-lg">
-              Advanced analytics and insights for Key Opinion Leaders
-            </p>
-            </div>
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left Sidebar - KOL List */}
+        <div className="col-span-12 lg:col-span-3 space-y-4">
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search KOLs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-[#242424] border border-[#333] rounded-xl
+                focus:outline-none focus:border-[#444] focus:ring-1 focus:ring-[#444]
+                placeholder-neutral-500"
+            />
+          </div>
 
-          {/* Search Input */}
-          <div className="max-w-3xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative group">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          {/* Add KOL Form */}
+          <div className="bg-[#242424] rounded-xl p-4 border border-[#333]">
+            <h3 className="text-sm font-medium mb-3">Add New KOL</h3>
+            <div className="space-y-3">
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Enter KOL username or channel URL..."
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 rounded-xl border border-gray-700 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-gray-300 placeholder-gray-500 transition-all duration-300"
+                  placeholder="@username"
+                  value={manualUsername}
+                  onChange={(e) => setManualUsername(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2 bg-[#1c1c1c] border border-[#333] rounded-lg
+                    focus:outline-none focus:border-[#444] focus:ring-1 focus:ring-[#444]
+                    placeholder-neutral-500"
+                  disabled={loading || !telegramStatus.connected}
                 />
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                <button
+                  onClick={addManualKOL}
+                  disabled={loading || !telegramStatus.connected || !manualUsername.trim()}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2
+                    text-neutral-400 hover:text-white disabled:text-neutral-600
+                    transition-colors duration-200"
+                >
+                  {loading ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
+                </button>
+            </div>
+
+              {/* Group Scanner */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Scan group for KOLs"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2 bg-[#1c1c1c] border border-[#333] rounded-lg
+                    focus:outline-none focus:border-[#444] focus:ring-1 focus:ring-[#444]
+                    placeholder-neutral-500"
+                  disabled={groupScanLoading || !telegramStatus.connected}
+                />
+                <button
+                  onClick={scanGroupForKOLs}
+                  disabled={groupScanLoading || !telegramStatus.connected || !groupName.trim()}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2
+                    text-neutral-400 hover:text-white disabled:text-neutral-600
+                    transition-colors duration-200"
+                >
+                  {groupScanLoading ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Users className="w-5 h-5" />
+                  )}
+                </button>
               </div>
-              
-              <button 
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl shadow-lg shadow-purple-500/20 transition-all duration-300 text-sm font-medium flex items-center justify-center space-x-2 min-w-[140px]"
+            </div>
+
+            {error && (
+              <div className="mt-3 text-sm text-red-400 flex items-center space-x-1">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            </div>
+
+            {/* KOL List */}
+          <div className="space-y-2">
+            {filteredKOLs.map(kol => (
+              <button
+                key={kol.id}
+                onClick={() => selectKOL(kol)}
+                className={`w-full p-3 rounded-xl border transition-all duration-200
+                  ${selectedKOL?.id === kol.id
+                    ? 'bg-[#242424] border-[#444] shadow-lg'
+                    : 'bg-[#1c1c1c] border-[#333] hover:border-[#444]'
+                  }`}
               >
-                <Search size={16} />
-                <span>Analyze KOL</span>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 text-left">
+                    <h3 className="font-medium truncate">{kol.name}</h3>
+                    <p className="text-sm text-neutral-400 truncate">@{kol.username}</p>
+                  </div>
+                  {kol.tags.includes('Admin') && (
+                    <span className="px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-neutral-400">
+                  <div>
+                    <div className="font-medium text-neutral-300">{formatNumber(kol.stats.posts)}</div>
+                    <div>Posts</div>
+                  </div>
+                        <div>
+                    <div className="font-medium text-neutral-300">{formatNumber(kol.stats.views)}</div>
+                    <div>Views</div>
+                        </div>
+                  <div>
+                    <div className="font-medium text-neutral-300">{formatNumber(kol.stats.forwards)}</div>
+                    <div>Forwards</div>
+              </div>
+                </div>
               </button>
+            ))}
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            {[
-              { icon: Users, label: 'Total Followers', value: '2.5M', color: 'blue' },
-              { icon: MessageCircle, label: 'Engagement Rate', value: '8.2%', color: 'purple' },
-              { icon: TrendingUp, label: 'Growth Rate', value: '+12.5%', color: 'pink' },
-              { icon: Activity, label: 'Activity Score', value: '92', color: 'indigo' }
-            ].map((stat, index) => (
-              <div key={index} className="group relative bg-gray-900/50 backdrop-blur-xl p-6 rounded-xl border border-gray-800 hover:border-gray-700 transition-all duration-300">
-                <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-${stat.color}-500/10 via-${stat.color}-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-                <div className="relative">
-                  <stat.icon className={`w-8 h-8 text-${stat.color}-400 mb-4 group-hover:scale-110 transition-transform duration-300`} />
-                  <h3 className="text-gray-400 text-sm">{stat.label}</h3>
-                  <p className="text-2xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">{stat.value}</p>
+        {/* Main Content Area */}
+        <div className="col-span-12 lg:col-span-9">
+              {selectedKOL ? (
+            <div className="space-y-6">
+                  {/* KOL Header */}
+              <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                    <div className="flex items-start justify-between">
+                      <div>
+                    <h2 className="text-xl font-bold">{selectedKOL.name}</h2>
+                    <p className="text-neutral-400">@{selectedKOL.username}</p>
+                    <p className="mt-2 text-sm text-neutral-300">{selectedKOL.description}</p>
                         </div>
+                  <div className="flex items-center space-x-2">
+                        <button
+                      onClick={refreshPosts}
+                      disabled={fetchingPosts}
+                      className="p-2 rounded-lg bg-[#1c1c1c] border border-[#333]
+                        hover:border-[#444] transition-colors duration-200
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Activity className={`w-5 h-5 ${fetchingPosts ? 'animate-spin' : ''}`} />
+                        </button>
                       </div>
-            ))}
-                            </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Engagement Metrics */}
-            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
-              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-4">
-                Engagement Metrics
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Likes per Post', value: '15.2K', change: '+5.2%' },
-                  { label: 'Comments per Post', value: '2.8K', change: '+3.1%' },
-                  { label: 'Shares per Post', value: '4.5K', change: '+7.8%' }
-                ].map((metric, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-gray-400">{metric.label}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-200 font-medium">{metric.value}</span>
-                      <span className="text-emerald-400 text-sm">{metric.change}</span>
                     </div>
+
+                <div className="mt-4 flex items-center space-x-4">
+                        {selectedKOL.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 text-sm bg-[#1c1c1c] text-neutral-300 rounded-full border border-[#333]"
+                    >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                   </div>
-                ))}
+
+                  {/* Tabs */}
+              <div className="flex items-center space-x-4 border-b border-[#333] pb-4">
+                      <button
+                        onClick={() => setActiveTab('posts')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
+                    ${activeTab === 'posts'
+                      ? 'bg-[#242424] text-white'
+                      : 'text-neutral-400 hover:text-white'
+                    }`}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Posts</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('analysis')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
+                    ${activeTab === 'analysis'
+                      ? 'bg-[#242424] text-white'
+                      : 'text-neutral-400 hover:text-white'
+                    }`}
+                >
+                  <Brain className="w-5 h-5" />
+                  <span>Analysis</span>
+                      </button>
+                  </div>
+
+              {/* Content */}
+              <div className="space-y-4">
+                {activeTab === 'posts' ? (
+                  <>
+                    {/* Posts List */}
+                    {fetchingPosts ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader className="w-8 h-8 animate-spin text-neutral-400" />
+                      </div>
+                    ) : posts.length > 0 ? (
+                      <div className="space-y-4">
+                        {posts.map(post => (
+                          <div
+                            key={post.id}
+                            className="bg-[#242424] rounded-xl p-4 border border-[#333]"
+                          >
+                            <p className="text-neutral-300 whitespace-pre-wrap">{post.text}</p>
+                            <div className="mt-3 flex items-center justify-between text-sm">
+                              <div className="text-neutral-400">
+                                {new Date(post.date).toLocaleDateString()}
+                          </div>
+                              <div className="flex items-center space-x-4 text-neutral-400">
+                                <div className="flex items-center space-x-1">
+                                  <Eye className="w-4 h-4" />
+                                  <span>{formatNumber(post.views)}</span>
+                          </div>
+                                <div className="flex items-center space-x-1">
+                                  <Share className="w-4 h-4" />
+                                  <span>{formatNumber(post.forwards)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-neutral-400">
+                        No posts found
+                      </div>
+                    )}
+
+                    {/* Analysis Button */}
+                    {posts.length > 0 && (
+                      <div className="flex justify-center pt-4">
+                        <button
+                          onClick={performAIAnalysis}
+                          disabled={analysisLoading}
+                          className="flex items-center space-x-2 px-6 py-3 bg-blue-500
+                            hover:bg-blue-600 rounded-xl transition-colors duration-200
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {analysisLoading ? (
+                            <>
+                              <Loader className="w-5 h-5 animate-spin" />
+                              <span>Analyzing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="w-5 h-5" />
+                              <span>Analyze Posts</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Analysis View */}
+                    {analysisLoading ? (
+                      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Loader className="w-8 h-8 animate-spin text-neutral-400" />
+                        <p className="text-neutral-400">Analyzing KOL data...</p>
+                      </div>
+                    ) : analysis ? (
+                      <div className="grid grid-cols-12 gap-6">
+                        {/* Sentiment & Engagement */}
+                        <div className="col-span-12 lg:col-span-6 space-y-6">
+                          {/* Sentiment */}
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Sentiment Analysis</h3>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <span>Overall Sentiment</span>
+                                <span className={`px-3 py-1 rounded-full text-sm
+                                  ${analysis.overall_sentiment.label === 'positive'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : analysis.overall_sentiment.label === 'negative'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-neutral-500/20 text-neutral-400'
+                                  }`}
+                                >
+                                  {analysis.overall_sentiment.label}
+                                </span>
+                        </div>
+                            <div className="flex items-center justify-between">
+                                <span>Sentiment Score</span>
+                                <span>{(analysis.overall_sentiment.score * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span>Trend</span>
+                                <span className={`px-3 py-1 rounded-full text-sm
+                                  ${analysis.content_analysis.sentiment_trend === 'improving'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : analysis.content_analysis.sentiment_trend === 'declining'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-neutral-500/20 text-neutral-400'
+                                  }`}
+                                >
+                                  {analysis.content_analysis.sentiment_trend}
+                                </span>
+                              </div>
                             </div>
                           </div>
 
-            {/* Audience Demographics */}
-            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
-              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
-                Audience Demographics
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Age Range', value: '18-34 (65%)', secondary: '35-54 (35%)' },
-                  { label: 'Gender', value: 'Male (58%)', secondary: 'Female (42%)' },
-                  { label: 'Top Locations', value: 'US (40%)', secondary: 'UK (25%), CA (15%)' }
-                ].map((demo, index) => (
-                  <div key={index} className="space-y-1">
-                            <div className="flex items-center justify-between">
-                      <span className="text-gray-400">{demo.label}</span>
-                      <span className="text-gray-200">{demo.value}</span>
+                          {/* Engagement */}
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Engagement Metrics</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="p-4 bg-[#1c1c1c] rounded-lg">
+                                <div className="text-sm text-neutral-400">Average Views</div>
+                                <div className="text-xl font-medium mt-1">
+                                  {formatNumber(analysis.engagement_metrics.average_views)}
+                                </div>
                               </div>
-                    <div className="text-sm text-gray-500 text-right">{demo.secondary}</div>
+                              <div className="p-4 bg-[#1c1c1c] rounded-lg">
+                                <div className="text-sm text-neutral-400">Average Forwards</div>
+                                <div className="text-xl font-medium mt-1">
+                                  {formatNumber(analysis.engagement_metrics.average_forwards)}
+                                </div>
                               </div>
-                ))}
+                              <div className="p-4 bg-[#1c1c1c] rounded-lg">
+                                <div className="text-sm text-neutral-400">Engagement Rate</div>
+                                <div className="text-xl font-medium mt-1">
+                                  {analysis.engagement_metrics.engagement_rate.toFixed(1)}%
+                                </div>
+                              </div>
+                              <div className="p-4 bg-[#1c1c1c] rounded-lg">
+                                <div className="text-sm text-neutral-400">Viral Potential</div>
+                                <div className="text-xl font-medium mt-1">
+                                  {analysis.engagement_metrics.viral_potential.toFixed(1)}%
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Topics & Influence */}
+                        <div className="col-span-12 lg:col-span-6 space-y-6">
+                          {/* Topics */}
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Content Analysis</h3>
+                            <div className="space-y-4">
+                              {analysis.content_analysis.primary_topics.map((topic, index) => (
+                                <div key={index} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span>{topic.label}</span>
+                                    <span>{(topic.confidence * 100).toFixed(1)}%</span>
+                                  </div>
+                                  <div className="h-2 bg-[#1c1c1c] rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500 rounded-full"
+                                      style={{ width: `${topic.confidence * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
 
-            {/* Content Analysis */}
-            <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800 p-6">
-              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-red-400 mb-4">
-                Content Analysis
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Post Frequency', value: '2.5 posts/day', trend: 'Consistent' },
-                  { label: 'Best Posting Time', value: '3 PM - 6 PM', trend: 'Peak engagement' },
-                  { label: 'Content Type', value: 'Video (60%)', trend: 'Photos (40%)' }
-                ].map((content, index) => (
-                  <div key={index} className="space-y-1">
-                            <div className="flex items-center justify-between">
-                      <span className="text-gray-400">{content.label}</span>
-                      <span className="text-gray-200">{content.value}</span>
+                          {/* Influence */}
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Influence Analysis</h3>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <span>Influence Score</span>
+                                <span>{analysis.influence_metrics.overall_influence_score.toFixed(1)}%</span>
                               </div>
-                    <div className="text-sm text-gray-500 text-right">{content.trend}</div>
+                              <div className="flex items-center justify-between">
+                                <span>Market Impact</span>
+                                <span className={`px-3 py-1 rounded-full text-sm
+                                  ${analysis.influence_metrics.market_impact_potential === 'high'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : analysis.influence_metrics.market_impact_potential === 'low'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-yellow-500/20 text-yellow-400'
+                                  }`}
+                                >
+                                  {analysis.influence_metrics.market_impact_potential}
+                                </span>
+                              </div>
+                            <div className="flex items-center justify-between">
+                                <span>Credibility Score</span>
+                                <span>{analysis.influence_metrics.credibility_score.toFixed(1)}%</span>
+                              </div>
+                              <div>
+                                <div className="text-sm text-neutral-400 mb-2">Expertise Areas</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {analysis.influence_metrics.expertise_areas.map((area, index) => (
+                                    <span
+                                      key={index}
+                                      className="px-3 py-1 text-sm bg-[#1c1c1c] rounded-full"
+                                    >
+                                      {area}
+                                    </span>
+                                  ))}
+                              </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Risk Assessment */}
+                        <div className="col-span-12">
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Risk Assessment</h3>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              <div>
+                                <div className="flex items-center justify-between mb-4">
+                                  <span>Overall Risk Level</span>
+                                  <span className={`px-3 py-1 rounded-full text-sm
+                                    ${analysis.risk_assessment.overall_risk === 'low'
+                                      ? 'bg-green-500/20 text-green-400'
+                                      : analysis.risk_assessment.overall_risk === 'high'
+                                      ? 'bg-red-500/20 text-red-400'
+                                      : 'bg-yellow-500/20 text-yellow-400'
+                                    }`}
+                                  >
+                                    {analysis.risk_assessment.overall_risk}
+                                  </span>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="text-sm text-neutral-400">Risk Factors</div>
+                                  {analysis.risk_assessment.risk_factors.map((factor, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-start space-x-2 text-sm"
+                                    >
+                                      <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                                      <span>{factor}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-sm text-neutral-400 mb-2">Recommendations</div>
+                                <div className="space-y-2">
+                                  {analysis.risk_assessment.recommendations.map((rec, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-start space-x-2 text-sm"
+                                    >
+                                      <Zap className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                                      <span>{rec}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Key Insights */}
+                        <div className="col-span-12">
+                          <div className="bg-[#242424] rounded-xl p-6 border border-[#333]">
+                            <h3 className="text-lg font-medium mb-4">Key Insights</h3>
+                            <div className="space-y-3">
+                              {analysis.key_insights.map((insight, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start space-x-3 p-3 bg-[#1c1c1c] rounded-lg"
+                                >
+                                  <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                  <p>{insight}</p>
                               </div>
                             ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-
-          {/* Recent Activity */}
-          <div className="bg-gray-900/50 backdrop-blur-xl rounded-xl border border-gray-800">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400 mb-4">
-                Recent Activity
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { type: 'post', title: 'New Product Launch', engagement: '25.6K likes', time: '2 hours ago' },
-                  { type: 'story', title: 'Behind the Scenes', engagement: '15.2K views', time: '5 hours ago' },
-                  { type: 'live', title: 'Q&A Session', engagement: '8.9K viewers', time: '1 day ago' }
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-gray-800 rounded-lg">
-                        {activity.type === 'post' ? <MessageCircle size={20} className="text-blue-400" /> :
-                         activity.type === 'story' ? <Clock size={20} className="text-purple-400" /> :
-                         <Wifi size={20} className="text-pink-400" />}
+                    ) : (
+                      <div className="text-center py-12 text-neutral-400">
+                        {analysisError || 'No analysis available. Please analyze posts first.'}
                       </div>
-                      <div>
-                        <h4 className="text-gray-200 font-medium">{activity.title}</h4>
-                        <p className="text-gray-500 text-sm">{activity.time}</p>
+                    )}
+                  </>
+                    )}
                   </div>
                 </div>
-                    <span className="text-gray-400">{activity.engagement}</span>
-                  </div>
-                ))}
-                </div>
+              ) : (
+            <div className="flex flex-col items-center justify-center py-24 text-neutral-400">
+              <Users className="w-12 h-12 mb-4" />
+              <p>Select a KOL to view details</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

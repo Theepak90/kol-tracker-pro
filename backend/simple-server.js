@@ -16,13 +16,19 @@ const io = socketIo(server, {
       'http://localhost:5174', 
       'http://localhost:5175',
       'http://localhost:5176',
-      'https://kol-tracker-pro.vercel.app',
-      'https://kolnexus-backend.onrender.com',
-      'https://kolnexus-telethon.onrender.com'
+      'https://kol-tracker-pro.vercel.app'
     ],
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["my-custom-header"]
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  path: '/socket.io/',
+  serveClient: false,
+  cookie: false
 });
 
 const PORT = process.env.PORT || 3000;
@@ -48,15 +54,34 @@ const corsOrigins = process.env.CORS_ORIGIN
       'http://localhost:5174', 
       'http://localhost:5175',
       'http://localhost:5176',
-      'https://kol-tracker-pro.vercel.app',
-      'https://kolnexus-backend.onrender.com',
-      'https://kolnexus-telethon.onrender.com'
+      'https://kol-tracker-pro.vercel.app'
     ];
 
 app.use(cors({
   origin: corsOrigins,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
+
+// Additional CORS middleware for better compatibility
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (corsOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  next();
+});
+
 app.use(express.json());
 
 // Health check endpoint
@@ -109,13 +134,13 @@ app.get('/api/kols', async (req, res) => {
   try {
     if (db) {
       const kols = await db.collection('kols').find({}).toArray();
-      res.json(kols.length > 0 ? kols : mockKOLs);
+      res.json(kols);
     } else {
-      res.json(mockKOLs);
+      res.status(503).json({ error: 'Database not available' });
     }
   } catch (error) {
     console.error('Error fetching KOLs:', error);
-    res.json(mockKOLs);
+    res.status(500).json({ error: 'Failed to fetch KOLs' });
   }
 });
 
@@ -128,14 +153,14 @@ app.get('/api/kols/:username', async (req, res) => {
       if (kol) {
         res.json(kol);
       } else {
-        res.json(mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0]);
+        res.status(404).json({ error: 'KOL not found' });
       }
     } else {
-      res.json(mockKOLs.find(k => k.telegramUsername === username) || mockKOLs[0]);
+      res.status(503).json({ error: 'Database not available' });
     }
   } catch (error) {
     console.error('Error fetching KOL:', error);
-    res.json(mockKOLs[0]);
+    res.status(500).json({ error: 'Failed to fetch KOL' });
   }
 });
 
@@ -235,10 +260,10 @@ app.get('/api/kols/:username/posts', async (req, res) => {
         return res.json(posts);
       }
     } catch (telethonError) {
-      console.log('Telethon service not available, using fallback data');
+      console.log('Telethon service not available');
     }
     
-    // Fallback to database or mock data
+    // Fallback to database
     if (db) {
       const posts = await db.collection('user_posts')
         .find({ username })
@@ -251,18 +276,10 @@ app.get('/api/kols/:username/posts', async (req, res) => {
       }
     }
     
-    // Generate mock posts for demo
-    const mockPosts = Array.from({ length: Math.min(parseInt(limit), 10) }, (_, i) => ({
-      id: `post_${username}_${i + 1}`,
-      text: getMockPostText(username, i),
-      date: new Date(Date.now() - i * 60 * 60 * 1000 * (Math.random() * 24)).toISOString(),
-      views: Math.floor(Math.random() * 50000) + 1000,
-      forwards: Math.floor(Math.random() * 1000) + 50,
-      username,
-      source: 'mock'
-    }));
-    
-    res.json(mockPosts);
+    // No data available
+    res.status(404).json({ 
+      error: 'No posts found for this user. Telegram service unavailable and no cached data.' 
+    });
     
   } catch (error) {
     console.error('Error fetching user posts:', error);
@@ -276,21 +293,15 @@ app.post('/api/kols/:username/analyze', async (req, res) => {
     const { username } = req.params;
     const { posts, analysisType = 'full' } = req.body;
     
-    // Simulate AI analysis (replace with actual AI service)
-    const analysis = await performAIAnalysis(posts || [], username, analysisType);
-    
-    // Store analysis in database
-    if (db) {
-      await db.collection('kol_analyses').insertOne({
-        username,
-        analysis,
-        analysisType,
-        createdAt: new Date().toISOString(),
-        postsAnalyzed: posts?.length || 0
-      });
+    if (!posts || posts.length === 0) {
+      return res.status(400).json({ error: 'No posts provided for analysis' });
     }
     
-    res.json(analysis);
+    // Perform real AI analysis here (integrate with actual AI service)
+    // For now, return an error since we don't have real AI integration
+    res.status(503).json({ 
+      error: 'AI analysis service not available. Please integrate with a real AI service.' 
+    });
     
   } catch (error) {
     console.error('Error performing AI analysis:', error);
@@ -340,10 +351,30 @@ app.get('/api/groups/:groupName/kols', async (req, res) => {
       console.log('Telethon service not available');
     }
     
-    // Fallback response
-    res.json({
+    // Check database for cached data
+    if (db) {
+      const cachedKols = await db.collection('discovered_kols')
+        .find({ discoveredFrom: groupName })
+        .sort({ discoveredAt: -1 })
+        .limit(parseInt(limit))
+        .toArray();
+      
+      if (cachedKols.length > 0) {
+        return res.json({
+          success: true,
+          groupName,
+          kols: cachedKols,
+          totalFound: cachedKols.length,
+          cached: true,
+          message: 'Showing cached data - Telegram service unavailable'
+        });
+      }
+    }
+    
+    // No data available
+    res.status(503).json({
       success: false,
-      message: 'Group scanning service unavailable',
+      error: 'Group scanning unavailable. Telegram service is not accessible and no cached data found.',
       groupName,
       kols: [],
       totalFound: 0
@@ -352,6 +383,137 @@ app.get('/api/groups/:groupName/kols', async (req, res) => {
   } catch (error) {
     console.error('Error scanning group for KOLs:', error);
     res.status(500).json({ error: 'Failed to scan group' });
+  }
+});
+
+// Channel scanning endpoint
+app.get('/api/scan/:channelName', async (req, res) => {
+  try {
+    const { channelName } = req.params;
+    
+    // Try to fetch from Telethon service
+    try {
+      const telethonUrl = process.env.TELETHON_URL || 'http://localhost:8000';
+      const response = await fetch(`${telethonUrl}/scan/${channelName}`, {
+        timeout: 15000
+      });
+      
+      if (response.ok) {
+        const scanResult = await response.json();
+        
+        // Store in database
+        if (db) {
+          await db.collection('channel_scans').insertOne({
+            ...scanResult,
+            channelName,
+            scannedAt: new Date().toISOString()
+          });
+        }
+        
+        return res.json(scanResult);
+      }
+    } catch (telethonError) {
+      console.log('Telethon service not available');
+    }
+    
+    // Check database for cached data
+    if (db) {
+      const cachedScan = await db.collection('channel_scans')
+        .findOne({ channelName }, { sort: { scannedAt: -1 } });
+      
+      if (cachedScan) {
+        return res.json({
+          ...cachedScan,
+          cached: true,
+          message: 'Showing cached data - Telegram service unavailable'
+        });
+      }
+    }
+    
+    // No data available
+    res.status(503).json({ 
+      error: 'Channel scanning unavailable. Telegram service is not accessible and no cached data found.' 
+    });
+    
+  } catch (error) {
+    console.error('Error scanning channel:', error);
+    res.status(500).json({ error: 'Failed to scan channel' });
+  }
+});
+
+// Post tracking endpoint
+app.get('/api/track-posts/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { limit = 50 } = req.query;
+    
+    // Try to fetch from Telethon service
+    try {
+      const telethonUrl = process.env.TELETHON_URL || 'http://localhost:8000';
+      const response = await fetch(`${telethonUrl}/track-posts/${username}`, {
+        timeout: 15000
+      });
+      
+      if (response.ok) {
+        const postData = await response.json();
+        
+        // Store in database
+        if (db && postData.posts) {
+          await db.collection('user_posts').insertMany(
+            postData.posts.map(post => ({
+              ...post,
+              username,
+              fetchedAt: new Date().toISOString()
+            }))
+          );
+        }
+        
+        return res.json(postData);
+      }
+    } catch (telethonError) {
+      console.log('Telethon service not available');
+    }
+    
+    // Check database for cached data
+    if (db) {
+      const cachedPosts = await db.collection('user_posts')
+        .find({ username })
+        .sort({ date: -1 })
+        .limit(parseInt(limit))
+        .toArray();
+      
+      if (cachedPosts.length > 0) {
+        const totalStats = await db.collection('user_posts').aggregate([
+          { $match: { username } },
+          { 
+            $group: { 
+              _id: null, 
+              total_posts: { $sum: 1 },
+              total_views: { $sum: '$views' },
+              total_forwards: { $sum: '$forwards' }
+            } 
+          }
+        ]).toArray();
+        
+        return res.json({
+          posts: cachedPosts,
+          total_posts: totalStats[0]?.total_posts || cachedPosts.length,
+          total_views: totalStats[0]?.total_views || 0,
+          total_forwards: totalStats[0]?.total_forwards || 0,
+          cached: true,
+          message: 'Showing cached data - Telegram service unavailable'
+        });
+      }
+    }
+    
+    // No data available
+    res.status(503).json({ 
+      error: 'Post tracking unavailable. Telegram service is not accessible and no cached data found.' 
+    });
+    
+  } catch (error) {
+    console.error('Error tracking posts:', error);
+    res.status(500).json({ error: 'Failed to track posts' });
   }
 });
 
@@ -668,344 +830,20 @@ function findAvailableRoom(gameType, betAmount, currency) {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`🟢 User connected: ${socket.id}`);
-
-  // Handle user authentication
-  socket.on('authenticate', (data) => {
-    const { token } = data;
-    // Mock authentication - in real app, verify JWT token
-    const user = users.find(u => u.email === 'demo@example.com'); // For demo purposes
-    if (user) {
-      activeConnections.set(socket.id, user.id);
-      socket.userId = user.id;
-      socket.emit('authenticated', { success: true, user });
-    } else {
-      socket.emit('authenticated', { success: false, error: 'Invalid token' });
-    }
-  });
-
-  // Create game room
-  socket.on('create_room', (data, callback) => {
-    try {
-      const { gameType, betAmount, currency } = data;
-      const userId = activeConnections.get(socket.id);
-      const user = users.find(u => u.id === userId);
-      
-      if (!user) {
-        callback({ success: false, error: 'User not authenticated' });
-        return;
-      }
-
-      const player = {
-        id: user.id,
-        username: user.username || user.email.split('@')[0],
-        walletAddress: user.walletAddress || 'demo-wallet',
-        socketId: socket.id
-      };
-
-      const room = createGameRoom(gameType, betAmount, currency, player);
-      socket.join(room.id);
-      
-      console.log(`🎮 Room created: ${room.id} by ${player.username}`);
-      callback({ success: true, room });
-      
-      // Broadcast room creation to lobby
-      socket.broadcast.emit('room_created', room);
-    } catch (error) {
-      console.error('Error creating room:', error);
-      callback({ success: false, error: error.message });
-    }
-  });
-
-  // Join game room
-  socket.on('join_room', (data, callback) => {
-    try {
-      const { roomId } = data;
-      const room = gameRooms.get(roomId);
-      
-      if (!room) {
-        callback({ success: false, error: 'Room not found' });
-        return;
-      }
-
-      if (room.players.length >= 2) {
-        callback({ success: false, error: 'Room is full' });
-        return;
-      }
-
-      if (room.status !== 'waiting') {
-        callback({ success: false, error: 'Game already in progress' });
-        return;
-      }
-
-      const userId = activeConnections.get(socket.id);
-      const user = users.find(u => u.id === userId);
-      
-      if (!user) {
-        callback({ success: false, error: 'User not authenticated' });
-        return;
-      }
-
-      const player = {
-        id: user.id,
-        username: user.username || user.email.split('@')[0],
-        walletAddress: user.walletAddress || 'demo-wallet',
-        socketId: socket.id
-      };
-
-      room.players.push(player);
-      socket.join(roomId);
-      
-      console.log(`🎮 ${player.username} joined room: ${roomId}`);
-      callback({ success: true, room });
-
-      // Notify all players in room
-      io.to(roomId).emit('game_update', {
-        type: 'player_joined',
-        data: { player, room },
-        roomId
-      });
-
-      // Start game if room is full
-      if (room.players.length === 2) {
-        room.status = 'playing';
-        startGameCountdown(roomId);
-      }
-    } catch (error) {
-      console.error('Error joining room:', error);
-      callback({ success: false, error: error.message });
-    }
-  });
-
-  // Quick match
-  socket.on('quick_match', (data, callback) => {
-    try {
-      const { gameType, betAmount, currency } = data;
-      const userId = activeConnections.get(socket.id);
-      const user = users.find(u => u.id === userId);
-      
-      if (!user) {
-        callback({ success: false, error: 'User not authenticated' });
-        return;
-      }
-
-      const player = {
-        id: user.id,
-        username: user.username || user.email.split('@')[0],
-        walletAddress: user.walletAddress || 'demo-wallet',
-        socketId: socket.id
-      };
-
-      // Try to find existing room
-      let room = findAvailableRoom(gameType, betAmount, currency);
-      
-      if (room) {
-        // Join existing room
-        room.players.push(player);
-        socket.join(room.id);
-        
-        console.log(`🎮 ${player.username} quick-matched to room: ${room.id}`);
-        callback({ success: true, room });
-
-        // Notify all players
-        io.to(room.id).emit('game_update', {
-          type: 'player_joined',
-          data: { player, room },
-          roomId: room.id
-        });
-
-        // Start game
-        room.status = 'playing';
-        startGameCountdown(room.id);
-      } else {
-        // Create new room
-        room = createGameRoom(gameType, betAmount, currency, player);
-        socket.join(room.id);
-        
-        console.log(`🎮 ${player.username} created quick-match room: ${room.id}`);
-        callback({ success: true, room });
-      }
-    } catch (error) {
-      console.error('Error in quick match:', error);
-      callback({ success: false, error: error.message });
-    }
-  });
-
-  // Get available rooms
-  socket.on('get_rooms', (data, callback) => {
-    try {
-      const { gameType } = data;
-      const rooms = Array.from(gameRooms.values())
-        .filter(room => {
-          if (gameType && room.gameType !== gameType) return false;
-          return room.status === 'waiting' && room.players.length < 2;
-        })
-        .map(room => ({
-          ...room,
-          players: room.players.map(p => ({ ...p, socketId: undefined }))
-        }));
-      
-      callback({ success: true, rooms });
-    } catch (error) {
-      console.error('Error getting rooms:', error);
-      callback({ success: false, error: error.message });
-    }
-  });
-
-  // Game choice
-  socket.on('game_choice', (data) => {
-    try {
-      const { roomId, choice } = data;
-      const room = gameRooms.get(roomId);
-      const userId = activeConnections.get(socket.id);
-      
-      if (!room || !userId) return;
-
-      const player = room.players.find(p => p.id === userId);
-      if (!player) return;
-
-      player.choice = choice;
-      console.log(`🎯 ${player.username} made choice in room ${roomId}:`, choice);
-
-      // Notify other players (without revealing choice)
-      socket.to(roomId).emit('game_update', {
-        type: 'player_choice',
-        data: { playerId: player.id, hasChoice: true },
-        roomId
-      });
-
-      // Check if both players have made choices
-      const allPlayersReady = room.players.every(p => p.choice !== undefined);
-      if (allPlayersReady && room.players.length === 2) {
-        resolveGame(roomId);
-      }
-    } catch (error) {
-      console.error('Error handling game choice:', error);
-    }
-  });
-
-  // Player ready
-  socket.on('player_ready', (data) => {
-    try {
-      const { roomId, ready } = data;
-      const room = gameRooms.get(roomId);
-      const userId = activeConnections.get(socket.id);
-      
-      if (!room || !userId) return;
-
-      const player = room.players.find(p => p.id === userId);
-      if (!player) return;
-
-      player.isReady = ready;
-
-      io.to(roomId).emit('game_update', {
-        type: 'player_ready',
-        data: { playerId: player.id, ready },
-        roomId
-      });
-    } catch (error) {
-      console.error('Error handling player ready:', error);
-    }
-  });
-
-  // Chat message
-  socket.on('chat_message', (data) => {
-    try {
-      const { roomId, message } = data;
-      const userId = activeConnections.get(socket.id);
-      const user = users.find(u => u.id === userId);
-      
-      if (!user) return;
-
-      const chatMessage = {
-        id: Date.now().toString(),
-        userId: user.id,
-        username: user.username || user.email.split('@')[0],
-        message,
-        timestamp: new Date().toISOString()
-      };
-
-      io.to(roomId).emit('chat_message', chatMessage);
-    } catch (error) {
-      console.error('Error handling chat message:', error);
-    }
-  });
-
-  // Emote
-  socket.on('emote', (data) => {
-    try {
-      const { roomId, emote } = data;
-      const userId = activeConnections.get(socket.id);
-      const user = users.find(u => u.id === userId);
-      
-      if (!user) return;
-
-      socket.to(roomId).emit('emote', {
-        userId: user.id,
-        username: user.username || user.email.split('@')[0],
-        emote,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Error handling emote:', error);
-    }
-  });
-
-  // Leave room
-  socket.on('leave_room', (data) => {
-    try {
-      const { roomId } = data;
-      const room = gameRooms.get(roomId);
-      const userId = activeConnections.get(socket.id);
-      
-      if (!room || !userId) return;
-
-      room.players = room.players.filter(p => p.id !== userId);
-      socket.leave(roomId);
-
-      if (room.players.length === 0) {
-        gameRooms.delete(roomId);
-        console.log(`🗑️ Room ${roomId} deleted - no players`);
-      } else {
-        io.to(roomId).emit('game_update', {
-          type: 'player_left',
-          data: { userId },
-          roomId
-        });
-      }
-    } catch (error) {
-      console.error('Error leaving room:', error);
-    }
-  });
-
-  // Ping handler for connection testing
-  socket.on('ping', (data) => {
-    socket.emit('pong', { timestamp: Date.now(), received: data });
-  });
-
-  // Disconnect
-  socket.on('disconnect', () => {
-    console.log(`🔴 User disconnected: ${socket.id}`);
-    const userId = activeConnections.get(socket.id);
-    activeConnections.delete(socket.id);
-
-    // Clean up rooms
+  console.log('🎮 New client connected:', socket.id);
+  
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 Client disconnected:', socket.id, 'Reason:', reason);
+    // Clean up any game rooms or user data
     for (const [roomId, room] of gameRooms.entries()) {
-      const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
-      if (playerIndex !== -1) {
-        room.players.splice(playerIndex, 1);
-        
-        if (room.players.length === 0) {
-          gameRooms.delete(roomId);
-        } else {
-          io.to(roomId).emit('game_update', {
-            type: 'player_left',
-            data: { userId },
-            roomId
-          });
-        }
+      if (room.players.some(p => p.socketId === socket.id)) {
+        handlePlayerLeave(roomId, socket.id);
       }
     }
+  });
+
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
   });
 });
 
@@ -1109,116 +947,6 @@ function resolveGame(roomId) {
   }, 10000);
 }
 
-// Authentication Routes
-app.post('/api/register', (req, res) => {
-  try {
-    const { email, password, username } = req.body;
-    
-    if (users.some(u => u.email === email)) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
-    
-    const user = {
-      id: Math.random().toString(36).substring(2, 15),
-      email,
-      username: username || email.split('@')[0],
-      password, // In production, hash this!
-      walletAddress: `demo-wallet-${Math.random().toString(36).substring(2, 10)}`,
-      createdAt: new Date().toISOString(),
-      balance: { USDT: 1000, SOL: 10 } // Demo balance
-    };
-    
-    users.push(user);
-    
-    // Generate simple JWT-like token (demo purposes)
-    const token = Buffer.from(JSON.stringify({ userId: user.id, email })).toString('base64');
-    
-    res.json({
-      message: 'User registered successfully',
-      token,
-      user: { ...user, password: undefined }
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
-
-app.post('/api/login', (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = users.find(u => u.email === email);
-    
-    if (!user || user.password !== password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    // Generate simple JWT-like token (demo purposes)
-    const token = Buffer.from(JSON.stringify({ userId: user.id, email })).toString('base64');
-    
-    res.json({
-      message: 'Login successful',
-      token,
-      user: { ...user, password: undefined }
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-app.get('/api/me', (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    
-    const token = authHeader.split(' ')[1];
-    const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-    const user = users.find(u => u.email === decoded.email);
-    
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    
-    res.json({ user: { ...user, password: undefined } });
-  } catch (error) {
-    console.error('Auth error:', error);
-    res.status(401).json({ error: 'Invalid token' });
-  }
-});
-
-app.get('/api/profile', (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    
-    const token = authHeader.split(' ')[1];
-    const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-    const user = users.find(u => u.email === decoded.email);
-    
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    
-    res.json({
-      profile: {
-        ...user,
-        password: undefined,
-        gamesPlayed: Math.floor(Math.random() * 50),
-        totalWinnings: Math.floor(Math.random() * 5000),
-        rank: Math.floor(Math.random() * 1000) + 1
-      }
-    });
-  } catch (error) {
-    console.error('Profile error:', error);
-    res.status(500).json({ error: 'Failed to fetch profile' });
-  }
-});
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -1295,7 +1023,7 @@ async function connectDB() {
     });
     
     client.on('error', (error) => {
-      console.error('MongoDB connection error:', error);
+    console.error('MongoDB connection error:', error);
       setTimeout(connectDB, 5000);
     });
     
@@ -1311,12 +1039,12 @@ async function connectDB() {
 // Start server
 async function startServer() {
   try {
-    await connectDB();
-    
+  await connectDB();
+  
     server.listen(PORT, '0.0.0.0', () => {
       console.log('Connected to MongoDB');
-      console.log(`🚀 KOL Tracker API running on port ${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/api`);
+    console.log(`🚀 KOL Tracker API running on port ${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/api`);
       console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
       console.log(`🎮 Socket.IO enabled for real-time gaming`);
     });

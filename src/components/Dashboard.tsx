@@ -236,128 +236,162 @@ export default function Dashboard() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">KOL Analysis</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Track and analyze influential crypto personalities and their market impact with advanced metrics and insights.
-                </p>
-                <Link
-                  to="/kol-analyzer"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {[
+              {
+                title: "KOL Analysis",
+                description: "Track and analyze influential crypto personalities and their market impact with advanced metrics and insights.",
+                icon: Users,
+                link: "/kol-analyzer",
+                linkText: "Explore Features",
+                accentColor: "from-neutral-400 to-neutral-100"
+              },
+              {
+                title: "Volume Tracking",
+                description: "Monitor trading volumes and market movements in real-time with comprehensive analytics and alerts.",
+                icon: TrendingUp,
+                link: "/volume-tracker",
+                linkText: "Explore Features",
+                accentColor: "from-neutral-400 to-neutral-100"
+              },
+              {
+                title: "Bot Detection",
+                description: "Identify and filter out automated trading activities with AI-powered detection algorithms.",
+                icon: Shield,
+                link: "/bot-detector",
+                linkText: "Detect Bots",
+                accentColor: "from-neutral-400 to-neutral-100"
+              },
+              {
+                title: "Channel Scanner",
+                description: "Discover and analyze crypto-focused channels and communities with deep insights and metrics.",
+                icon: Search,
+                link: "/channel-scanner",
+                linkText: "Scan Channels",
+                accentColor: "from-neutral-400 to-neutral-100"
+              },
+              {
+                title: "Leaderboard",
+                description: "Track top performers and success rates across the platform with comprehensive rankings.",
+                icon: Trophy,
+                link: "/leaderboard",
+                linkText: "View Rankings",
+                accentColor: "from-neutral-400 to-neutral-100"
+              },
+              {
+                title: "Interactive Games",
+                description: "Engage with the community through interactive crypto games and prediction challenges.",
+                icon: Gamepad2,
+                link: "/games",
+                linkText: "Play Games",
+                accentColor: "from-neutral-400 to-neutral-100"
+              }
+            ].map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <div key={index} 
+                  className={`group relative overflow-hidden rounded-2xl transition-all duration-500
+                    bg-[#1c1c1c] hover:bg-[#242424]
+                    border border-[#2a2a2a] hover:border-[#333333]
+                    shadow-[0_4px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]
+                    hover:-translate-y-1`}
                 >
-                  Explore Features <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-[0.08] group-hover:opacity-[0.12] transition-opacity duration-500">
+                    <div className="absolute inset-0" style={{
+                      backgroundImage: `linear-gradient(to right, #444 1px, transparent 1px),
+                                      linear-gradient(to bottom, #444 1px, transparent 1px)`,
+                      backgroundSize: '24px 24px'
+                    }} />
+                    <div className="absolute inset-0 rotate-45" style={{
+                      backgroundImage: `linear-gradient(to right, #444 1px, transparent 1px),
+                                      linear-gradient(to bottom, #444 1px, transparent 1px)`,
+                      backgroundSize: '24px 24px'
+                    }} />
+                  </div>
 
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Volume Tracking</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Monitor trading volumes and market movements in real-time with comprehensive analytics and alerts.
-                </p>
-                <Link
-                  to="/volume-tracker"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
-                >
-                  Explore Features <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+                  {/* Subtle Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Top Border Accent */}
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Side Line Accents */}
+                  <div className="absolute top-[10%] bottom-[10%] left-0 w-[1px] bg-gradient-to-b from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute top-[10%] bottom-[10%] right-0 w-[1px] bg-gradient-to-b from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Content Container */}
+                  <div className="relative p-6">
+                    {/* Icon Container with Line Decoration */}
+                    <div className="relative inline-flex mb-5">
+                      <div className="w-12 h-12 flex items-center justify-center rounded-xl
+                        bg-[#2a2a2a] group-hover:bg-[#333333]
+                        transition-colors duration-500 relative overflow-hidden"
+                      >
+                        {/* Icon Background Lines */}
+                        <div className="absolute inset-0 opacity-20" style={{
+                          backgroundImage: `linear-gradient(45deg, #fff 1px, transparent 1px)`,
+                          backgroundSize: '8px 8px'
+                        }} />
+                        <Icon className="w-6 h-6 text-neutral-300 group-hover:text-white transition-colors duration-500 relative z-10" />
+                      </div>
+                      
+                      {/* Subtle Ring with Line Pattern */}
+                      <div className="absolute -inset-2 rounded-xl border border-white/10
+                        opacity-0 group-hover:opacity-100 group-hover:scale-105
+                        transition-all duration-500">
+                        <div className="absolute inset-0 opacity-30" style={{
+                          backgroundImage: `linear-gradient(45deg, transparent 1px, #444 1px)`,
+                          backgroundSize: '4px 4px'
+                        }} />
+                      </div>
+                    </div>
 
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Shield className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Bot Detection</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Identify and filter out automated trading activities with AI-powered detection algorithms.
-                </p>
-                <Link
-                  to="/bot-detector"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
-                >
-                  Detect Bots <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+                    {/* Text Content */}
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold text-white/90 group-hover:text-white
+                        transition-colors duration-500">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm text-neutral-400 group-hover:text-neutral-300 leading-relaxed">
+                        {feature.description}
+                      </p>
 
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Search className="h-8 w-8 text-white" />
+                      {/* Link with Line Decoration */}
+                      <div className="pt-2">
+                        <Link
+                          to={feature.link}
+                          className="inline-flex items-center space-x-2 text-sm text-neutral-400
+                            hover:text-white transition-colors duration-300 group/link relative"
+                        >
+                          <span className="font-medium relative">
+                            {feature.linkText}
+                            {/* Underline Effect */}
+                            <span className="absolute left-0 right-0 bottom-0 h-px bg-gradient-to-r from-white/0 via-white/40 to-white/0 
+                              opacity-0 group-hover/link:opacity-100 transition-opacity duration-300" />
+                          </span>
+                          <ArrowRight className="w-4 h-4 transform group-hover/link:translate-x-1 transition-transform duration-300" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">Channel Scanner</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Discover and analyze crypto-focused channels and communities with deep insights and metrics.
-                </p>
-                <Link
-                  to="/channel-scanner"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
-                >
-                  Scan Channels <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Trophy className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Leaderboard</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Track top performers and success rates across the platform with comprehensive rankings.
-                </p>
-                <Link
-                  to="/leaderboard"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
-                >
-                  View Rankings <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="feature-box group bg-[#1f1f1f] p-8 rounded-2xl shadow-lg border border-[#2f2f2f] hover:shadow-2xl transition-all duration-300">
-              <div className="content">
-                <div className="icon-container w-16 h-16 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Gamepad2 className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3">Interactive Games</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed">
-                  Engage with the community through interactive crypto games and prediction challenges.
-                </p>
-                <Link
-                  to="/games"
-                  className="inline-flex items-center text-[#6c5dd3] hover:text-[#8d7ff0] font-semibold group-hover:translate-x-1 transition-transform duration-300"
-                >
-                  Play Games <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* CTA Section */}
           <div className="text-center bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-3xl p-12 text-white network-pattern relative">
             <div className="relative z-10">
-              <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-              <p className="text-xl mb-8 opacity-90">Join thousands of traders and analysts already using KOL Nexus</p>
-              <Link
-                to="/register"
+            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+            <p className="text-xl mb-8 opacity-90">Join thousands of traders and analysts already using KOL Nexus</p>
+            <Link
+              to="/register"
                 className="inline-flex items-center px-8 py-4 bg-[#1f1f1f] text-[#6c5dd3] font-semibold rounded-2xl hover:bg-[#2f2f2f] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-              >
-                <Rocket className="mr-2 h-5 w-5" />
-                Start Your Journey
-              </Link>
+            >
+              <Rocket className="mr-2 h-5 w-5" />
+              Start Your Journey
+            </Link>
             </div>
           </div>
         </div>

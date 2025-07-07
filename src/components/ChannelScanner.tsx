@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Users, Bot, TrendingUp, Calendar, AlertCircle, Loader2, MoreHorizontal, Plus, MessagesSquare, Download, Activity, Clock } from 'lucide-react';
-import { scanChannel } from '../services/telegramService';
+import { telegramService } from '../services/telegramService';
 import { useChannelScanner } from '../contexts/ChannelScannerContext';
 import { TypewriterText } from './TypewriterText';
 
@@ -59,12 +59,26 @@ export function ChannelScanner() {
 
     try {
       const channelUsername = extractChannelUsername(scanURL);
-      const result = await scanChannel(channelUsername);
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to scan channel');
-      }
+      const result = await telegramService.scanChannel(channelUsername);
+      
+      // Transform the result to match the expected format
+      const transformedResult = {
+        channel_id: 0,
+        title: result.title,
+        username: result.username,
+        description: result.description,
+        member_count: result.member_count,
+        active_members: Math.floor(result.member_count * 0.1), // Estimate 10% active
+        bot_count: 0,
+        kol_count: result.kol_details?.length || 0,
+        kol_details: result.kol_details?.map(kol => ({
+          ...kol,
+          last_name: kol.last_name || null
+        })) || [],
+        scanned_at: new Date().toISOString()
+      };
 
-      setScanResult(result.data);
+      setScanResult(transformedResult);
       setScanURL('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while scanning');

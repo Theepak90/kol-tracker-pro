@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { authService } from './authService';
 import { blockchainService } from './blockchainService';
+import { WS_URL } from '../config/api';
 
 export interface GameRoom {
   id: string;
@@ -30,7 +31,7 @@ class GameService {
   }
 
   private initializeSocket() {
-    this.socket = io('http://localhost:3000/games', {
+    this.socket = io(`${WS_URL}/games`, {
       auth: {
         token: authService.getToken()
       }

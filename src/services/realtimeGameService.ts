@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { WalletAdapter } from '@solana/wallet-adapter-base';
+import { WS_URL } from '../config/api';
 
 export interface GameRoom {
   id: string;
@@ -48,7 +49,7 @@ class RealtimeGameService {
   }
 
   private initializeSocket() {
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(WS_URL, {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
