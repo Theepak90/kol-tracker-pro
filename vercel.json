@@ -7,6 +7,10 @@
   "devCommand": "npm run dev",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://kolnexus-backend.onrender.com/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

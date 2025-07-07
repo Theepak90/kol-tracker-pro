@@ -20,10 +20,12 @@ async function bootstrap() {
       'https://kolnexus2.netlify.app',
       'https://kolnexus-backend.onrender.com',
       'https://kolnexus-telethon.onrender.com',
-      'https://kolnexus.vercel.app'
+      'https://kolnexus.vercel.app',
+      'https://*.vercel.app'  // Allow all Vercel preview deployments
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   });
 
   // Enable validation pipes
