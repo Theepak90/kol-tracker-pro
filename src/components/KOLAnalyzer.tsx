@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, MessageCircle, TrendingUp, BarChart3, Brain, Clock, Link, Zap, AlertTriangle, Plus, Loader, Eye, Share, Activity, Wifi, WifiOff } from 'lucide-react';
+import { Search, Users, MessageCircle, TrendingUp, BarChart3, Brain, Clock, Link, Zap, AlertTriangle, Plus, Loader, Eye, Share, Activity, Wifi, WifiOff, DollarSign, LineChart } from 'lucide-react';
 import { TypewriterText } from './TypewriterText';
 import { telegramService } from '../services/telegramService';
 import { aiAnalysisService } from '../services/aiAnalysisService';
 import type { KOLAnalysisResult } from '../services/aiAnalysisService';
+import { apiService } from '../services/apiService';
+
+interface VolumeData {
+  timestamp: string;
+  volume: number;
+  price: number;
+  token_address?: string;
+  chain?: string;
+}
+
+interface EnhancedPost extends Post {
+  volume_data?: VolumeData;
+  sentiment_score?: number;
+  engagement_rate?: number;
+}
 
 interface KOL {
   id: string;
@@ -15,6 +30,9 @@ interface KOL {
     posts: number;
     views: number;
     forwards: number;
+    total_volume?: number;
+    average_sentiment?: number;
+    peak_engagement?: number;
   };
   discoveredFrom?: string;
 }
@@ -47,12 +65,16 @@ export default function KOLAnalyzer() {
   const [kols, setKols] = useState<KOL[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [analysis, setAnalysis] = useState<KOLAnalysisResult | null>(null);
+  const [volumeData, setVolumeData] = useState<Record<string, VolumeData[]>>({});
+  const [enhancedPosts, setEnhancedPosts] = useState<EnhancedPost[]>([]);
+  const [activeView, setActiveView] = useState<'posts' | 'analysis' | 'volume'>('posts');
   
   // Loading states
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [groupScanLoading, setGroupScanLoading] = useState(false);
   const [fetchingPosts, setFetchingPosts] = useState(false);
+  const [volumeLoading, setVolumeLoading] = useState(false);
   
   // Error handling
   const [error, setError] = useState<string | null>(null);
@@ -97,17 +119,13 @@ export default function KOLAnalyzer() {
   const loadKOLs = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/kols');
-      if (!response.ok) {
-        throw new Error('Failed to fetch KOLs');
-      }
-      const data = await response.json();
+      const data = await apiService.getKOLs();
       
       // Transform data to match expected format
-      const transformedKOLs = Array.isArray(data) ? data.map(kol => ({
-        id: kol._id || kol.id || `kol_${Date.now()}_${Math.random()}`,
-        name: kol.displayName || kol.name || kol.telegramUsername,
-        username: kol.telegramUsername || kol.username,
+      const transformedKOLs = Array.isArray(data) ? data.map((kol: any) => ({
+        id: kol._id || `kol_${Date.now()}_${Math.random()}`,
+        name: kol.displayName || kol.telegramUsername,
+        username: kol.telegramUsername,
         description: kol.description || 'No description available',
         tags: kol.tags || [],
         stats: {
@@ -119,9 +137,15 @@ export default function KOLAnalyzer() {
       })) : [];
       
       setKols(transformedKOLs);
+      
+      // Show demo mode indicator if using fallback data
+      const isUsingFallback = data.some(kol => kol.discoveredFrom === 'Demo Data');
+      if (isUsingFallback) {
+        setError('📱 Demo Mode: Backend services unavailable, showing demo data');
+      }
     } catch (error) {
       console.error('Error loading KOLs:', error);
-      setError('Failed to load KOLs. Please try again later.');
+      setError('Failed to load KOLs. Using demo data.');
       setKols([]);
     }
   };
@@ -218,14 +242,19 @@ export default function KOLAnalyzer() {
       const channelInfo = await telegramService.scanChannel(groupName);
       
       if (channelInfo.kol_details.length > 0) {
-        const newKOLs = channelInfo.kol_details.map(kol => ({
-          id: `group_${kol.user_id}_${Date.now()}`,
-          name: kol.first_name || kol.username || 'Unknown KOL',
+        // Transform KOL details to our format
+        const newKOLs = channelInfo.kol_details.map((kol: any) => ({
+          id: `group_${kol.user_id || Math.random()}`,
+          name: `${kol.first_name || 'Unknown'} ${kol.last_name || ''}`.trim(),
           username: kol.username || `user_${kol.user_id}`,
-          description: `KOL discovered from ${channelInfo.title}${kol.is_admin ? ' (Admin)' : ''}`,
-          tags: ['Group Scan', channelInfo.title || groupName, ...(kol.is_admin ? ['Admin'] : [])],
-          stats: { posts: 0, views: 0, forwards: 0 },
-          discoveredFrom: channelInfo.title || groupName
+          description: `Found in ${groupName} ${kol.is_admin ? '(Admin)' : '(Member)'}`,
+          tags: ['Group Member', ...(kol.is_admin ? ['Admin'] : [])],
+          stats: {
+            posts: 0,
+            views: 0,
+            forwards: 0
+          },
+          discoveredFrom: groupName
         }));
         
         setKols(prev => [...newKOLs, ...prev]);
@@ -243,49 +272,32 @@ export default function KOLAnalyzer() {
   };
 
   const loadPostsForKOL = async (username: string) => {
-    if (!telegramStatus.connected) {
-      setError('Telegram service is not available. Please try again later.');
-      return;
-    }
-
+    if (!username) return;
+    
     setFetchingPosts(true);
     setError(null);
-    setAnalysis(null); // Clear previous analysis
     
     try {
-      const postsData = await telegramService.trackUserPosts(username);
-
-      // Transform posts data
-      const transformedPosts = postsData.posts.map(post => ({
-        id: `post_${post.message_id}_${Date.now()}`,
-        text: post.text || 'No content',
+      // Use enhanced posts from telegram service
+      const data = await telegramService.getEnhancedPosts(username);
+      
+      // Transform enhanced posts to regular posts format
+      const transformedPosts = data.posts.map((post: any) => ({
+        id: `${post.message_id}`,
+        text: post.text,
         date: post.date,
         views: post.views || 0,
         forwards: post.forwards || 0,
         username: username,
-        source: 'telegram',
-        channel_id: post.channel_id,
-        channel_title: post.channel_title
+        source: 'Telegram',
+        channel_id: post.channel_id || 0,
+        channel_title: post.channel_title || username
       }));
       
       setPosts(transformedPosts);
-      
-      // Update KOL stats
-      setKols(prev => prev.map(kol => 
-        kol.username === username 
-          ? {
-              ...kol,
-              stats: {
-                posts: postsData.total_posts,
-                views: postsData.total_views,
-                forwards: postsData.total_forwards
-              }
-            }
-          : kol
-      ));
     } catch (error) {
       console.error('Error loading posts:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load posts. Please try again later.');
+      setError('Failed to load posts. Please try again later.');
       setPosts([]);
     } finally {
       setFetchingPosts(false);
@@ -325,9 +337,62 @@ export default function KOLAnalyzer() {
     }
   };
 
+  const loadEnhancedPosts = async (username: string) => {
+    if (!username) return;
+    
+    setFetchingPosts(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_TELETHON_SERVICE_URL}/enhanced-posts/${username}`);
+      if (!response.ok) throw new Error('Failed to fetch enhanced posts');
+      
+      const data = await response.json();
+      setEnhancedPosts(data.posts);
+      
+      // Update KOL stats with new data
+      if (selectedKOL) {
+        setSelectedKOL({
+          ...selectedKOL,
+          stats: {
+            ...selectedKOL.stats,
+            total_volume: data.total_volume,
+            average_sentiment: data.average_sentiment,
+            peak_engagement: data.peak_engagement
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading enhanced posts:', error);
+      setError('Failed to load enhanced posts');
+    } finally {
+      setFetchingPosts(false);
+    }
+  };
+
+  const loadVolumeData = async (username: string) => {
+    if (!username) return;
+    
+    setVolumeLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_TELETHON_SERVICE_URL}/track-volume/${username}`);
+      if (!response.ok) throw new Error('Failed to fetch volume data');
+      
+      const data = await response.json();
+      setVolumeData(data);
+    } catch (error) {
+      console.error('Error loading volume data:', error);
+      setError('Failed to load volume data');
+    } finally {
+      setVolumeLoading(false);
+    }
+  };
+
   const selectKOL = async (kol: KOL) => {
     setSelectedKOL(kol);
-    await loadPostsForKOL(kol.username);
+    setActiveView('posts');
+    await Promise.all([
+      loadEnhancedPosts(kol.username),
+      loadVolumeData(kol.username)
+    ]);
   };
 
   const refreshPosts = async () => {
@@ -383,7 +448,63 @@ export default function KOLAnalyzer() {
     }
   };
 
+  const renderVolumeView = () => {
+    if (volumeLoading) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <Loader className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading volume data...</span>
+        </div>
+      );
+    }
+
+    if (!Object.keys(volumeData).length) {
+      return (
+        <div className="text-center p-8 text-gray-500">
+          No volume data available for this KOL
+        </div>
+      );
+    }
+
     return (
+      <div className="space-y-4">
+        {Object.entries(volumeData).map(([token, data]) => (
+          <div key={token} className="bg-gray-800 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold">{token.substring(0, 8)}...</h3>
+              <span className="text-sm text-gray-400">{data[0]?.chain}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-700 rounded p-3">
+                <div className="text-sm text-gray-400">Latest Price</div>
+                <div className="text-lg">${data[data.length - 1]?.price.toFixed(4)}</div>
+              </div>
+              <div className="bg-gray-700 rounded p-3">
+                <div className="text-sm text-gray-400">24h Volume</div>
+                <div className="text-lg">${formatNumber(data[data.length - 1]?.volume)}</div>
+              </div>
+              <div className="bg-gray-700 rounded p-3">
+                <div className="text-sm text-gray-400">Price Change</div>
+                <div className="text-lg">
+                  {calculatePriceChange(data)}%
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const calculatePriceChange = (data: VolumeData[]): string => {
+    if (data.length < 2) return '0.00';
+    const oldPrice = data[0].price;
+    const newPrice = data[data.length - 1].price;
+    const change = ((newPrice - oldPrice) / oldPrice) * 100;
+    return change.toFixed(2);
+  };
+
+  return (
     <div className="min-h-screen bg-[#1c1c1c] text-white p-6">
       {/* Service Status */}
       <div className="mb-6 flex items-center justify-between">
@@ -576,9 +697,9 @@ export default function KOLAnalyzer() {
                   {/* Tabs */}
               <div className="flex items-center space-x-4 border-b border-[#333] pb-4">
                       <button
-                        onClick={() => setActiveTab('posts')}
+                        onClick={() => setActiveView('posts')}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
-                    ${activeTab === 'posts'
+                    ${activeView === 'posts'
                       ? 'bg-[#242424] text-white'
                       : 'text-neutral-400 hover:text-white'
                     }`}
@@ -587,9 +708,9 @@ export default function KOLAnalyzer() {
                   <span>Posts</span>
                       </button>
                       <button
-                        onClick={() => setActiveTab('analysis')}
+                        onClick={() => setActiveView('analysis')}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200
-                    ${activeTab === 'analysis'
+                    ${activeView === 'analysis'
                       ? 'bg-[#242424] text-white'
                       : 'text-neutral-400 hover:text-white'
                     }`}
@@ -601,36 +722,54 @@ export default function KOLAnalyzer() {
 
               {/* Content */}
               <div className="space-y-4">
-                {activeTab === 'posts' ? (
+                {activeView === 'posts' ? (
                   <>
                     {/* Posts List */}
                     {fetchingPosts ? (
                       <div className="flex items-center justify-center py-12">
                         <Loader className="w-8 h-8 animate-spin text-neutral-400" />
                       </div>
-                    ) : posts.length > 0 ? (
+                    ) : enhancedPosts.length > 0 ? (
                       <div className="space-y-4">
-                        {posts.map(post => (
+                        {enhancedPosts.map(post => (
                           <div
                             key={post.id}
                             className="bg-[#242424] rounded-xl p-4 border border-[#333]"
                           >
-                            <p className="text-neutral-300 whitespace-pre-wrap">{post.text}</p>
-                            <div className="mt-3 flex items-center justify-between text-sm">
-                              <div className="text-neutral-400">
-                                {new Date(post.date).toLocaleDateString()}
-                          </div>
-                              <div className="flex items-center space-x-4 text-neutral-400">
-                                <div className="flex items-center space-x-1">
-                                  <Eye className="w-4 h-4" />
-                                  <span>{formatNumber(post.views)}</span>
-                          </div>
-                                <div className="flex items-center space-x-1">
-                                  <Share className="w-4 h-4" />
-                                  <span>{formatNumber(post.forwards)}</span>
-                                </div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm text-neutral-400">{formatDate(post.date)}</span>
+                              <div className="flex items-center space-x-4">
+                                <span className="flex items-center">
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  {formatNumber(post.views)}
+                                </span>
+                                <span className="flex items-center">
+                                  <Share className="w-4 h-4 mr-1" />
+                                  {formatNumber(post.forwards)}
+                                </span>
+                                {post.engagement_rate && (
+                                  <span className="flex items-center">
+                                    <Activity className="w-4 h-4 mr-1" />
+                                    {post.engagement_rate.toFixed(2)}%
+                                  </span>
+                                )}
                               </div>
                             </div>
+                            <p className="text-gray-300">{post.text}</p>
+                            {post.volume_data && (
+                              <div className="mt-2 p-2 bg-gray-700 rounded">
+                                <div className="flex items-center space-x-4">
+                                  <span className="flex items-center">
+                                    <DollarSign className="w-4 h-4 mr-1" />
+                                    ${post.volume_data.price.toFixed(4)}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <TrendingUp className="w-4 h-4 mr-1" />
+                                    ${formatNumber(post.volume_data.volume)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -641,7 +780,7 @@ export default function KOLAnalyzer() {
                     )}
 
                     {/* Analysis Button */}
-                    {posts.length > 0 && (
+                    {enhancedPosts.length > 0 && (
                       <div className="flex justify-center pt-4">
                         <button
                           onClick={performAIAnalysis}
