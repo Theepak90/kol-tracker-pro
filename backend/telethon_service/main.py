@@ -11,7 +11,7 @@ from typing import List, Optional, Dict, cast, Union
 import asyncio
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from datetime import datetime
+from datetime import datetime, timedelta
 from schemas.group_scan import GroupScan, KOLInfo
 
 # Configure logging
@@ -22,6 +22,35 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
+class VolumeData(BaseModel):
+    timestamp: datetime
+    volume: float
+    price: float
+    token_address: Optional[str]
+    chain: Optional[str]
+
+class EnhancedUserPost(BaseModel):
+    message_id: int
+    text: str
+    date: datetime
+    views: Optional[int]
+    forwards: Optional[int]
+    channel_id: Optional[int]
+    channel_title: Optional[str]
+    volume_data: Optional[VolumeData]
+    sentiment_score: Optional[float]
+    engagement_rate: Optional[float]
+
+class EnhancedUserPostsResponse(BaseModel):
+    username: str
+    posts: List[EnhancedUserPost]
+    total_posts: int
+    total_views: int
+    total_forwards: int
+    total_volume: float
+    average_sentiment: float
+    peak_engagement: float
 
 class TelegramScanner:
     def __init__(self):
@@ -107,7 +136,7 @@ class UserPostsResponse(BaseModel):
     total_views: int
     total_forwards: int
 
-# Configure CORS
+# Configure CORS with updated origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -121,6 +150,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:4173",
         "https://kol-tracker-pro.vercel.app",
+        "https://kolnexus.vercel.app",
+        "https://*.vercel.app",
         "https://kolnexus-backend.onrender.com",
         "https://kolnexus-telethon.onrender.com"
     ],
@@ -336,6 +367,143 @@ async def track_user_posts(username: str):
     except Exception as e:
         logger.error(f"Error tracking posts for {username}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/track-volume/{username}", response_model=Dict[str, List[VolumeData]])
+async def track_user_volume(username: str, days: int = 30):
+    if not scanner.client or not scanner.client.is_connected():
+        raise HTTPException(status_code=503, detail="Telegram client not connected")
+    
+    try:
+        # Get user's posts
+        user = await scanner.client.get_entity(username)
+        messages = await scanner.client.get_messages(user, limit=100)
+        
+        # Extract token addresses and trading volumes
+        volume_data: Dict[str, List[VolumeData]] = {}
+        
+        for msg in messages:
+            # Extract token addresses using regex
+            token_addresses = extract_token_addresses(msg.text) if msg.text else []
+            
+            for token in token_addresses:
+                if token not in volume_data:
+                    volume_data[token] = []
+                
+                # Get volume data from your preferred source (e.g., DEX API)
+                volume = await get_token_volume(token)
+                
+                volume_data[token].append(VolumeData(
+                    timestamp=msg.date,
+                    volume=volume.get('volume', 0),
+                    price=volume.get('price', 0),
+                    token_address=token,
+                    chain=volume.get('chain', 'ethereum')
+                ))
+        
+        return volume_data
+    except Exception as e:
+        logger.error(f"Error tracking volume for {username}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/enhanced-posts/{username}", response_model=EnhancedUserPostsResponse)
+async def get_enhanced_posts(username: str):
+    if not scanner.client or not scanner.client.is_connected():
+        raise HTTPException(status_code=503, detail="Telegram client not connected")
+    
+    try:
+        # Get user's posts with enhanced data
+        user = await scanner.client.get_entity(username)
+        messages = await scanner.client.get_messages(user, limit=100)
+        
+        enhanced_posts = []
+        total_volume = 0
+        total_sentiment = 0
+        max_engagement = 0
+        
+        for msg in messages:
+            # Get volume data
+            volume_data = await get_post_volume_data(msg.text) if msg.text else None
+            
+            # Calculate sentiment score
+            sentiment = calculate_sentiment(msg.text) if msg.text else 0
+            
+            # Calculate engagement rate
+            engagement = calculate_engagement_rate(msg.views, msg.forwards)
+            
+            if volume_data:
+                total_volume += volume_data.volume
+            
+            total_sentiment += sentiment
+            max_engagement = max(max_engagement, engagement)
+            
+            enhanced_posts.append(EnhancedUserPost(
+                message_id=msg.id,
+                text=msg.text or "",
+                date=msg.date,
+                views=msg.views,
+                forwards=getattr(msg, 'forwards', 0),
+                channel_id=msg.peer_id.channel_id if isinstance(msg.peer_id, PeerChannel) else None,
+                channel_title=getattr(msg, 'chat', None) and getattr(msg.chat, 'title', None),
+                volume_data=volume_data,
+                sentiment_score=sentiment,
+                engagement_rate=engagement
+            ))
+        
+        return EnhancedUserPostsResponse(
+            username=username,
+            posts=enhanced_posts,
+            total_posts=len(enhanced_posts),
+            total_views=sum(p.views or 0 for p in enhanced_posts),
+            total_forwards=sum(p.forwards or 0 for p in enhanced_posts),
+            total_volume=total_volume,
+            average_sentiment=total_sentiment / len(enhanced_posts) if enhanced_posts else 0,
+            peak_engagement=max_engagement
+        )
+    except Exception as e:
+        logger.error(f"Error getting enhanced posts for {username}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Helper functions
+def extract_token_addresses(text: str) -> List[str]:
+    # Implement regex pattern to extract token addresses
+    # This is a basic implementation - enhance based on your needs
+    import re
+    pattern = r'0x[a-fA-F0-9]{40}'
+    return re.findall(pattern, text)
+
+async def get_token_volume(token_address: str) -> Dict:
+    # Implement API call to get token volume data
+    # This is a placeholder - implement actual API call
+    return {
+        'volume': 0,
+        'price': 0,
+        'chain': 'ethereum'
+    }
+
+async def get_post_volume_data(text: str) -> Optional[VolumeData]:
+    # Extract token address and get volume data
+    addresses = extract_token_addresses(text)
+    if not addresses:
+        return None
+    
+    volume_data = await get_token_volume(addresses[0])
+    return VolumeData(
+        timestamp=datetime.now(),
+        volume=volume_data['volume'],
+        price=volume_data['price'],
+        token_address=addresses[0],
+        chain=volume_data['chain']
+    )
+
+def calculate_sentiment(text: str) -> float:
+    # Implement sentiment analysis
+    # This is a placeholder - implement actual sentiment analysis
+    return 0.0
+
+def calculate_engagement_rate(views: Optional[int], forwards: Optional[int]) -> float:
+    if not views:
+        return 0.0
+    return ((forwards or 0) / views) * 100
 
 if __name__ == "__main__":
     import uvicorn
