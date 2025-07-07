@@ -1,3 +1,34 @@
+// API Configuration
+const isDevelopment = import.meta.env.DEV;
+
+// Development URLs (local)
+const DEV_BACKEND_URL = 'http://localhost:3000';
+const DEV_TELETHON_URL = 'http://localhost:8000';
+const DEV_WS_URL = 'ws://localhost:3000';
+
+// Production URLs
+const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kolnexus-backend.onrender.com';
+const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kolnexus-telethon.onrender.com';
+const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kolnexus-backend.onrender.com';
+
+// Export the appropriate URLs based on environment
+export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;
+export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : PROD_TELETHON_URL;
+export const WS_URL = isDevelopment ? DEV_WS_URL : PROD_WS_URL;
+
+// Ensure URLs are properly formatted
+export const ensureHttps = (url: string) => {
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return `https://${url}`;
+  }
+  return url;
+};
+
+export const ensureWss = (url: string) => {
+  return url.replace('http://', 'ws://').replace('https://', 'wss://');
+};
+
+// Export configuration with proper URL formatting
 export const API_CONFIG = {
   // Telegram
   telegram: {
@@ -79,7 +110,13 @@ export const API_CONFIG = {
 
   // WebSocket
   websocket: {
-    endpoint: import.meta.env.VITE_WS_ENDPOINT || 'wss://localhost:8080',
+    endpoint: ensureWss(WS_URL),
+    options: {
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000
+    }
   },
 
   // Rate Limits
@@ -96,7 +133,7 @@ export const API_CONFIG = {
   },
 
   TELETHON_SERVICE: {
-    BASE_URL: process.env.TELETHON_SERVICE_URL || 'http://localhost:8000',
+    BASE_URL: ensureHttps(TELETHON_BASE_URL),
     ENDPOINTS: {
       HEALTH: '/health',
       SCAN_CHANNEL: (username: string) => `/scan/${username}`,
@@ -106,6 +143,7 @@ export const API_CONFIG = {
   }
 };
 
+// Export chain configurations
 export const SUPPORTED_CHAINS = {
   ethereum: { id: 1, name: 'Ethereum', rpc: 'https://eth-mainnet.g.alchemy.com/v2' },
   bsc: { id: 56, name: 'BSC', rpc: 'https://bsc-dataseed.binance.org' },
@@ -115,29 +153,10 @@ export const SUPPORTED_CHAINS = {
   base: { id: 8453, name: 'Base', rpc: 'https://mainnet.base.org' },
 };
 
-// API Configuration
-const isDevelopment = import.meta.env.DEV;
-
-// Development URLs (local)
-const DEV_BACKEND_URL = 'http://localhost:3000';
-const DEV_TELETHON_URL = 'http://localhost:8000';
-
-// Production URLs
-const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kolnexus-backend.onrender.com';
-const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kolnexus-telethon.onrender.com';
-
-// Export the appropriate URLs based on environment
-export const API_BASE_URL = isDevelopment ? DEV_BACKEND_URL : PROD_BACKEND_URL;
-export const TELETHON_BASE_URL = isDevelopment ? DEV_TELETHON_URL : PROD_TELETHON_URL;
-
-// WebSocket URL for games
-export const WS_URL = isDevelopment 
-  ? 'ws://localhost:3000' 
-  : PROD_BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
-
 console.log('🔧 API Configuration:', {
   environment: isDevelopment ? 'development' : 'production',
   backendURL: API_BASE_URL,
   telethonURL: TELETHON_BASE_URL,
-  wsURL: WS_URL
+  wsURL: WS_URL,
+  formattedWsURL: ensureWss(WS_URL)
 });
