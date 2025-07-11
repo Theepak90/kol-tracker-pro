@@ -1,0 +1,265 @@
+
+> backend@0.0.1 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m3:23:29 PM[0m] Starting compilation in watch mode...
+
+[[90m3:23:31 PM[0m] Found 0 errors. Watching for file changes.
+
+(node:27933) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +17ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBotDetectionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseCoreModule dependencies initialized[39m[38;5;3m +8ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGameModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mKOLModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "createGame" message[39m[38;5;3m +121ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "joinGame" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "getActiveGames" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mKOLController {/api/kols}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/track-posts/:username, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username/analyze, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/register, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBotDetectionController {/api/bot-detection}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bot-detection/analyze/:username, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bot-detection/analyze-channel/:channelUrl, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +7ms[39m
+[31m[Nest] 28008  - [39m07/10/2025, 3:23:31 PM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +1ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (/Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/platform-express/adapters/express-adapter.js:108:32)
+    at /Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/core/nest-application.js:185:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (/Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/core/nest-application.js:175:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async bootstrap (/Users/theepak/Downloads/kol-tracker-pro-main/backend/src/main.ts:41:3) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.3.0
+[2J[3J[H[[90m10:11:48 AM[0m] File change detected. Starting incremental compilation...
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m501[0m:[93m5[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+
+[7m501[0m     }
+[7m   [0m [91m    ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m502[0m:[93m3[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+
+[7m502[0m   }
+[7m   [0m [91m  ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m3[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m  ~~~~~~~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m42[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                         ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m65[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m83[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                  ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m104[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                       ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m127[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                              ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m148[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                                                   ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m169[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                                                                        ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m175[0m - [91merror[0m[90m TS1011: [0mAn element access expression should take an argument.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                                                                              [0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m177[0m - [91merror[0m[90m TS1005: [0m';' expected.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                                                                                ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m504[0m:[93m179[0m - [91merror[0m[90m TS1434: [0mUnexpected keyword or identifier.
+
+[7m504[0m   private generateEnhancedOverview(status: string, activityRatio: number, botRatio: number, memberCount: number, activeMembers: number, description: string, kol_details: any[]): string {
+[7m   [0m [91m                                                                                                                                                                                  ~~~~~~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m3[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m  ~~~~~~~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m49[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m72[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                       ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m90[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                         ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m111[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                              ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m132[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                   ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m153[0m - [91merror[0m[90m TS1005: [0m',' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                                        ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m159[0m - [91merror[0m[90m TS1011: [0mAn element access expression should take an argument.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                                              [0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m161[0m - [91merror[0m[90m TS1005: [0m';' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                                                ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m170[0m - [91merror[0m[90m TS1011: [0mAn element access expression should take an argument.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                                                         [0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m578[0m:[93m172[0m - [91merror[0m[90m TS1005: [0m';' expected.
+
+[7m578[0m   private generateEnhancedRecommendations(status: string, activityRatio: number, botRatio: number, memberCount: number, description: string, kol_details: any[]): string[] {
+[7m   [0m [91m                                                                                                                                                                           ~[0m
+
+[96msrc/bot-detection/bot-detection.service.ts[0m:[93m615[0m:[93m1[0m - [91merror[0m[90m TS1128: [0mDeclaration or statement expected.
+
+[7m615[0m }
+[7m   [0m [91m~[0m
+
+[[90m10:11:50 AM[0m] Found 25 errors. Watching for file changes.
+
+[2J[3J[H[[90m10:29:40 AM[0m] File change detected. Starting incremental compilation...
+
+[[90m10:29:42 AM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +39ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBotDetectionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseCoreModule dependencies initialized[39m[38;5;3m +46ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGameModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mKOLModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "createGame" message[39m[38;5;3m +259ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "joinGame" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mGameGateway subscribed to the "getActiveGames" message[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +17ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mKOLController {/api/kols}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/track-posts/:username, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username/analyze, POST} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, PUT} route[39m[38;5;3m +4ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/kols/:username, DELETE} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/register, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/profile, PUT} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBotDetectionController {/api/bot-detection}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bot-detection/analyze/:username, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 82347  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/bot-detection/analyze-channel/:channelUrl, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +37ms[39m
+[31m[Nest] 82344  - [39m07/11/2025, 10:29:44 AM [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3000[39m[38;5;3m +3ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (/Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/platform-express/adapters/express-adapter.js:108:32)
+    at /Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/core/nest-application.js:185:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (/Users/theepak/Downloads/kol-tracker-pro-main/backend/node_modules/@nestjs/core/nest-application.js:175:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async bootstrap (/Users/theepak/Downloads/kol-tracker-pro-main/backend/src/main.ts:41:3) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+
+Node.js v24.3.0

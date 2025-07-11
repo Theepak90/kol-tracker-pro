@@ -1,0 +1,37 @@
+name: Keep Render Services Alive
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Ping Backend Service
+      run: |
+        echo "🏓 Pinging backend service..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://kolnexus-backend.onrender.com/health)
+        if [ $response -eq 200 ]; then
+          echo "✅ Backend is alive (HTTP $response)"
+        else
+          echo "❌ Backend ping failed (HTTP $response)"
+        fi
+    
+    - name: Ping Telethon Service  
+      run: |
+        echo "🏓 Pinging telethon service..."
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://kolnexus-telethon.onrender.com/health)
+        if [ $response -eq 200 ]; then
+          echo "✅ Telethon is alive (HTTP $response)"
+        else
+          echo "❌ Telethon ping failed (HTTP $response)"
+        fi
+    
+    - name: Summary
+      run: |
+        echo "🔄 Keep-alive check completed at $(date)"
+        echo "Services should remain active for the next 10 minutes" 

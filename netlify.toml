@@ -1,0 +1,33 @@
+[build]
+  publish = "dist"
+  command = "npm run build:frontend"
+
+[build.environment]
+  NODE_VERSION = "18"
+  VITE_TELETHON_SERVICE_URL = "https://kolnexus-telethon.onrender.com"
+  VITE_API_URL = "https://kolnexus-backend.onrender.com"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://kolnexus-backend.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  command = "npm run dev"
+  port = 5173
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Access-Control-Allow-Origin = "*" 
