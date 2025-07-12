@@ -377,7 +377,7 @@ export function BotDetector() {
                   <div>
                       <h2 className="text-3xl font-black text-white mb-2">@{selectedResult.username}</h2>
                       <p className="text-gray-300 text-lg font-medium">{selectedResult.displayName}</p>
-                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowDetailModal(false)}
@@ -399,7 +399,7 @@ export function BotDetector() {
                     <div className="bg-black/30 backdrop-blur-xl rounded-2xl p-6 border border-red-500/20 hover:border-red-400/30 transition-all duration-300">
                       <p className="text-gray-200 text-lg leading-relaxed">{selectedResult.aiAnalysis.overview}</p>
                     </div>
-                  </div>
+                </div>
               </div>
 
                 {/* Enhanced Key Indicators */}
@@ -417,10 +417,10 @@ export function BotDetector() {
                             <CheckCircle className="h-5 w-5 text-blue-400 flex-shrink-0" />
                             <span className="text-gray-200 font-medium">{indicator}</span>
                           </div>
-                        </div>
-                      ))}
                     </div>
-                  </div>
+                  ))}
+                    </div>
+                </div>
               </div>
 
                 {/* Enhanced Risk Factors */}
@@ -438,10 +438,10 @@ export function BotDetector() {
                             <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
                             <span className="text-gray-200 font-medium">{factor}</span>
                           </div>
-                        </div>
-                      ))}
                     </div>
-                  </div>
+                  ))}
+                    </div>
+                </div>
               </div>
 
                 {/* Enhanced Detailed Metrics */}
