@@ -1,4 +1,20 @@
 services:
+  # Frontend React Service
+  - type: web
+    name: kol-tracker-frontend
+    env: node
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: node serve.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://kol-tracker-backend.onrender.com
+      - key: VITE_TELETHON_URL
+        value: https://kol-tracker-telethon.onrender.com
+    healthCheckPath: /
+
   # Backend NestJS Service
   - type: web
     name: kol-tracker-backend
@@ -19,6 +35,8 @@ services:
         generateValue: true
       - key: TELETHON_SERVICE_URL
         value: https://kol-tracker-telethon.onrender.com
+      - key: CORS_ORIGINS
+        value: https://kol-tracker-frontend.onrender.com
     healthCheckPath: /api
 
   # Telethon Python Service
