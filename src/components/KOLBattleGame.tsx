@@ -1,374 +1,545 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Trophy, Computer, TrendingUp, TrendingDown } from 'lucide-react';
-import toast from 'react-hot-toast';
-import SOLDepositModal from './SOLDepositModal';
-import { transactionService } from '../services/transactionService';
-import gaImg from '../ga.jpg';
+import React, { useState, useEffect } from 'react';
+import { Crown, Users, Trophy, Loader2, Play, ArrowLeft, Swords, Shield, Zap, Star, Target, Flame } from 'lucide-react';
 
 interface KOLBattleGameProps {
   onBack: () => void;
 }
 
+interface KOL {
+  id: string;
+  name: string;
+  avatar: string;
+  followers: string;
+  engagement: number;
+  winRate: number;
+  power: number;
+  specialty: string;
+  color: string;
+}
+
+const KOLS: KOL[] = [
+  {
+    id: '1',
+    name: 'CryptoPunk Master',
+    avatar: '👑',
+    followers: '2.1M',
+    engagement: 8.5,
+    winRate: 78,
+    power: 95,
+    specialty: 'NFTs',
+    color: 'purple'
+  },
+  {
+    id: '2',
+    name: 'DeFi Wizard',
+    avatar: '🧙‍♂️',
+    followers: '1.8M',
+    engagement: 9.2,
+    winRate: 82,
+    power: 88,
+    specialty: 'DeFi',
+    color: 'blue'
+  },
+  {
+    id: '3',
+    name: 'Solana Samurai',
+    avatar: '⚔️',
+    followers: '1.5M',
+    engagement: 7.8,
+    winRate: 75,
+    power: 92,
+    specialty: 'Solana',
+    color: 'green'
+  },
+  {
+    id: '4',
+    name: 'Meme Lord',
+    avatar: '🚀',
+    followers: '3.2M',
+    engagement: 12.1,
+    winRate: 69,
+    power: 85,
+    specialty: 'Memes',
+    color: 'red'
+  },
+  {
+    id: '5',
+    name: 'AI Prophet',
+    avatar: '🤖',
+    followers: '950K',
+    engagement: 6.9,
+    winRate: 89,
+    power: 91,
+    specialty: 'AI/Tech',
+    color: 'yellow'
+  },
+  {
+    id: '6',
+    name: 'Whale Tracker',
+    avatar: '🐋',
+    followers: '1.2M',
+    engagement: 8.1,
+    winRate: 84,
+    power: 87,
+    specialty: 'Analytics',
+    color: 'teal'
+  }
+];
+
 export default function KOLBattleGame({ onBack }: KOLBattleGameProps) {
-  const [betAmount, setBetAmount] = useState<number>(0.1);
-  const [selectedKOL, setSelectedKOL] = useState<string | null>(null);
-  const [selectedPrediction, setSelectedPrediction] = useState<'up' | 'down' | null>(null);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [gameResult, setGameResult] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedKOL, setSelectedKOL] = useState<KOL | null>(null);
+  const [betAmount, setBetAmount] = useState(0.1);
+  const [isBattling, setIsBattling] = useState(false);
+  const [battlePhase, setBattlePhase] = useState<'selecting' | 'fighting' | 'result'>('selecting');
+  const [opponent, setOpponent] = useState<KOL | null>(null);
+  const [battleResult, setBattleResult] = useState<{winner: KOL, userWins: boolean, payout: number} | null>(null);
+  const [battleEffects, setBattleEffects] = useState<Array<{id: number, x: number, y: number, type: string}>>([]);
+  const [kolHealth, setKolHealth] = useState({user: 100, opponent: 100});
+  const [battleRound, setBattleRound] = useState(0);
 
-  // Mock KOLs
-  const kols = [
-    { 
-      id: '1', 
-      name: 'CryptoKing', 
-      avatar: '👑',
-      prediction: '+15.2%', 
-      confidence: '85%', 
-      multiplier: '2.5x',
-      followers: '500K',
-      winRate: '78%'
-    },
-    { 
-      id: '2', 
-      name: 'BlockchainGuru', 
-      avatar: '🧙‍♂️',
-      prediction: '+8.7%', 
-      confidence: '92%', 
-      multiplier: '1.8x',
-      followers: '1.2M',
-      winRate: '84%'
-    },
-    { 
-      id: '3', 
-      name: 'TokenWhisperer', 
-      avatar: '🎯',
-      prediction: '+25.1%', 
-      confidence: '65%', 
-      multiplier: '3.2x',
-      followers: '750K',
-      winRate: '72%'
-    },
-    { 
-      id: '4', 
-      name: 'DegenTrader', 
-      avatar: '🔥',
-      prediction: '+12.8%', 
-      confidence: '88%', 
-      multiplier: '2.1x',
-      followers: '300K',
-      winRate: '81%'
-    }
-  ];
+  const startBattle = () => {
+    if (!selectedKOL) return;
+    
+    // Select random opponent
+    const availableOpponents = KOLS.filter(kol => kol.id !== selectedKOL.id);
+    const randomOpponent = availableOpponents[Math.floor(Math.random() * availableOpponents.length)];
+    
+    setOpponent(randomOpponent);
+    setBattlePhase('fighting');
+    setIsBattling(true);
+    setKolHealth({user: 100, opponent: 100});
+    setBattleRound(0);
+    setBattleResult(null);
+    setBattleEffects([]);
+    
+    // Start battle animation
+    simulateBattle(selectedKOL, randomOpponent);
+  };
 
-  const selectedKOLData = kols.find(kol => kol.id === selectedKOL);
+  const simulateBattle = (userKOL: KOL, opponentKOL: KOL) => {
+    let userHP = 100;
+    let opponentHP = 100;
+    let round = 0;
+    
+    const battleInterval = setInterval(() => {
+      round++;
+      setBattleRound(round);
+      
+      // Generate battle effects
+      setBattleEffects(prev => [
+        ...prev,
+        {
+          id: Date.now() + Math.random(),
+          x: Math.random() * 600 + 100,
+          y: Math.random() * 400 + 150,
+          type: Math.random() > 0.5 ? 'explosion' : 'spark'
+        }
+      ]);
+      
+      // Calculate damage based on KOL power and randomness
+      const userDamage = Math.floor(Math.random() * (userKOL.power / 5)) + 5;
+      const opponentDamage = Math.floor(Math.random() * (opponentKOL.power / 5)) + 5;
+      
+      // Apply damage
+      opponentHP = Math.max(0, opponentHP - userDamage);
+      userHP = Math.max(0, userHP - opponentDamage);
+      
+      setKolHealth({user: userHP, opponent: opponentHP});
+      
+      // Check for winner
+      if (userHP <= 0 || opponentHP <= 0) {
+        clearInterval(battleInterval);
+        
+        setTimeout(() => {
+          const userWins = userHP > opponentHP;
+          const winner = userWins ? userKOL : opponentKOL;
+          const payout = userWins ? betAmount * 1.8 : 0;
+          
+          setBattleResult({
+            winner,
+            userWins,
+            payout
+          });
+          
+          setBattlePhase('result');
+          setIsBattling(false);
+          setBattleEffects([]);
+        }, 1000);
+      }
+    }, 1500);
+  };
+
+  const resetBattle = () => {
+    setBattlePhase('selecting');
+    setSelectedKOL(null);
+    setOpponent(null);
+    setBattleResult(null);
+    setBattleEffects([]);
+    setKolHealth({user: 100, opponent: 100});
+    setBattleRound(0);
+  };
+
+  // Clean up battle effects
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      setBattleEffects(prev => prev.filter(effect => Date.now() - effect.id < 2000));
+    }, 100);
+    return () => clearInterval(cleanup);
+  }, []);
+
+  const getColorClass = (color: string) => {
+    const colors = {
+      purple: 'from-purple-500 to-purple-700',
+      blue: 'from-blue-500 to-blue-700',
+      green: 'from-green-500 to-green-700',
+      red: 'from-red-500 to-red-700',
+      yellow: 'from-yellow-500 to-yellow-700',
+      teal: 'from-teal-500 to-teal-700'
+    };
+    return colors[color as keyof typeof colors] || 'from-gray-500 to-gray-700';
+  };
 
   const handleStartGame = () => {
-    if (!selectedKOL || !selectedPrediction) {
-      toast.error('Please select a KOL and prediction direction');
+    if (!selectedKOL) {
       return;
     }
-    setShowDepositModal(true);
-  };
-
-  const handleDepositVerified = () => {
-    setShowDepositModal(false);
-    startKOLBattle();
-  };
-
-  const startKOLBattle = () => {
-    setIsPlaying(true);
-    setIsAnalyzing(true);
-    setGameResult(null);
-
-    // Simulate analysis period
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      
-      // Get game outcome from transaction service (98% computer win rate)
-      const outcome = transactionService.simulateGameOutcome('kol_predictor', betAmount);
-      const actualMovement = outcome.gameDetails.actualMovement;
-      const priceChange = outcome.gameDetails.priceChange;
-      
-      setGameResult({
-        selectedKOL: selectedKOLData,
-        userPrediction: selectedPrediction,
-        actualMovement,
-        priceChange,
-        winner: outcome.winner,
-        userWins: outcome.winner === 'user',
-        payout: outcome.userPayout,
-        correct: selectedPrediction === actualMovement
-      });
-      setIsPlaying(false);
-    }, 5000); // 5 second analysis period
-  };
-
-  const resetGame = () => {
-    setGameResult(null);
-    setSelectedKOL(null);
-    setSelectedPrediction(null);
+    startBattle();
   };
 
   return (
-    <div className="min-h-screen relative">
-      <div className="fixed inset-0 z-0" style={{
-        backgroundImage: `url(${gaImg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'blur(8px) brightness(0.8)',
-      }} />
-      
-      <div className="relative z-10">
-        {/* Top Navigation */}
-        <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <button 
-              onClick={onBack}
-              className="flex items-center text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={20} className="mr-2" />
-              Back to Games
-            </button>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl animate-spin-slow"></div>
+      </div>
+
+      {/* Header */}
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+          >
+            <ArrowLeft size={20} />
+            <span className="text-white font-medium">Back to Games</span>
+          </button>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Crown className="text-yellow-400" size={32} />
+            KOL Battle Arena
+          </h1>
+          <div className="flex items-center gap-2 text-emerald-400">
+            <Users size={20} />
+            <span>Battle Royale</span>
           </div>
         </div>
+      </div>
 
-        {/* Header */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full mb-6">
-              <Trophy size={48} className="text-white" />
+      {/* Main Content */}
+      <div className="relative z-10 px-6">
+        {battlePhase === 'selecting' && (
+          <div className="max-w-6xl mx-auto">
+            {/* KOL Selection */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Choose Your KOL Champion</h2>
+              <p className="text-gray-300">Select a KOL to represent you in battle</p>
             </div>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent">
-              KOL BATTLE ROYALE
-            </h1>
-                      <p className="text-xl text-gray-300 mb-4">Real KOL tracking • Live predictions • Expert analysis</p>
-          </div>
 
-          {!gameResult && !isPlaying && (
-            <div className="max-w-6xl mx-auto">
-              {/* Game Setup */}
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-8 mb-8">
-                <h3 className="text-2xl font-bold mb-6 text-center text-white">Select KOL & Make Prediction</h3>
-                
-                {/* Bet Amount */}
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Bet Amount (SOL)</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="number"
-                      value={betAmount}
-                      onChange={(e) => setBetAmount(Number(e.target.value))}
-                      min="0.05"
-                      step="0.05"
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 text-center text-lg"
-                      placeholder="0.1"
-                    />
-                  </div>
-                  <div className="flex items-center justify-center space-x-2 mt-3">
-                    <button 
-                      onClick={() => setBetAmount(0.1)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      0.1
-                    </button>
-                    <button 
-                      onClick={() => setBetAmount(0.25)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      0.25
-                    </button>
-                    <button 
-                      onClick={() => setBetAmount(0.5)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      0.5
-                    </button>
-                  </div>
-                </div>
-
-                {/* KOL Selection */}
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-300 mb-4 text-center">Choose Your KOL</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {kols.map((kol) => (
-                      <button
-                        key={kol.id}
-                        onClick={() => setSelectedKOL(kol.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-left ${
-                          selectedKOL === kol.id 
-                            ? 'border-blue-500 bg-blue-500/20 text-blue-400' 
-                            : 'border-white/10 hover:border-white/30 text-gray-300 bg-black/50'
-                        }`}
-                      >
-                        <div className="text-center mb-3">
-                          <div className="text-3xl mb-2">{kol.avatar}</div>
-                          <div className="font-bold text-white">{kol.name}</div>
-                        </div>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex justify-between">
-                            <span>Prediction:</span>
-                            <span className="text-green-400 font-semibold">{kol.prediction}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Confidence:</span>
-                            <span className="font-semibold">{kol.confidence}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Multiplier:</span>
-                            <span className="text-blue-400 font-semibold">{kol.multiplier}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Win Rate:</span>
-                            <span className="text-purple-400 font-semibold">{kol.winRate}</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Prediction Direction */}
-                {selectedKOL && (
-                  <div className="mb-8">
-                    <label className="block text-sm font-medium text-gray-300 mb-4 text-center">
-                      Will {selectedKOLData?.name}'s prediction be correct?
-                    </label>
-                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                      <button
-                        onClick={() => setSelectedPrediction('up')}
-                        className={`p-6 rounded-xl border-2 transition-all ${
-                          selectedPrediction === 'up' 
-                            ? 'border-green-500 bg-green-500/20 text-green-400' 
-                            : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                        }`}
-                      >
-                        <TrendingUp size={32} className="mx-auto mb-2" />
-                        <div className="font-semibold">CORRECT</div>
-                        <div className="text-sm opacity-70">KOL will be right</div>
-                      </button>
-                      <button
-                        onClick={() => setSelectedPrediction('down')}
-                        className={`p-6 rounded-xl border-2 transition-all ${
-                          selectedPrediction === 'down' 
-                            ? 'border-red-500 bg-red-500/20 text-red-400' 
-                            : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                        }`}
-                      >
-                        <TrendingDown size={32} className="mx-auto mb-2" />
-                        <div className="font-semibold">WRONG</div>
-                        <div className="text-sm opacity-70">KOL will be wrong</div>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleStartGame}
-                  disabled={!selectedKOL || !selectedPrediction || betAmount <= 0}
-                  className="w-full bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 px-8 rounded-xl font-bold text-lg transition-all"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {KOLS.map(kol => (
+                <div
+                  key={kol.id}
+                  onClick={() => setSelectedKOL(kol)}
+                  className={`bg-black/40 backdrop-blur-xl rounded-2xl border-2 p-6 cursor-pointer transition-all hover:scale-105 ${
+                    selectedKOL?.id === kol.id 
+                      ? `border-${kol.color}-400 bg-${kol.color}-500/20` 
+                      : 'border-white/20 hover:border-white/40'
+                  }`}
                 >
-                  Deposit {betAmount} SOL & Start Battle
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Game Playing State */}
-          {isPlaying && (
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-                {isAnalyzing ? (
-                  <>
-                    <h3 className="text-2xl font-bold mb-8 text-white">Analyzing KOL Performance...</h3>
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">{kol.avatar}</div>
+                    <h3 className="text-xl font-bold text-white mb-2">{kol.name}</h3>
+                    <div className="text-sm text-gray-300 mb-4">{kol.specialty}</div>
                     
-                    <div className="mb-8">
-                      <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 flex items-center justify-center text-6xl animate-pulse">
-                        {selectedKOLData?.avatar}
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Followers:</span>
+                        <span className="text-white font-semibold">{kol.followers}</span>
                       </div>
-                      <div className="mt-4 text-xl font-bold text-white">
-                        Tracking {selectedKOLData?.name}
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Engagement:</span>
+                        <span className="text-emerald-400 font-semibold">{kol.engagement}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Win Rate:</span>
+                        <span className="text-yellow-400 font-semibold">{kol.winRate}%</span>
+                      </div>
+                      
+                      {/* Power Bar */}
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-400">Power</span>
+                          <span className="text-white font-semibold">{kol.power}</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full bg-gradient-to-r ${getColorClass(kol.color)}`}
+                            style={{ width: `${kol.power}%` }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                                         <div className="text-gray-300">
-                       <p>Your bet: <span className="text-white font-semibold">{betAmount} SOL</span></p>
-                       <p>Your prediction: <span className="font-semibold">
-                         {selectedPrediction === 'up' ? 'KOL will be CORRECT' : 'KOL will be WRONG'}
-                       </span></p>
-                       <p className="text-sm mt-4 animate-pulse">Verifying with live market data...</p>
-                     </div>
-                  </>
-                ) : (
-                  <div className="text-white">Analysis complete! Results incoming...</div>
-                )}
+            {/* Bet Controls */}
+            {selectedKOL && (
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 text-center">Battle Setup</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Bet Amount (SOL)</label>
+                      <input
+                        type="number"
+                        value={betAmount}
+                        onChange={(e) => setBetAmount(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
+                        min="0.1"
+                        step="0.1"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        {[0.1, 0.5, 1.0, 2.0].map(amount => (
+                          <button
+                            key={amount}
+                            onClick={() => setBetAmount(amount)}
+                            className="flex-1 px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-sm transition-colors"
+                          >
+                            {amount}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col justify-center">
+                      <div className="text-center mb-4">
+                        <div className="text-sm text-gray-300">Potential Payout</div>
+                        <div className="text-2xl font-bold text-emerald-400">
+                          {(betAmount * 1.8).toFixed(2)} SOL
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={handleStartGame}
+                        className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold hover:opacity-90 transition-opacity"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Swords size={20} />
+                          Enter Battle
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {battlePhase === 'fighting' && selectedKOL && opponent && (
+          <div className="max-w-6xl mx-auto">
+            {/* Battle Arena */}
+            <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/20 p-8 mb-8">
+              {/* Arena Header */}
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-bold text-white mb-2">⚔️ BATTLE ARENA ⚔️</h2>
+                <div className="text-yellow-400 font-semibold">Round {battleRound}</div>
+              </div>
+
+              {/* Battle Field */}
+              <div className="relative bg-gradient-to-b from-red-900/30 to-purple-900/30 rounded-2xl p-8 min-h-[400px] border-2 border-red-500/30">
+                {/* Battle Effects */}
+                {battleEffects.map(effect => (
+                  <div
+                    key={effect.id}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: effect.x,
+                      top: effect.y,
+                      animation: 'battle-effect 2s ease-out forwards'
+                    }}
+                  >
+                    {effect.type === 'explosion' ? (
+                      <div className="text-4xl">💥</div>
+                    ) : (
+                      <Zap className="text-yellow-400" size={32} />
+                    )}
+                  </div>
+                ))}
+
+                {/* Fighters */}
+                <div className="flex justify-between items-center h-full">
+                  {/* User KOL */}
+                  <div className="text-center">
+                    <div className="relative">
+                      <div className={`text-8xl mb-4 ${isBattling ? 'animate-bounce' : ''}`}>
+                        {selectedKOL.avatar}
+                      </div>
+                      <div className="absolute -top-2 -right-2">
+                        <Shield className="text-blue-400" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{selectedKOL.name}</h3>
+                    <div className="text-sm text-gray-300 mb-2">Your Champion</div>
+                    
+                    {/* Health Bar */}
+                    <div className="w-32 mx-auto">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-400">HP</span>
+                        <span className="text-white">{kolHealth.user}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-3">
+                        <div 
+                          className="h-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                          style={{ width: `${kolHealth.user}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VS */}
+                  <div className="text-center">
+                    <div className="text-6xl font-bold text-red-400 mb-4 animate-pulse">VS</div>
+                    <div className="flex justify-center space-x-2">
+                      <Target className="text-red-400 animate-spin" size={24} />
+                      <Flame className="text-orange-400 animate-pulse" size={24} />
+                      <Target className="text-red-400 animate-spin" size={24} />
+                    </div>
+                  </div>
+
+                  {/* Opponent KOL */}
+                  <div className="text-center">
+                    <div className="relative">
+                      <div className={`text-8xl mb-4 ${isBattling ? 'animate-bounce' : ''}`}>
+                        {opponent.avatar}
+                      </div>
+                      <div className="absolute -top-2 -left-2">
+                        <Shield className="text-red-400" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">{opponent.name}</h3>
+                    <div className="text-sm text-gray-300 mb-2">Opponent</div>
+                    
+                    {/* Health Bar */}
+                    <div className="w-32 mx-auto">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-400">HP</span>
+                        <span className="text-white">{kolHealth.opponent}/100</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-3">
+                        <div 
+                          className="h-3 rounded-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500"
+                          style={{ width: `${kolHealth.opponent}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Game Result */}
-          {gameResult && (
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-                <div className="mb-8">
-                  <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-blue-400 to-cyan-500 flex items-center justify-center text-6xl">
-                    {gameResult.selectedKOL.avatar}
-                  </div>
-                  <div className="mt-4 text-2xl font-bold text-white">
-                    {gameResult.selectedKOL.name} Result
-                  </div>
-                  <div className="text-lg text-gray-300">
-                    Actual Performance: <span className={`font-bold ${gameResult.actualMovement === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-                      {gameResult.priceChange}
-                    </span>
-                  </div>
+            {/* Battle Status */}
+            <div className="text-center">
+              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Loader2 className="animate-spin text-yellow-400" size={24} />
+                  <span className="text-white font-semibold">Battle in Progress...</span>
                 </div>
-
-                <div className={`text-center p-6 rounded-xl mb-6 ${gameResult.userWins ? 'bg-green-500/20 border border-green-500' : 'bg-red-500/20 border border-red-500'}`}>
-                                   <div className={`text-2xl font-bold mb-2 ${gameResult.userWins ? 'text-green-400' : 'text-red-400'}`}>
-                   {gameResult.userWins ? '🎉 YOU WON!' : '😔 YOU LOST!'}
-                 </div>
-                  <div className="text-gray-300 mb-2">
-                    KOL Prediction: <span className="font-semibold">{gameResult.selectedKOL.prediction}</span>
-                  </div>
-                  <div className="text-gray-300 mb-2">
-                    KOL was: <span className={`font-semibold ${gameResult.correct ? 'text-green-400' : 'text-red-400'}`}>
-                      {gameResult.correct ? 'CORRECT' : 'WRONG'}
-                    </span>
-                  </div>
-                  <div className="text-gray-300">
-                    Your prediction: <span className="font-semibold">
-                      {gameResult.userPrediction === 'up' ? 'KOL would be CORRECT' : 'KOL would be WRONG'}
-                    </span>
-                  </div>
-                  {gameResult.userWins && (
-                    <div className="mt-4 text-xl">
-                      Payout: <span className="text-green-400 font-bold">{gameResult.payout.toFixed(4)} SOL</span>
-                    </div>
-                  )}
+                <div className="text-gray-300">
+                  {battleRound > 0 && `Round ${battleRound} - The battle intensifies!`}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {battlePhase === 'result' && battleResult && (
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/20 p-12">
+              <div className="text-8xl mb-6">
+                {battleResult.userWins ? '🏆' : '💀'}
+              </div>
+              
+              <h2 className={`text-4xl font-bold mb-4 ${
+                battleResult.userWins ? 'text-yellow-400' : 'text-red-400'
+              }`}>
+                {battleResult.userWins ? 'VICTORY!' : 'DEFEAT!'}
+              </h2>
+              
+              <div className="text-2xl text-white mb-6">
+                {battleResult.winner.name} Wins!
+              </div>
+              
+              {battleResult.userWins && (
+                <div className="text-xl text-emerald-400 mb-6">
+                  You earned {battleResult.payout.toFixed(3)} SOL!
+                </div>
+              )}
+              
+              <div className="text-gray-300 mb-8">
+                {battleResult.userWins 
+                  ? 'Your KOL dominated the arena! Well chosen, champion!'
+                  : 'A valiant effort, but the opponent was stronger this time.'
+                }
+              </div>
+              
+              <div className="flex gap-4 justify-center">
                 <button
-                  onClick={resetGame}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-8 rounded-xl font-semibold transition-all"
+                  onClick={resetBattle}
+                  className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold hover:opacity-90 transition-opacity"
                 >
                   Battle Again
                 </button>
+                <button
+                  onClick={onBack}
+                  className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-colors"
+                >
+                  Back to Games
+                </button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* SOL Deposit Modal */}
-        <SOLDepositModal
-          isOpen={showDepositModal}
-          onClose={() => setShowDepositModal(false)}
-          onDepositVerified={handleDepositVerified}
-          gameType="kol_predictor"
-          betAmount={betAmount}
-        />
+          </div>
+        )}
       </div>
+
+
+
+      {/* Custom CSS */}
+      <style>{`
+        @keyframes battle-effect {
+          0% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(2);
+          }
+        }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 20s linear infinite;
+        }
+      `}</style>
     </div>
   );
 } 

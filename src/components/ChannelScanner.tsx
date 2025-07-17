@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Search, Users, Bot, TrendingUp, Calendar, AlertCircle, Loader2, MoreHorizontal, Plus, MessagesSquare, Download, Activity, Clock, Wifi, WifiOff } from 'lucide-react';
+import { Search, Users, Bot, TrendingUp, Calendar, AlertCircle, Loader2, MoreHorizontal, Plus, MessagesSquare, Download, Activity, Clock, Wifi, WifiOff, LogOut, MessageCircle } from 'lucide-react';
 import { telegramService } from '../services/telegramService';
 import { useChannelScanner } from '../contexts/ChannelScannerContext';
 import { TypewriterText } from './TypewriterText';
+import { useTelegramAuth } from '../contexts/TelegramAuthContext';
+import TelegramAuth from './TelegramAuth';
 
 interface KOLInfo {
   user_id: number;
@@ -39,6 +41,22 @@ export function ChannelScanner() {
   const [scanURL, setScanURL] = useState('');
   const [serviceStatus, setServiceStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const { scanResult, setScanResult, isScanning, setIsScanning, error, setError } = useChannelScanner();
+
+  // Telegram Auth state
+  const [showTelegramAuth, setShowTelegramAuth] = useState(false);
+  
+  // Telegram Auth hooks
+  const { 
+    user: telegramUser, 
+    isAuthenticated: isTelegramAuthenticated, 
+    login: telegramLogin, 
+    logout: telegramLogout 
+  } = useTelegramAuth();
+
+  const handleTelegramAuthSuccess = (userInfo: any) => {
+    telegramLogin(userInfo, userInfo.session_id || '');
+    setShowTelegramAuth(false);
+  };
 
   // Check service status on component mount
   React.useEffect(() => {
@@ -249,6 +267,42 @@ export function ChannelScanner() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full blur opacity-50"></div>
                 <ServiceStatusIndicator />
+              </div>
+            </div>
+          </div>
+
+          {/* Telegram Auth Section */}
+          <div className="max-w-2xl mx-auto mb-12">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+              <div className="relative bg-slate-800/40 backdrop-blur-2xl rounded-2xl border border-blue-500/20 p-6 shadow-2xl">
+                <div className="flex items-center justify-center">
+                  {isTelegramAuthenticated ? (
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
+                        <MessageCircle className="w-5 h-5 text-blue-400" />
+                        <span className="text-blue-400 font-medium">
+                          {telegramUser?.first_name || 'Connected'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => telegramLogout()}
+                        className="p-3 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                        title="Disconnect Telegram"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowTelegramAuth(true)}
+                      className="flex items-center gap-3 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-200 text-blue-400 font-medium"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Connect Telegram
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -494,6 +548,14 @@ export function ChannelScanner() {
         )}
         </div>
       </div>
+
+      {/* Telegram Auth Modal */}
+      {showTelegramAuth && (
+        <TelegramAuth 
+          onAuthSuccess={handleTelegramAuthSuccess}
+          onClose={() => setShowTelegramAuth(false)} 
+        />
+      )}
     </div>
   );
 }

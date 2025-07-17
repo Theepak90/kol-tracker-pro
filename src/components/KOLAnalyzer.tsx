@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, MessageCircle, TrendingUp, BarChart3, Brain, Clock, Link, Zap, AlertTriangle, Plus, Loader, Eye, Share, Activity, Wifi, WifiOff, DollarSign, LineChart, Hash, UserCheck, UserPlus, Globe, Calendar, Star, Target, Bookmark, Filter, BarChart2, Trash2, MessagesSquare } from 'lucide-react';
+import { Search, Users, MessageCircle, TrendingUp, BarChart3, Brain, Clock, Link, Zap, AlertTriangle, Plus, Loader, Eye, Share, Activity, Wifi, WifiOff, DollarSign, LineChart, Hash, UserCheck, UserPlus, Globe, Calendar, Star, Target, Bookmark, Filter, BarChart2, Trash2, MessagesSquare, LogOut } from 'lucide-react';
 import { TypewriterText } from './TypewriterText';
 import { telegramService } from '../services/telegramService';
 import { aiAnalysisService } from '../services/aiAnalysisService';
 import type { KOLAnalysisResult } from '../services/aiAnalysisService';
 import { apiService } from '../services/apiService';
 import { ResponsiveContainer, LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { useTelegramAuth } from '../contexts/TelegramAuthContext';
+import TelegramAuth from './TelegramAuth';
 
 interface VolumeData {
   timestamp: string;
@@ -207,6 +209,22 @@ export default function KOLAnalyzer() {
 
   // Add a new state for deleted KOL IDs
   const [deletedKOLs, setDeletedKOLs] = useState<Set<string>>(new Set());
+
+  // Telegram Auth state
+  const [showTelegramAuth, setShowTelegramAuth] = useState(false);
+  
+  // Telegram Auth hooks
+  const { 
+    user: telegramUser, 
+    isAuthenticated: isTelegramAuthenticated, 
+    login: telegramLogin, 
+    logout: telegramLogout 
+  } = useTelegramAuth();
+
+  const handleTelegramAuthSuccess = (userInfo: any) => {
+    telegramLogin(userInfo, userInfo.session_id || '');
+    setShowTelegramAuth(false);
+  };
 
   // Load initial KOLs and check Telegram status
   useEffect(() => {
@@ -1750,6 +1768,38 @@ export default function KOLAnalyzer() {
                           </div>
                         </div>
 
+                {/* Telegram Auth Section */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl blur"></div>
+                  <div className="relative bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 border border-slate-600/50">
+                    {isTelegramAuthenticated ? (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                          <MessageCircle className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm text-blue-400">
+                            {telegramUser?.first_name || 'Connected'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => telegramLogout()}
+                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-200"
+                          title="Disconnect Telegram"
+                        >
+                          <LogOut className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowTelegramAuth(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg border border-blue-500/30 hover:border-blue-500/50 transition-all duration-200"
+                      >
+                        <MessageCircle className="w-4 h-4 text-blue-400" />
+                        <span className="text-sm text-blue-400">Connect Telegram</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* KOL Count Display */}
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl blur"></div>
@@ -2056,6 +2106,14 @@ export default function KOLAnalyzer() {
           )}
         </div>
       </div>
+
+      {/* Telegram Auth Modal */}
+      {showTelegramAuth && (
+        <TelegramAuth 
+          onAuthSuccess={handleTelegramAuthSuccess}
+          onClose={() => setShowTelegramAuth(false)} 
+        />
+      )}
     </div>
   );
 }

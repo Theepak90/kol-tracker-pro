@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
         <div className="responsive-container py-16 relative">
           <div className="text-center mb-16">
             <h1 className="heading-1 gradient-text mb-6 animate-pulse">
-              Welcome to KOL Tracker Pro
+              Welcome to KOLOPZ
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               Your ultimate platform for tracking, analyzing, and optimizing crypto investments with 
@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
           <div className="text-center">
             <h3 className="heading-3 text-white mb-6">Ready to Start Trading?</h3>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of traders who are already using KOL Tracker Pro to make informed decisions 
+              Join thousands of traders who are already using KOLOPZ to make informed decisions 
               and maximize their crypto investments.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

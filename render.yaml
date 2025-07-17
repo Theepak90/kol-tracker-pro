@@ -1,69 +1,52 @@
 services:
+  # Backend NestJS Service
   - type: web
-    name: kolnexus-backend
+    name: kol-tracker-backend
     env: node
-    repo: https://github.com/Theepak90/kol-tracker-pro.git
-    buildCommand: cd backend && npm install --legacy-peer-deps --production
-    startCommand: cd backend && node simple-server.js
     plan: free
-    region: oregon
-    autoDeploy: true
-    numInstances: 1
-    disk:
-      name: backend-disk
-      size: 1GB
-      mount: /opt/render/project/src
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm run start:prod
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
-        sync: false
       - key: PORT
         value: 3000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: kol-tracker-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
-      - key: CORS_ORIGIN
-        value: https://kol-tracker-pro.vercel.app,https://kolnexus-backend.onrender.com,https://kolnexus.vercel.app,https://*.vercel.app
-      - key: KEEP_ALIVE
-        value: "true"
+      - key: TELETHON_SERVICE_URL
+        value: https://kol-tracker-telethon.onrender.com
     healthCheckPath: /api
-    domains:
-      - kolnexus-backend.onrender.com
 
+  # Telethon Python Service
   - type: web
-    name: kolnexus-telethon
+    name: kol-tracker-telethon
     env: python
-    repo: https://github.com/Theepak90/kol-tracker-pro.git
+    plan: free
     buildCommand: cd backend/telethon_service && pip install -r requirements.txt
     startCommand: cd backend/telethon_service && python main.py
-    plan: free
-    region: oregon
-    autoDeploy: true
-    numInstances: 1
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
       - key: API_ID
-        sync: false
+        value: 28152923
       - key: API_HASH
-        sync: false
+        value: 766760d2838474a5e6dd734d785aa7ad
       - key: SESSION_NAME
         value: telegram_session
       - key: MONGODB_URI
-        sync: false
+        fromDatabase:
+          name: kol-tracker-db
+          property: connectionString
       - key: PORT
         value: 8000
-      - key: KEEP_ALIVE
-        value: "true"
     healthCheckPath: /health
-    domains:
-      - kolnexus-telethon.onrender.com
 
-# Add a cron job to keep services alive
-  - type: cron
-    name: keep-alive-job
-    env: node
-    repo: https://github.com/Theepak90/kol-tracker-pro.git
-    schedule: "*/10 * * * *"  # Every 10 minutes
-    buildCommand: echo "Keep alive job"
-    startCommand: |
-      curl -f https://kolnexus-backend.onrender.com/health || echo "Backend ping failed"
-      curl -f https://kolnexus-telethon.onrender.com/health || echo "Telethon ping failed" 
+databases:
+  - name: kol-tracker-db
+    databaseName: kol_tracker
+    user: kol_user
+    plan: free 

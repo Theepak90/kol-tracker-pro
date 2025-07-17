@@ -1,262 +1,341 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Coins, Computer } from 'lucide-react';
-import toast from 'react-hot-toast';
-import SOLDepositModal from './SOLDepositModal';
-import { transactionService } from '../services/transactionService';
+import React, { useState, useEffect } from 'react';
+import { Coins, DollarSign, Users, Trophy, Loader2, Play, ArrowLeft, Hand, Sparkles, Zap } from 'lucide-react';
 
 interface CoinflipGameProps {
   onBack: () => void;
 }
 
 export default function CoinflipGame({ onBack }: CoinflipGameProps) {
-  const [betAmount, setBetAmount] = useState<number>(0.01);
-  const [selectedSide, setSelectedSide] = useState<'heads' | 'tails' | null>(null);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [gameResult, setGameResult] = useState<any>(null);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [coinSide, setCoinSide] = useState<'heads' | 'tails'>('heads');
-  const [flipRotation, setFlipRotation] = useState(0);
+  const [result, setResult] = useState<'heads' | 'tails' | null>(null);
+  const [selectedSide, setSelectedSide] = useState<'heads' | 'tails'>('heads');
+  const [betAmount, setBetAmount] = useState(0.01);
+  const [showResult, setShowResult] = useState(false);
+  const [coinRotation, setCoinRotation] = useState(0);
+  const [handPosition, setHandPosition] = useState(0);
+  const [sparkles, setSparkles] = useState<Array<{id: number, x: number, y: number}>>([]);
 
-  const handleStartGame = () => {
-    if (!selectedSide) {
-      toast.error('Please select heads or tails');
-      return;
-    }
-    setShowDepositModal(true);
-  };
-
-  const handleDepositVerified = () => {
-    setShowDepositModal(false);
-    startCoinflipGame();
-  };
-
-  const startCoinflipGame = () => {
-    setIsPlaying(true);
+  const flipCoin = () => {
     setIsFlipping(true);
-    setGameResult(null);
-
-    // Simulate coin flip animation
-    let rotations = 0;
-    const maxRotations = 10 + Math.random() * 10; // 10-20 rotations
+    setResult(null);
+    setShowResult(false);
     
-    const flipInterval = setInterval(() => {
-      rotations += 0.5;
-      setFlipRotation(rotations * 180);
-      setCoinSide(rotations % 1 === 0.5 ? 'tails' : 'heads');
-      
-      if (rotations >= maxRotations) {
-        clearInterval(flipInterval);
-        
-        // Get game outcome from transaction service (98% computer win rate)
-        const outcome = transactionService.simulateGameOutcome('coinflip', betAmount);
-        const finalSide = outcome.gameDetails.result;
-        
-        setCoinSide(finalSide);
-        setIsFlipping(false);
-        
-        setTimeout(() => {
-          setGameResult({
-            userChoice: selectedSide,
-            result: finalSide,
-            winner: outcome.winner,
-            userWins: outcome.winner === 'user',
-            payout: outcome.userPayout
-          });
-          setIsPlaying(false);
-        }, 1000);
-      }
-    }, 150);
+    // Animate hand throwing coin
+    const handAnimation = setInterval(() => {
+      setHandPosition(prev => {
+        if (prev >= 100) {
+          clearInterval(handAnimation);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 30);
+
+    // Animate coin spinning
+    const coinAnimation = setInterval(() => {
+      setCoinRotation(prev => prev + 45);
+    }, 50);
+
+    // Generate sparkles during flip
+    const sparkleInterval = setInterval(() => {
+      setSparkles(prev => [
+        ...prev,
+        {
+          id: Date.now() + Math.random(),
+          x: Math.random() * 300 + 50,
+          y: Math.random() * 200 + 100
+        }
+      ]);
+    }, 100);
+
+    // Simulate coin flip result after 3 seconds
+    setTimeout(() => {
+      clearInterval(coinAnimation);
+      clearInterval(sparkleInterval);
+      const flipResult = Math.random() < 0.5 ? 'heads' : 'tails';
+      setResult(flipResult);
+      setIsFlipping(false);
+      setShowResult(true);
+      setHandPosition(0);
+      setCoinRotation(0);
+      setSparkles([]);
+    }, 3000);
   };
 
-  const resetGame = () => {
-    setGameResult(null);
-    setSelectedSide(null);
-    setFlipRotation(0);
-    setCoinSide('heads');
-  };
+  // Clean up sparkles
+  useEffect(() => {
+    const cleanup = setInterval(() => {
+      setSparkles(prev => prev.filter(sparkle => Date.now() - sparkle.id < 2000));
+    }, 100);
+    return () => clearInterval(cleanup);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Top Navigation */}
-      <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button 
-            onClick={onBack}
-            className="flex items-center text-gray-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft size={20} className="mr-2" />
-            Back to Games
-          </button>
-        </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-3xl animate-spin-slow"></div>
       </div>
 
       {/* Header */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-6">
-            <Coins size={48} className="text-white" />
-          </div>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-            COINFLIP ARENA
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+          >
+            <ArrowLeft size={20} />
+            <span className="text-white font-medium">Back to Games</span>
+          </button>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Coins className="text-yellow-400" size={32} />
+            Coinflip Arena
           </h1>
-          <p className="text-xl text-gray-300 mb-4">Real-time 1v1 battles • Instant rewards • Pure adrenaline</p>
+          <div className="flex items-center gap-2 text-emerald-400">
+            <Users size={20} />
+            <span>1,247 playing</span>
+          </div>
         </div>
+      </div>
 
-        {!gameResult && !isPlaying && (
-          <div className="max-w-2xl mx-auto">
-            {/* Game Setup */}
-            <div className="bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-700 p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-center">Setup Your Coinflip</h3>
-              
-              {/* Bet Amount */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Bet Amount (SOL)</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    value={betAmount}
-                    onChange={(e) => setBetAmount(Number(e.target.value))}
-                    min="0.001"
-                    step="0.001"
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-purple-500 text-center text-lg"
-                    placeholder="0.001"
-                  />
-                </div>
-                <div className="flex items-center justify-center space-x-2 mt-3">
-                  <button 
-                    onClick={() => setBetAmount(0.01)}
-                    className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    0.01
-                  </button>
-                  <button 
-                    onClick={() => setBetAmount(0.05)}
-                    className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    0.05
-                  </button>
-                  <button 
-                    onClick={() => setBetAmount(0.1)}
-                    className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    0.1
-                  </button>
-                </div>
+      {/* Main Game Area */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-6">
+        {/* Coin Flip Animation Area */}
+        <div className="relative w-full max-w-4xl mb-8">
+          <div className="bg-black/40 backdrop-blur-xl rounded-3xl border border-white/20 p-8 min-h-[400px] flex items-center justify-center">
+            
+            {/* Hand Animation */}
+            <div 
+              className="absolute bottom-8 left-1/2 transform -translate-x-1/2 transition-all duration-300"
+              style={{ transform: `translateX(-50%) translateY(${handPosition}px)` }}
+            >
+              <div className="relative">
+                <Hand 
+                  size={80} 
+                  className="text-amber-200 rotate-45 drop-shadow-lg"
+                  style={{ filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.5))' }}
+                />
+                {isFlipping && (
+                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
+                )}
               </div>
+            </div>
 
-              {/* Side Selection */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-300 mb-4 text-center">Choose Your Side</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setSelectedSide('heads')}
-                    className={`p-6 rounded-xl border-2 transition-all ${
-                      selectedSide === 'heads' 
-                        ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' 
-                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                    }`}
-                  >
-                    <div className="text-4xl mb-2">👑</div>
-                    <div className="font-semibold">HEADS</div>
-                  </button>
-                  <button
-                    onClick={() => setSelectedSide('tails')}
-                    className={`p-6 rounded-xl border-2 transition-all ${
-                      selectedSide === 'tails' 
-                        ? 'border-orange-500 bg-orange-500/20 text-orange-400' 
-                        : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                    }`}
-                  >
-                    <div className="text-4xl mb-2">🪙</div>
-                    <div className="font-semibold">TAILS</div>
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={handleStartGame}
-                disabled={!selectedSide || betAmount <= 0}
-                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 px-8 rounded-xl font-bold text-lg transition-all"
+            {/* Coin */}
+            <div className="relative">
+              <div 
+                className={`w-32 h-32 rounded-full border-4 border-yellow-400 bg-gradient-to-br from-yellow-300 to-yellow-600 flex items-center justify-center text-2xl font-bold text-yellow-900 shadow-2xl transition-all duration-100 ${
+                  isFlipping ? 'animate-bounce' : ''
+                }`}
+                style={{ 
+                  transform: `rotateY(${coinRotation}deg)`,
+                  boxShadow: '0 0 30px rgba(251, 191, 36, 0.6)'
+                }}
               >
-                Deposit {betAmount} SOL & Play
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Game Playing State */}
-        {isPlaying && (
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-700 p-12">
-              <h3 className="text-2xl font-bold mb-8">Coin is Flipping...</h3>
-              
-              <div className="mb-8">
-                <div 
-                  className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center text-6xl transition-transform duration-150"
-                  style={{ transform: `rotateY(${flipRotation}deg)` }}
-                >
-                  {coinSide === 'heads' ? '👑' : '🪙'}
-                </div>
-              </div>
-
-              <div className="text-gray-300">
-                <p>Your choice: <span className="text-white font-semibold">{selectedSide?.toUpperCase()}</span></p>
-                <p className="text-sm mt-2">Waiting for opponent...</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Game Result */}
-        {gameResult && (
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-700 p-12">
-              <div className="mb-8">
-                <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center text-6xl">
-                  {gameResult.result === 'heads' ? '👑' : '🪙'}
-                </div>
-                <div className="mt-4 text-2xl font-bold">
-                  Result: {gameResult.result.toUpperCase()}
-                </div>
-              </div>
-
-              <div className={`text-center p-6 rounded-xl ${gameResult.userWins ? 'bg-green-500/20 border border-green-500' : 'bg-red-500/20 border border-red-500'}`}>
-                <div className={`text-2xl font-bold mb-2 ${gameResult.userWins ? 'text-green-400' : 'text-red-400'}`}>
-                  {gameResult.userWins ? '🎉 YOU WON!' : '😔 YOU LOST!'}
-                </div>
-                <div className="text-gray-300">
-                  You chose: <span className="font-semibold">{gameResult.userChoice.toUpperCase()}</span>
-                </div>
-                <div className="text-gray-300">
-                  Result: <span className="font-semibold">{gameResult.result.toUpperCase()}</span>
-                </div>
-                {gameResult.userWins && (
-                  <div className="mt-4 text-xl">
-                    Payout: <span className="text-green-400 font-bold">{gameResult.payout.toFixed(4)} SOL</span>
+                {!isFlipping && result ? (
+                  <div className="text-center">
+                    <div className="text-sm font-semibold">
+                      {result === 'heads' ? '👑' : '🦅'}
+                    </div>
+                    <div className="text-xs uppercase tracking-wide">
+                      {result}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="text-sm font-semibold">
+                      {selectedSide === 'heads' ? '👑' : '🦅'}
+                    </div>
+                    <div className="text-xs uppercase tracking-wide">
+                      {selectedSide}
+                    </div>
                   </div>
                 )}
               </div>
 
+              {/* Sparkles */}
+              {sparkles.map(sparkle => (
+                <div
+                  key={sparkle.id}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: sparkle.x,
+                    top: sparkle.y,
+                    animation: 'sparkle 2s ease-out forwards'
+                  }}
+                >
+                  <Sparkles className="text-yellow-400" size={16} />
+                </div>
+              ))}
+            </div>
+
+            {/* Result Display */}
+            {showResult && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-3xl">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">
+                    {result === selectedSide ? '🎉' : '😔'}
+                  </div>
+                  <h2 className={`text-3xl font-bold mb-2 ${
+                    result === selectedSide ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
+                    {result === selectedSide ? 'You Won!' : 'You Lost!'}
+                  </h2>
+                  <p className="text-gray-300 mb-4">
+                    The coin landed on <span className="font-semibold text-yellow-400">{result}</span>
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => setShowResult(false)}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      Play Again
+                    </button>
+                    <button
+                      onClick={onBack}
+                      className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                    >
+                      Back to Games
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Game Controls */}
+        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Bet Amount */}
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <DollarSign className="text-emerald-400" size={20} />
+              Bet Amount
+            </h3>
+            <div className="space-y-4">
+              <input
+                type="number"
+                value={betAmount}
+                onChange={(e) => setBetAmount(Math.max(0.01, parseFloat(e.target.value) || 0.01))}
+                min="0.01"
+                step="0.01"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                placeholder="Enter bet amount"
+                disabled={isFlipping}
+              />
+              <div className="flex gap-2">
+                {[0.01, 0.05, 0.1, 0.5].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setBetAmount(amount)}
+                    className="flex-1 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm"
+                    disabled={isFlipping}
+                  >
+                    {amount} SOL
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Side Selection */}
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Coins className="text-yellow-400" size={20} />
+              Choose Side
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={resetGame}
-                className="mt-8 w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-8 rounded-xl font-semibold transition-all"
+                onClick={() => setSelectedSide('heads')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedSide === 'heads'
+                    ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400'
+                    : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                }`}
+                disabled={isFlipping}
               >
-                Play Again
+                <div className="text-2xl mb-2">👑</div>
+                <div className="text-sm font-semibold">HEADS</div>
+              </button>
+              <button
+                onClick={() => setSelectedSide('tails')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedSide === 'tails'
+                    ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400'
+                    : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                }`}
+                disabled={isFlipping}
+              >
+                <div className="text-2xl mb-2">🦅</div>
+                <div className="text-sm font-semibold">TAILS</div>
               </button>
             </div>
           </div>
-        )}
+
+          {/* Play Button */}
+          <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Trophy className="text-purple-400" size={20} />
+              Ready to Play?
+            </h3>
+            <button
+              onClick={flipCoin}
+              disabled={isFlipping || showResult}
+              className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${
+                isFlipping || showResult
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 hover:scale-105'
+              }`}
+            >
+              {isFlipping ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin" size={20} />
+                  Flipping...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Play size={20} />
+                  Flip Coin
+                </div>
+              )}
+            </button>
+            <div className="mt-4 text-center text-sm text-gray-400">
+              Potential Win: <span className="text-emerald-400 font-semibold">
+                {(betAmount * 1.95).toFixed(3)} SOL
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* SOL Deposit Modal */}
-      <SOLDepositModal
-        isOpen={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
-        onDepositVerified={handleDepositVerified}
-        gameType="coinflip"
-        betAmount={betAmount}
-      />
+      {/* Custom CSS for sparkle animation */}
+      <style>{`
+        @keyframes sparkle {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.5);
+          }
+        }
+        
+        @keyframes spin-slow {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 20s linear infinite;
+        }
+      `}</style>
     </div>
   );
 } 

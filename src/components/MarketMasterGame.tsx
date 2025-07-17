@@ -1,383 +1,501 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Star, Computer, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
-import toast from 'react-hot-toast';
-import SOLDepositModal from './SOLDepositModal';
-import { transactionService } from '../services/transactionService';
-import gaImg from '../ga.jpg';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, BarChart3, DollarSign, Users, Trophy, Loader2, Play, ArrowLeft, LineChart, Activity, Target, Zap } from 'lucide-react';
 
 interface MarketMasterGameProps {
   onBack: () => void;
 }
 
+interface CandlestickData {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface TradingPair {
+  symbol: string;
+  name: string;
+  price: number;
+  change24h: number;
+  volume: string;
+  icon: string;
+}
+
+const TRADING_PAIRS: TradingPair[] = [
+  { symbol: 'SOL/USDT', name: 'Solana', price: 23.45, change24h: 8.2, volume: '1.2B', icon: '◎' },
+  { symbol: 'BTC/USDT', name: 'Bitcoin', price: 43250.12, change24h: -2.1, volume: '2.8B', icon: '₿' },
+  { symbol: 'ETH/USDT', name: 'Ethereum', price: 2650.85, change24h: 5.7, volume: '1.8B', icon: 'Ξ' },
+  { symbol: 'BONK/USDT', name: 'Bonk', price: 0.000012, change24h: 15.3, volume: '450M', icon: '🐕' },
+  { symbol: 'ORCA/USDT', name: 'Orca', price: 3.21, change24h: -4.2, volume: '85M', icon: '🐋' },
+  { symbol: 'RAY/USDT', name: 'Raydium', price: 1.85, change24h: 12.1, volume: '120M', icon: '⚡' }
+];
+
 export default function MarketMasterGame({ onBack }: MarketMasterGameProps) {
-  const [betAmount, setBetAmount] = useState<number>(0.2);
-  const [selectedMarket, setSelectedMarket] = useState<string | null>(null);
-  const [selectedDirection, setSelectedDirection] = useState<'bullish' | 'bearish' | null>(null);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [gameResult, setGameResult] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedPair, setSelectedPair] = useState<TradingPair>(TRADING_PAIRS[0]);
+  const [prediction, setPrediction] = useState<'up' | 'down' | null>(null);
+  const [betAmount, setBetAmount] = useState(0.1);
+  const [timeframe, setTimeframe] = useState<'1m' | '5m' | '15m' | '1h'>('5m');
+  const [isTrading, setIsTrading] = useState(false);
+  const [gameResult, setGameResult] = useState<{winner: boolean, payout: number, actualChange: number} | null>(null);
+  const [candlestickData, setCandlestickData] = useState<CandlestickData[]>([]);
+  const [currentPrice, setCurrentPrice] = useState(selectedPair.price);
+  const [priceHistory, setPriceHistory] = useState<number[]>([]);
+  const [marketActivity, setMarketActivity] = useState<Array<{id: number, type: 'buy' | 'sell', amount: number}>>([]);
 
-  // Mock markets
-  const markets = [
-    { 
-      id: '1', 
-      name: 'BTC/USD', 
-      symbol: '₿',
-      currentPrice: '$43,250',
-      trend: '+5.2%', 
-      volume: '$1.2B', 
-      volatility: 'High',
-      prediction: 'Bullish momentum expected'
-    },
-    { 
-      id: '2', 
-      name: 'ETH/USD', 
-      symbol: 'Ξ',
-      currentPrice: '$2,650',
-      trend: '+3.8%', 
-      volume: '$800M', 
-      volatility: 'Medium',
-      prediction: 'Consolidation phase'
-    },
-    { 
-      id: '3', 
-      name: 'SOL/USD', 
-      symbol: '◎',
-      currentPrice: '$98.50',
-      trend: '+12.4%', 
-      volume: '$400M', 
-      volatility: 'Very High',
-      prediction: 'High growth potential'
-    },
-    { 
-      id: '4', 
-      name: 'AVAX/USD', 
-      symbol: '🔺',
-      currentPrice: '$45.20',
-      trend: '+8.1%', 
-      volume: '$150M', 
-      volatility: 'High',
-      prediction: 'Emerging opportunities'
-    }
-  ];
-
-  const selectedMarketData = markets.find(market => market.id === selectedMarket);
-
-  const handleStartGame = () => {
-    if (!selectedMarket || !selectedDirection) {
-      toast.error('Please select a market and direction');
-      return;
-    }
-    setShowDepositModal(true);
-  };
-
-  const handleDepositVerified = () => {
-    setShowDepositModal(false);
-    startMarketGame();
-  };
-
-  const startMarketGame = () => {
-    setIsPlaying(true);
-    setIsAnalyzing(true);
-    setGameResult(null);
-
-    // Simulate market analysis period
-    setTimeout(() => {
-      setIsAnalyzing(false);
+  // Generate initial candlestick data
+  useEffect(() => {
+    const generateCandlesticks = () => {
+      const data: CandlestickData[] = [];
+      let basePrice = selectedPair.price;
       
-      // Get game outcome from transaction service (98% computer win rate)
-      const outcome = transactionService.simulateGameOutcome('market_master', betAmount);
-      const actualOutcome = outcome.gameDetails.actualOutcome;
-      const priceMovement = outcome.gameDetails.priceMovement;
+      for (let i = 20; i >= 0; i--) {
+        const time = new Date(Date.now() - i * 60000).toLocaleTimeString();
+        const open = basePrice;
+        const volatility = basePrice * 0.02; // 2% volatility
+        const high = open + Math.random() * volatility;
+        const low = open - Math.random() * volatility;
+        const close = low + Math.random() * (high - low);
+        const volume = Math.random() * 1000000;
+        
+        data.push({ time, open, high, low, close, volume });
+        basePrice = close;
+      }
+      
+      setCandlestickData(data);
+      setCurrentPrice(basePrice);
+      setPriceHistory(data.map(d => d.close));
+    };
+
+    generateCandlesticks();
+  }, [selectedPair]);
+
+  // Simulate real-time price updates
+  useEffect(() => {
+    if (!isTrading) return;
+
+    const interval = setInterval(() => {
+      setCurrentPrice(prev => {
+        const change = (Math.random() - 0.5) * prev * 0.005; // 0.5% max change
+        const newPrice = Math.max(0, prev + change);
+        
+        setPriceHistory(history => [...history.slice(-19), newPrice]);
+        
+        // Add market activity
+        setMarketActivity(activity => [
+          ...activity.slice(-9),
+          {
+            id: Date.now(),
+            type: Math.random() > 0.5 ? 'buy' : 'sell',
+            amount: Math.random() * 10000
+          }
+        ]);
+        
+        return newPrice;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTrading]);
+
+  const startTrade = () => {
+    if (!prediction) return;
+    
+    setIsTrading(true);
+    setGameResult(null);
+    setMarketActivity([]);
+    
+    const initialPrice = currentPrice;
+    
+    // Simulate trade for 10 seconds
+    setTimeout(() => {
+      const finalPrice = currentPrice;
+      const actualChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+      const predictedCorrectly = 
+        (prediction === 'up' && actualChange > 0) || 
+        (prediction === 'down' && actualChange < 0);
+      
+      const payout = predictedCorrectly ? betAmount * 1.85 : 0;
       
       setGameResult({
-        selectedMarket: selectedMarketData,
-        userPrediction: selectedDirection,
-        actualOutcome,
-        priceMovement,
-        winner: outcome.winner,
-        userWins: outcome.winner === 'user',
-        payout: outcome.userPayout,
-        correct: selectedDirection === actualOutcome
+        winner: predictedCorrectly,
+        payout,
+        actualChange
       });
-      setIsPlaying(false);
-    }, 6000); // 6 second analysis period
+      
+      setIsTrading(false);
+    }, 10000);
   };
 
-  const resetGame = () => {
+  const resetTrade = () => {
     setGameResult(null);
-    setSelectedMarket(null);
-    setSelectedDirection(null);
+    setPrediction(null);
+    setMarketActivity([]);
+  };
+
+  const renderCandlestick = (candle: CandlestickData, index: number) => {
+    const isGreen = candle.close > candle.open;
+    const bodyHeight = Math.abs(candle.close - candle.open) * 100;
+    const wickTop = candle.high - Math.max(candle.open, candle.close);
+    const wickBottom = Math.min(candle.open, candle.close) - candle.low;
+    
+    return (
+      <div key={index} className="flex flex-col items-center h-20 justify-center">
+        {/* Upper wick */}
+        <div 
+          className={`w-0.5 ${isGreen ? 'bg-green-400' : 'bg-red-400'}`}
+          style={{ height: `${wickTop * 100}px` }}
+        />
+        {/* Body */}
+        <div 
+          className={`w-3 ${isGreen ? 'bg-green-400' : 'bg-red-400'} border ${isGreen ? 'border-green-400' : 'border-red-400'}`}
+          style={{ height: `${Math.max(2, bodyHeight)}px` }}
+        />
+        {/* Lower wick */}
+        <div 
+          className={`w-0.5 ${isGreen ? 'bg-green-400' : 'bg-red-400'}`}
+          style={{ height: `${wickBottom * 100}px` }}
+        />
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen relative">
-      <div className="fixed inset-0 z-0" style={{
-        backgroundImage: `url(${gaImg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'blur(8px) brightness(0.8)',
-      }} />
-      
-      <div className="relative z-10">
-        {/* Top Navigation */}
-        <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <button 
-              onClick={onBack}
-              className="flex items-center text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={20} className="mr-2" />
-              Back to Games
-            </button>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-full blur-3xl animate-spin-slow"></div>
+      </div>
+
+      {/* Header */}
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+          >
+            <ArrowLeft size={20} />
+            <span className="text-white font-medium">Back to Games</span>
+          </button>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <BarChart3 className="text-emerald-400" size={32} />
+            Market Master
+          </h1>
+          <div className="flex items-center gap-2 text-emerald-400">
+            <Activity size={20} />
+            <span>Live Trading</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Trading Interface */}
+      <div className="relative z-10 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Trading Chart */}
+          <div className="lg:col-span-2">
+            <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+              {/* Chart Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="text-2xl">{selectedPair.icon}</div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">{selectedPair.symbol}</h3>
+                    <div className="text-sm text-gray-300">{selectedPair.name}</div>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-2xl font-bold text-white">
+                      ${currentPrice.toFixed(selectedPair.symbol.includes('BONK') ? 8 : 2)}
+                    </div>
+                    <div className={`text-sm flex items-center gap-1 ${
+                      selectedPair.change24h > 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {selectedPair.change24h > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                      {selectedPair.change24h > 0 ? '+' : ''}{selectedPair.change24h.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Timeframe Selector */}
+                <div className="flex gap-2">
+                  {(['1m', '5m', '15m', '1h'] as const).map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setTimeframe(tf)}
+                      className={`px-3 py-1 rounded text-sm transition-colors ${
+                        timeframe === tf 
+                          ? 'bg-emerald-500 text-white' 
+                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Chart */}
+              <div className="bg-black/60 rounded-xl p-4 mb-4">
+                <div className="h-64 flex items-end justify-between gap-1">
+                  {candlestickData.map((candle, index) => renderCandlestick(candle, index))}
+                </div>
+                
+                {/* Price Line Chart */}
+                <div className="mt-4 h-16 relative">
+                  <svg className="w-full h-full">
+                    <polyline
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                      points={priceHistory.map((price, index) => 
+                        `${(index / (priceHistory.length - 1)) * 100}%,${100 - ((price - Math.min(...priceHistory)) / (Math.max(...priceHistory) - Math.min(...priceHistory))) * 100}%`
+                      ).join(' ')}
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Volume Bars */}
+              <div className="h-12 flex items-end gap-1">
+                {candlestickData.map((candle, index) => (
+                  <div
+                    key={index}
+                    className="flex-1 bg-gray-600 rounded-t"
+                    style={{ 
+                      height: `${(candle.volume / Math.max(...candlestickData.map(c => c.volume))) * 100}%`,
+                      minHeight: '2px'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Trading Panel */}
+          <div className="space-y-6">
+            {/* Market Selection */}
+            <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Target className="text-emerald-400" size={20} />
+                Select Market
+              </h3>
+              <div className="space-y-2">
+                {TRADING_PAIRS.map(pair => (
+                  <button
+                    key={pair.symbol}
+                    onClick={() => setSelectedPair(pair)}
+                    className={`w-full p-3 rounded-lg border transition-all text-left ${
+                      selectedPair.symbol === pair.symbol
+                        ? 'border-emerald-400 bg-emerald-500/20'
+                        : 'border-white/20 bg-white/10 hover:bg-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{pair.icon}</span>
+                        <div>
+                          <div className="text-white font-semibold">{pair.symbol}</div>
+                          <div className="text-sm text-gray-300">{pair.name}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-white font-semibold">
+                          ${pair.price.toFixed(pair.symbol.includes('BONK') ? 8 : 2)}
+                        </div>
+                        <div className={`text-sm ${pair.change24h > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {pair.change24h > 0 ? '+' : ''}{pair.change24h.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Trading Controls */}
+            <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <DollarSign className="text-emerald-400" size={20} />
+                Place Trade
+              </h3>
+              
+              {/* Bet Amount */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-300 mb-2">Bet Amount (SOL)</label>
+                <input
+                  type="number"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
+                  min="0.1"
+                  step="0.1"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  disabled={isTrading}
+                />
+                <div className="flex gap-2 mt-2">
+                  {[0.1, 0.5, 1.0, 2.0].map(amount => (
+                    <button
+                      key={amount}
+                      onClick={() => setBetAmount(amount)}
+                      className="flex-1 px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-sm transition-colors"
+                      disabled={isTrading}
+                    >
+                      {amount}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Prediction Buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => setPrediction('up')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    prediction === 'up'
+                      ? 'border-green-400 bg-green-500/20 text-green-400'
+                      : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                  disabled={isTrading}
+                >
+                  <TrendingUp size={24} className="mx-auto mb-2" />
+                  <div className="font-semibold">LONG</div>
+                  <div className="text-xs opacity-70">Price will go UP</div>
+                </button>
+                <button
+                  onClick={() => setPrediction('down')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    prediction === 'down'
+                      ? 'border-red-400 bg-red-500/20 text-red-400'
+                      : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                  disabled={isTrading}
+                >
+                  <TrendingDown size={24} className="mx-auto mb-2" />
+                  <div className="font-semibold">SHORT</div>
+                  <div className="text-xs opacity-70">Price will go DOWN</div>
+                </button>
+              </div>
+
+              {/* Trade Button */}
+              <button
+                onClick={startTrade}
+                disabled={!prediction || isTrading}
+                className={`w-full py-3 rounded-lg font-bold transition-all ${
+                  !prediction || isTrading
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:opacity-90'
+                }`}
+              >
+                {isTrading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin" size={20} />
+                    Trading...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Play size={20} />
+                    Execute Trade
+                  </div>
+                )}
+              </button>
+
+              {prediction && !isTrading && (
+                <div className="mt-4 text-center text-sm text-gray-300">
+                  Potential Payout: <span className="text-emerald-400 font-semibold">
+                    {(betAmount * 1.85).toFixed(3)} SOL
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Market Activity */}
+            <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity className="text-emerald-400" size={20} />
+                Live Activity
+              </h3>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {marketActivity.map(activity => (
+                  <div key={activity.id} className="flex items-center justify-between text-sm">
+                    <div className={`flex items-center gap-2 ${
+                      activity.type === 'buy' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        activity.type === 'buy' ? 'bg-green-400' : 'bg-red-400'
+                      }`} />
+                      {activity.type.toUpperCase()}
+                    </div>
+                    <div className="text-gray-300">
+                      ${activity.amount.toFixed(0)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Header */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full mb-6">
-              <Star size={48} className="text-white" />
-            </div>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-              MARKET MASTER ARENA
-            </h1>
-                      <p className="text-xl text-gray-300 mb-4">Live market analysis • Real-time trading • Professional insights</p>
-          </div>
-
-          {!gameResult && !isPlaying && (
-            <div className="max-w-6xl mx-auto">
-              {/* Game Setup */}
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-8 mb-8">
-                <h3 className="text-2xl font-bold mb-6 text-center text-white">Predict Market Movement</h3>
-                
-                {/* Bet Amount */}
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Bet Amount (SOL)</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="number"
-                      value={betAmount}
-                      onChange={(e) => setBetAmount(Number(e.target.value))}
-                      min="0.1"
-                      step="0.1"
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 text-center text-lg"
-                      placeholder="0.2"
-                    />
-                  </div>
-                  <div className="flex items-center justify-center space-x-2 mt-3">
-                    <button 
-                      onClick={() => setBetAmount(0.2)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      0.2
-                    </button>
-                    <button 
-                      onClick={() => setBetAmount(0.5)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      0.5
-                    </button>
-                    <button 
-                      onClick={() => setBetAmount(1.0)}
-                      className="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm transition-colors"
-                    >
-                      1.0
-                    </button>
-                  </div>
-                </div>
-
-                {/* Market Selection */}
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-300 mb-4 text-center">Choose Your Market</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {markets.map((market) => (
-                      <button
-                        key={market.id}
-                        onClick={() => setSelectedMarket(market.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-left ${
-                          selectedMarket === market.id 
-                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400' 
-                            : 'border-white/10 hover:border-white/30 text-gray-300 bg-black/50'
-                        }`}
-                      >
-                        <div className="text-center mb-3">
-                          <div className="text-3xl mb-2">{market.symbol}</div>
-                          <div className="font-bold text-white">{market.name}</div>
-                          <div className="text-sm text-gray-400">{market.currentPrice}</div>
-                        </div>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex justify-between">
-                            <span>24h Change:</span>
-                            <span className="text-green-400 font-semibold">{market.trend}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Volume:</span>
-                            <span className="font-semibold">{market.volume}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Volatility:</span>
-                            <span className="text-orange-400 font-semibold">{market.volatility}</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Market Prediction */}
-                {selectedMarket && (
-                  <div className="mb-8">
-                    <div className="bg-black/50 rounded-xl p-4 mb-4">
-                      <div className="text-center">
-                        <div className="text-sm text-gray-400">Market Analysis</div>
-                        <div className="text-white font-semibold">{selectedMarketData?.prediction}</div>
-                      </div>
-                    </div>
-                    
-                    <label className="block text-sm font-medium text-gray-300 mb-4 text-center">
-                      Predict next hour movement for {selectedMarketData?.name}
-                    </label>
-                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                      <button
-                        onClick={() => setSelectedDirection('bullish')}
-                        className={`p-6 rounded-xl border-2 transition-all ${
-                          selectedDirection === 'bullish' 
-                            ? 'border-green-500 bg-green-500/20 text-green-400' 
-                            : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                        }`}
-                      >
-                        <TrendingUp size={32} className="mx-auto mb-2" />
-                        <div className="font-semibold">BULLISH</div>
-                        <div className="text-sm opacity-70">Price will increase</div>
-                      </button>
-                      <button
-                        onClick={() => setSelectedDirection('bearish')}
-                        className={`p-6 rounded-xl border-2 transition-all ${
-                          selectedDirection === 'bearish' 
-                            ? 'border-red-500 bg-red-500/20 text-red-400' 
-                            : 'border-gray-600 hover:border-gray-500 text-gray-300'
-                        }`}
-                      >
-                        <TrendingDown size={32} className="mx-auto mb-2" />
-                        <div className="font-semibold">BEARISH</div>
-                        <div className="text-sm opacity-70">Price will decrease</div>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleStartGame}
-                  disabled={!selectedMarket || !selectedDirection || betAmount <= 0}
-                  className="w-full bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 px-8 rounded-xl font-bold text-lg transition-all"
-                >
-                  Deposit {betAmount} SOL & Trade
-                </button>
+        {/* Game Result Modal */}
+        {gameResult && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-black/90 backdrop-blur-xl rounded-2xl border border-white/20 p-8 max-w-md w-full text-center">
+              <div className="text-6xl mb-4">
+                {gameResult.winner ? '🎉' : '📉'}
               </div>
-            </div>
-          )}
-
-          {/* Game Playing State */}
-          {isPlaying && (
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-                {isAnalyzing ? (
-                  <>
-                    <h3 className="text-2xl font-bold mb-8 text-white">Analyzing Market Conditions...</h3>
-                    
-                    <div className="mb-8">
-                      <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-6xl animate-pulse">
-                        {selectedMarketData?.symbol}
-                      </div>
-                      <div className="mt-4 text-xl font-bold text-white">
-                        {selectedMarketData?.name}
-                      </div>
-                      <div className="text-lg text-gray-300">
-                        Current: {selectedMarketData?.currentPrice}
-                      </div>
-                    </div>
-
-                                         <div className="text-gray-300">
-                       <p>Your bet: <span className="text-white font-semibold">{betAmount} SOL</span></p>
-                       <p>Your prediction: <span className="font-semibold">
-                         {selectedDirection?.toUpperCase()}
-                       </span></p>
-                       <p className="text-sm mt-4 animate-pulse">Processing live market data...</p>
-                     </div>
-                  </>
-                ) : (
-                  <div className="text-white">Market analysis complete! Results incoming...</div>
-                )}
+              
+              <h2 className={`text-3xl font-bold mb-4 ${
+                gameResult.winner ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                {gameResult.winner ? 'Profit!' : 'Loss!'}
+              </h2>
+              
+              <div className="text-gray-300 mb-4">
+                Price moved {gameResult.actualChange > 0 ? 'UP' : 'DOWN'} by{' '}
+                <span className={`font-semibold ${
+                  gameResult.actualChange > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {Math.abs(gameResult.actualChange).toFixed(2)}%
+                </span>
               </div>
-            </div>
-          )}
-
-          {/* Game Result */}
-          {gameResult && (
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-12">
-                <div className="mb-8">
-                  <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-6xl">
-                    {gameResult.selectedMarket.symbol}
-                  </div>
-                  <div className="mt-4 text-2xl font-bold text-white">
-                    {gameResult.selectedMarket.name} Result
-                  </div>
-                  <div className="text-lg text-gray-300">
-                    Price Movement: <span className={`font-bold ${gameResult.priceMovement.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
-                      {gameResult.priceMovement}
-                    </span>
-                  </div>
+              
+              {gameResult.winner && (
+                <div className="text-xl text-emerald-400 mb-6">
+                  You earned {gameResult.payout.toFixed(3)} SOL!
                 </div>
-
-                <div className={`text-center p-6 rounded-xl mb-6 ${gameResult.userWins ? 'bg-green-500/20 border border-green-500' : 'bg-red-500/20 border border-red-500'}`}>
-                                   <div className={`text-2xl font-bold mb-2 ${gameResult.userWins ? 'text-green-400' : 'text-red-400'}`}>
-                   {gameResult.userWins ? '🎉 YOU WON!' : '😔 YOU LOST!'}
-                 </div>
-                  <div className="text-gray-300 mb-2">
-                    Market moved: <span className={`font-semibold ${gameResult.actualOutcome === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
-                      {gameResult.actualOutcome.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="text-gray-300 mb-2">
-                    Your prediction: <span className="font-semibold">
-                      {gameResult.userPrediction.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="text-gray-300">
-                    Result: <span className={`font-semibold ${gameResult.correct ? 'text-green-400' : 'text-red-400'}`}>
-                      {gameResult.correct ? 'CORRECT' : 'INCORRECT'}
-                    </span>
-                  </div>
-                  {gameResult.userWins && (
-                    <div className="mt-4 text-xl">
-                      Payout: <span className="text-green-400 font-bold">{gameResult.payout.toFixed(4)} SOL</span>
-                    </div>
-                  )}
-                </div>
-
+              )}
+              
+              <div className="flex gap-4">
                 <button
-                  onClick={resetGame}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-8 rounded-xl font-semibold transition-all"
+                  onClick={resetTrade}
+                  className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg font-bold hover:opacity-90 transition-opacity"
                 >
                   Trade Again
                 </button>
+                <button
+                  onClick={onBack}
+                  className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-colors"
+                >
+                  Back to Games
+                </button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* SOL Deposit Modal */}
-        <SOLDepositModal
-          isOpen={showDepositModal}
-          onClose={() => setShowDepositModal(false)}
-          onDepositVerified={handleDepositVerified}
-          gameType="market_master"
-          betAmount={betAmount}
-        />
+          </div>
+        )}
       </div>
+
+      {/* Custom CSS */}
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 20s linear infinite;
+        }
+      `}</style>
     </div>
   );
 } 

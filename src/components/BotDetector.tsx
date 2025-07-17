@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, CheckCircle, XCircle, Search, Bot, Eye, MoreHorizontal, Loader2, Plus, Scan, User, Calendar, MessageCircle, TrendingUp, Network, Flag, ExternalLink } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, XCircle, Search, Bot, Eye, MoreHorizontal, Loader2, Plus, Scan, User, Calendar, MessageCircle, TrendingUp, Network, Flag, ExternalLink, LogOut } from 'lucide-react';
 import { botDetectionService, BotDetectionResult, BotDetectionStats } from '../services/botDetectionService';
 import { toast } from 'react-hot-toast';
 import { TypewriterText } from './TypewriterText';
+import { useTelegramAuth } from '../contexts/TelegramAuthContext';
+import TelegramAuth from './TelegramAuth';
 
 export function BotDetector() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +22,22 @@ export function BotDetector() {
   });
   const [selectedResult, setSelectedResult] = useState<BotDetectionResult | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Telegram Auth state
+  const [showTelegramAuth, setShowTelegramAuth] = useState(false);
+  
+  // Telegram Auth hooks
+  const { 
+    user: telegramUser, 
+    isAuthenticated: isTelegramAuthenticated, 
+    login: telegramLogin, 
+    logout: telegramLogout 
+  } = useTelegramAuth();
+
+  const handleTelegramAuthSuccess = (userInfo: any) => {
+    telegramLogin(userInfo, userInfo.session_id || '');
+    setShowTelegramAuth(false);
+  };
 
   useEffect(() => {
     // Update stats whenever results change
@@ -151,6 +169,42 @@ export function BotDetector() {
             <p className="text-xl md:text-2xl text-gray-300 font-light max-w-2xl mx-auto leading-relaxed">
               Advanced AI-powered bot detection and analysis with military-grade precision
             </p>
+          </div>
+
+          {/* Telegram Auth Section */}
+          <div className="max-w-2xl mx-auto">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+              <div className="relative bg-black/20 backdrop-blur-2xl rounded-2xl border border-blue-500/20 p-6 shadow-2xl">
+                <div className="flex items-center justify-center">
+                  {isTelegramAuthenticated ? (
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
+                        <MessageCircle className="w-5 h-5 text-blue-400" />
+                        <span className="text-blue-400 font-medium">
+                          {telegramUser?.first_name || 'Connected'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => telegramLogout()}
+                        className="p-3 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                        title="Disconnect Telegram"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowTelegramAuth(true)}
+                      className="flex items-center gap-3 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 rounded-xl border border-blue-500/30 hover:border-blue-500/50 transition-all duration-200 text-blue-400 font-medium"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Connect Telegram
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Enhanced Search Input with Advanced Glass Morphism */}
@@ -599,6 +653,14 @@ export function BotDetector() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Telegram Auth Modal */}
+      {showTelegramAuth && (
+        <TelegramAuth 
+          onAuthSuccess={handleTelegramAuthSuccess}
+          onClose={() => setShowTelegramAuth(false)} 
+        />
       )}
     </div>
   );

@@ -172,7 +172,7 @@ function BeginnerWelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   
   const welcomeSteps = [
     {
-      title: 'Welcome to KOL Nexus Arena! 🎮',
+      title: 'Welcome to KOLOPZ Arena! 🎮',
       content: 'You\'re about to enter the most exciting crypto gaming platform. Let\'s get you started with everything you need to know!',
       icon: '🌟'
     },
@@ -243,7 +243,7 @@ function BeginnerWelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               <button
                 onClick={() => {
                   onClose();
-                  localStorage.setItem('kolnexus_welcome_shown', 'true');
+                  localStorage.setItem('kolopz_welcome_shown', 'true');
                 }}
                 className="px-4 py-2 bg-gradient-to-r from-emerald-400 to-teal-500 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
@@ -297,7 +297,7 @@ function GamesSidebar({ activeGame, onSelectGame }: { activeGame: string | null;
           <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/25 to-pink-600/25 rounded-lg blur-lg"></div>
           <div className="relative bg-black/50 backdrop-blur-xl rounded-lg p-4 border border-white/10">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              KOL NEXUS
+              KOLOPZ
             </h2>
             <p className="text-sm text-gray-400">Gaming Arena</p>
           </div>
@@ -1389,7 +1389,7 @@ export default function Games() {
     setActiveGames(games);
 
     // Check if this is a new user
-    const welcomeShown = localStorage.getItem('kolnexus_welcome_shown');
+    const welcomeShown = localStorage.getItem('kolopz_welcome_shown');
     if (!welcomeShown) {
       setShowWelcomeModal(true);
     }
@@ -1451,7 +1451,7 @@ export default function Games() {
               {/* Hero Section */}
               <div className="text-center pt-12 pb-8">
                 <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              KOL NEXUS ARENA
+              KOLOPZ ARENA
             </h1>
                 <p className="text-xl text-gray-300 mb-8">
               Real-time multiplayer crypto gaming • Battle players worldwide • Instant rewards

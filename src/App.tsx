@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SolanaWalletProvider } from './contexts/WalletContext';
+import { TelegramAuthProvider } from './contexts/TelegramAuthContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import { ChannelScanner } from './components/ChannelScanner';
@@ -57,27 +58,29 @@ function App() {
   return (
     <ErrorBoundary>
       <SolanaWalletProvider>
-        <Router>
-          <AuthProvider>
-            <ChannelScannerProvider>
-              <Toaster position="top-right" />
-              <Routes>
-                {/* Main Layout with all routes */}
-                <Route path="/" element={<Layout />}>
-                  {/* All Routes - No Authentication Required */}
-                  <Route index element={<Dashboard />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="leaderboard" element={<Leaderboard />} />
-                  <Route path="games" element={<Games />} />
-                  <Route path="kol-analyzer" element={<KOLAnalyzer />} />
-                  <Route path="channel-scanner" element={<ChannelScanner />} />
-                  <Route path="bot-detector" element={<BotDetector />} />
-                  <Route path="volume-tracker" element={<VolumeTracker />} />
-                </Route>
-              </Routes>
-            </ChannelScannerProvider>
-          </AuthProvider>
-        </Router>
+        <TelegramAuthProvider>
+          <Router>
+            <AuthProvider>
+              <ChannelScannerProvider>
+                <Toaster position="top-right" />
+                <Routes>
+                  {/* Main Layout with all routes */}
+                  <Route path="/" element={<Layout />}>
+                    {/* All Routes - No Authentication Required */}
+                    <Route index element={<Dashboard />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="leaderboard" element={<Leaderboard />} />
+                    <Route path="games" element={<Games />} />
+                    <Route path="kol-analyzer" element={<KOLAnalyzer />} />
+                    <Route path="channel-scanner" element={<ChannelScanner />} />
+                    <Route path="bot-detector" element={<BotDetector />} />
+                    <Route path="volume-tracker" element={<VolumeTracker />} />
+                  </Route>
+                </Routes>
+              </ChannelScannerProvider>
+            </AuthProvider>
+          </Router>
+        </TelegramAuthProvider>
       </SolanaWalletProvider>
     </ErrorBoundary>
   );
