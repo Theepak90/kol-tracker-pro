@@ -50,7 +50,7 @@ class TelegramScanner:
         self.client = None
         self.db = None
         self.connected = False
-        
+    
     async def connect(self):
         try:
             logger.info("Connecting to MongoDB...")
@@ -72,7 +72,7 @@ class TelegramScanner:
             if not await self.client.is_user_authorized():
                 logger.error("User not authorized. Please run the authentication script first.")
                 raise Exception("User not authorized")
-            
+                
             logger.info("Telegram client started successfully")
             self.connected = True
             
@@ -215,9 +215,9 @@ async def analyze_user_bot_detection(username: str):
     try:
         if not scanner.connected:
             raise HTTPException(status_code=503, detail="Service not connected")
-            
+        
         # Get user entity
-        user = await scanner.client.get_entity(username)
+            user = await scanner.client.get_entity(username)
         
         # Basic bot detection analysis
         analysis = {
