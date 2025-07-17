@@ -7,10 +7,23 @@ import { GameModule } from './game/game.module';
 import { AuthModule } from './auth/auth.module';
 import { HttpModule } from '@nestjs/axios';
 import { BotDetectionModule } from './bot-detection/bot-detection.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/kol-tracker'),
+    // Static assets (frontend build)
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'dist'),
+      exclude: ['/api*'],
+    }),
+
+    // Database
+    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/kol-tracker', {
+      dbName: process.env.MONGODB_DB || undefined,
+    }),
+
+    // Misc modules
     HttpModule,
     KOLModule,
     GameModule,
