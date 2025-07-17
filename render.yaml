@@ -4,7 +4,7 @@ services:
     name: kol-tracker-frontend
     env: node
     plan: free
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    buildCommand: npm install --legacy-peer-deps && npx tsc && npx vite build
     startCommand: node serve.js
     envVars:
       - key: NODE_ENV
@@ -48,7 +48,7 @@ services:
     startCommand: cd backend/telethon_service && python main.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.16
+        value: 3.8
       - key: API_ID
         value: 28152923
       - key: API_HASH
@@ -65,6 +65,6 @@ services:
 
 databases:
   - name: kol-tracker-db
-    databaseName: kol_tracker
-    user: kol_user
+    databaseName: kol-tracker
+    user: kol-tracker-user
     plan: free 
