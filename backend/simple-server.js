@@ -6,6 +6,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const { MongoClient } = require('mongodb');
 const fetch = require('node-fetch');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -83,6 +84,9 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Health check endpoint
 app.get('/api', (req, res) => {
@@ -1104,6 +1108,16 @@ async function connectDB() {
     return null;
   }
 }
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  // Don't serve index.html for API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API route not found' });
+  }
+  
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
 // Keep-alive mechanism for Render free tier
 if (process.env.KEEP_ALIVE === 'true') {

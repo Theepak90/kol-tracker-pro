@@ -1,27 +1,11 @@
 services:
-  # Frontend React Service
+  # Full Stack Application Service
   - type: web
-    name: kol-tracker-frontend
+    name: kol-tracker-app
     env: node
     plan: free
-    buildCommand: npm install --legacy-peer-deps && npx tsc && npx vite build
-    startCommand: node serve.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: VITE_API_URL
-        value: https://kol-tracker-backend.onrender.com
-      - key: VITE_TELETHON_URL
-        value: https://kol-tracker-telethon.onrender.com
-    healthCheckPath: /
-
-  # Backend NestJS Service
-  - type: web
-    name: kol-tracker-backend
-    env: node
-    plan: free
-    buildCommand: cd backend && npm ci && npm run build
-    startCommand: cd backend && npm run start:prod
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
@@ -36,7 +20,7 @@ services:
       - key: TELETHON_SERVICE_URL
         value: https://kol-tracker-telethon.onrender.com
       - key: CORS_ORIGINS
-        value: https://kol-tracker-frontend.onrender.com
+        value: https://kol-tracker-app.onrender.com
     healthCheckPath: /api
 
   # Telethon Python Service
@@ -48,11 +32,11 @@ services:
     startCommand: cd backend/telethon_service && python main.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.8
+        value: 3.11.0
       - key: API_ID
-        value: 28152923
+        generateValue: true
       - key: API_HASH
-        value: 766760d2838474a5e6dd734d785aa7ad
+        generateValue: true
       - key: SESSION_NAME
         value: telegram_session
       - key: MONGODB_URI
@@ -63,8 +47,9 @@ services:
         value: 8000
     healthCheckPath: /health
 
+# Database
 databases:
   - name: kol-tracker-db
-    databaseName: kol-tracker
-    user: kol-tracker-user
+    databaseName: kol_tracker
+    user: kol_user
     plan: free 
