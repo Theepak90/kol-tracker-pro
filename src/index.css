@@ -61,7 +61,6 @@
 
   .card {
     @apply bg-card rounded-xl border border-border p-6 transition-all duration-300 hover:bg-card-hover;
-    border-color: rgb(var(--primary-rgb) / 0.5);
   }
 
   .card:hover {
