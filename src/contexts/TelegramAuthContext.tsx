@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_CONFIG } from '../config/api';
 
 interface TelegramUser {
   id: number;
@@ -49,7 +50,7 @@ export const TelegramAuthProvider: React.FC<TelegramAuthProviderProps> = ({ chil
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/user-session/${userId}`);
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/user-session/${userId}`);
       const data = await response.json();
       
       if (data.success && data.user_info) {
@@ -77,7 +78,7 @@ export const TelegramAuthProvider: React.FC<TelegramAuthProviderProps> = ({ chil
 
   const logout = async () => {
     try {
-      await fetch(`http://localhost:8000/user-session/${userId}`, {
+      await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/user-session/${userId}`, {
         method: 'DELETE',
       });
     } catch (error) {

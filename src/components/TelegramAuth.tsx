@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Phone, Shield, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface TelegramAuthProps {
   onAuthSuccess: (userInfo: any) => void;
@@ -38,7 +39,7 @@ const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) =
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/request-otp', {
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/request-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) =
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/verify-otp', {
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
