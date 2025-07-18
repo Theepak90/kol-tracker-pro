@@ -39,7 +39,7 @@ const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) =
     setError('');
 
     try {
-      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/request-otp`, {
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.REQUEST_OTP}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) =
     setError('');
 
     try {
-      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}/verify-otp`, {
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.VERIFY_OTP}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -136,12 +136,14 @@ export const API_CONFIG = {
   },
 
   TELETHON_SERVICE: {
-    BASE_URL: ensureHttps(TELETHON_BASE_URL),
+    BASE_URL: ensureHttps(API_BASE_URL),
     ENDPOINTS: {
-      HEALTH: '/health',
-      SCAN_CHANNEL: (username: string) => `/scan/${username}`,
-      SCAN_HISTORY: (username: string) => `/scan-history/${username}`,
-      TRACK_POSTS: (username: string) => `/track-posts/${username}`
+      HEALTH: '/api/health',
+      SCAN_CHANNEL: (username: string) => `/api/scan/${username}`,
+      SCAN_HISTORY: (username: string) => `/api/scan-history/${username}`,
+      TRACK_POSTS: (username: string) => `/api/track-posts/${username}`,
+      REQUEST_OTP: '/api/telegram/request-otp',
+      VERIFY_OTP: '/api/telegram/verify-otp'
     }
   }
 };

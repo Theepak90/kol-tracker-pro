@@ -27,39 +27,53 @@ class GameService {
   private platformWallet = 'platform_wallet_address'; // Mock platform wallet
 
   constructor() {
-    this.initializeSocket();
+    // Only initialize socket in development
+    if (process.env.NODE_ENV !== 'production') {
+      this.initializeSocket();
+    } else {
+      console.log('🔇 Game service disabled in production');
+    }
   }
 
   private initializeSocket() {
-    this.socket = io(`${WS_URL}/games`, {
-      auth: {
-        token: authService.getToken()
-      }
-    });
+    // Skip if in production
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
 
-    this.socket.on('connect', () => {
-      console.log('Connected to game server');
-    });
+    try {
+      this.socket = io(`${WS_URL}/games`, {
+        auth: {
+          token: authService.getToken()
+        }
+      });
 
-    this.socket.on('gameCreated', (game: GameRoom) => {
-      this.activeGames.set(game.id, game);
-    });
+      this.socket.on('connect', () => {
+        console.log('Connected to game server');
+      });
 
-    this.socket.on('gameJoined', (game: GameRoom) => {
-      this.activeGames.set(game.id, game);
-    });
+      this.socket.on('gameCreated', (game: GameRoom) => {
+        this.activeGames.set(game.id, game);
+      });
 
-    this.socket.on('gameStarted', (game: GameRoom) => {
-      this.activeGames.set(game.id, game);
-    });
+      this.socket.on('gameJoined', (game: GameRoom) => {
+        this.activeGames.set(game.id, game);
+      });
 
-    this.socket.on('gameCompleted', async (game: GameRoom) => {
-      this.activeGames.set(game.id, game);
-      if (game.winner) {
-        // Handle payout
-        await this.handlePayout(game);
-      }
-    });
+      this.socket.on('gameStarted', (game: GameRoom) => {
+        this.activeGames.set(game.id, game);
+      });
+
+      this.socket.on('gameCompleted', async (game: GameRoom) => {
+        this.activeGames.set(game.id, game);
+        if (game.winner) {
+          // Handle payout
+          await this.handlePayout(game);
+        }
+      });
+    } catch (error) {
+      console.warn('🔇 Game service WebSocket connection failed');
+    }
   }
 
   private async handlePayout(game: GameRoom) {

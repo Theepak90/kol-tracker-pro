@@ -42,80 +42,83 @@ class RealtimeGameService {
 
   constructor() {
     this.connection = new Connection('https://api.devnet.solana.com');
-    // Delay socket initialization to ensure DOM is ready
-    setTimeout(() => {
-      this.initializeSocket();
-    }, 100);
+    // Only initialize socket in development environment
+    if (process.env.NODE_ENV !== 'production') {
+      // Delay socket initialization to ensure DOM is ready
+      setTimeout(() => {
+        this.initializeSocket();
+      }, 100);
+    } else {
+      console.log('🔇 Real-time game service disabled in production');
+    }
   }
 
   private initializeSocket() {
-    this.socket = io(`${WS_URL}/games`, {
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      timeout: 20000,
-      forceNew: true,
-      transports: ['websocket', 'polling'],
-      auth: {
-        token: localStorage.getItem('token') || '',
-        userId: localStorage.getItem('userId') || '',
-        username: localStorage.getItem('username') || 'Anonymous',
-        walletAddress: localStorage.getItem('walletAddress') || ''
-      }
-    });
+    // Skip if in production
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
 
-    this.socket.on('connect', () => {
-      console.log('🟢 Connected to game server');
-      this.connectionCallbacks.forEach(callback => callback(true));
-    });
+    try {
+      this.socket = io(`${WS_URL}/games`, {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+        forceNew: true,
+        transports: ['websocket', 'polling'],
+        auth: {
+          token: localStorage.getItem('token') || '',
+          userId: localStorage.getItem('userId') || '',
+          username: localStorage.getItem('username') || 'Anonymous',
+          walletAddress: localStorage.getItem('walletAddress') || ''
+        }
+      });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('🔴 Disconnected from game server:', reason);
-      this.connectionCallbacks.forEach(callback => callback(false));
-    });
+      this.socket.on('connect', () => {
+        console.log('🟢 Connected to game server');
+        this.connectionCallbacks.forEach(callback => callback(true));
+      });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error);
-      this.connectionCallbacks.forEach(callback => callback(false));
-    });
+      this.socket.on('disconnect', (reason) => {
+        console.log('🔴 Disconnected from game server:', reason);
+        this.connectionCallbacks.forEach(callback => callback(false));
+      });
 
-    this.socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Reconnected to game server after', attemptNumber, 'attempts');
-      this.connectionCallbacks.forEach(callback => callback(true));
-    });
+      this.socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+        this.connectionCallbacks.forEach(callback => callback(false));
+      });
 
-    this.socket.on('reconnect_error', (error) => {
-      console.error('🔄❌ Reconnection error:', error);
-    });
+      this.socket.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Reconnected to game server after', attemptNumber, 'attempts');
+        this.connectionCallbacks.forEach(callback => callback(true));
+      });
 
-    this.socket.on('room_created', (room: GameRoom) => {
-      this.activeGames.set(room.id, room);
-    });
+      this.socket.on('reconnect_error', (error) => {
+        console.error('🔄❌ Reconnection error:', error);
+      });
 
-    this.socket.on('game_update', (update: GameUpdate) => {
-      const callback = this.gameCallbacks.get(update.roomId);
-      if (callback) {
-        callback(update);
-      }
-      
-      // Update local game state
-      if (this.activeGames.has(update.roomId)) {
-        const game = this.activeGames.get(update.roomId)!;
-        this.activeGames.set(update.roomId, { ...game, ...update.data });
-      }
-    });
+      this.socket.on('room_created', (room: GameRoom) => {
+        this.activeGames.set(room.id, room);
+      });
 
-    this.socket.on('game_result', (result: { roomId: string; winner: Player; prize: number }) => {
-      const callback = this.gameCallbacks.get(result.roomId);
-      if (callback) {
-        callback({
-          type: 'game_finished',
-          data: result,
-          roomId: result.roomId
-        });
-      }
-    });
+      this.socket.on('game_update', (update: GameUpdate) => {
+        const callback = this.gameCallbacks.get(update.roomId);
+        if (callback) {
+          callback(update);
+        }
+        
+        // Update local game state
+        if (this.activeGames.has(update.roomId)) {
+          const game = this.activeGames.get(update.roomId)!;
+          this.activeGames.set(update.roomId, { ...game, ...update.data });
+        }
+      });
+    } catch (error) {
+      console.warn('🔇 Game service WebSocket connection failed, continuing without real-time features');
+    }
   }
 
   // Wallet Integration Methods
