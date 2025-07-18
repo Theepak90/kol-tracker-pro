@@ -3,7 +3,7 @@ services:
     name: kol-tracker-pro
     env: node
     plan: free
-    buildCommand: npm install && npm run build:frontend && cd backend && npm install --legacy-peer-deps && npx nest build
+    buildCommand: npm install && npm run build
     startCommand: node start-render.js
     envVars:
       - key: NODE_ENV
@@ -11,11 +11,11 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        sync: false
+        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
       - key: MONGODB_DB
         value: kol-tracker-pro
       - key: JWT_SECRET
-        sync: false
+        value: 5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
     disk:
       name: kol-tracker-disk
       mountPath: /opt/render/project/backend/dist
@@ -29,13 +29,13 @@ services:
     startCommand: cd backend/telethon_service && python main.py
     envVars:
       - key: API_ID
-        sync: false
+        value: 28152923
       - key: API_HASH
-        sync: false
+        value: 766760d2838474a5e6dd734d785aa7ad
       - key: SESSION_NAME
         value: telegram_session
       - key: MONGODB_URI
-        sync: false
+        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
       - key: MONGODB_DB
         value: kol-tracker-pro
       - key: PORT
