@@ -8,6 +8,7 @@ The deployment build failure has been resolved by:
 2. **Moved `typescript` to dependencies** - Required for NestJS compilation
 3. **Updated build scripts** - Use `npx` to run NestJS CLI commands
 4. **Created alternative build commands** - Multiple fallback options
+5. **Fixed start command path** - Corrected for Render's file structure
 
 ## 🔧 Changes Made
 
@@ -31,10 +32,14 @@ The deployment build failure has been resolved by:
 {
   "scripts": {
     "build": "chmod +x build.sh && ./build.sh",
+    "start": "node start-render.js",
     "render:build": "chmod +x build.sh && ./build.sh"
   }
 }
 ```
+
+### Startup Script
+Created `start-render.js` to handle Render's specific file structure and environment.
 
 ## 🚀 Deployment Steps
 
@@ -44,7 +49,7 @@ The deployment build failure has been resolved by:
    - Name: `kol-tracker-pro`
    - Environment: `Node`
    - Build Command: `npm install && npm run build:frontend && cd backend && npm install --legacy-peer-deps && npx nest build`
-   - Start Command: `node backend/dist/main.js`
+   - Start Command: `node start-render.js`
 
 2. **Environment Variables:**
    ```
@@ -76,7 +81,7 @@ npm install --legacy-peer-deps
 npx @nestjs/cli build
 
 # Start
-node dist/main.js
+node ../start-render.js
 ```
 
 ## 🔍 Troubleshooting
@@ -90,7 +95,11 @@ node dist/main.js
 2. **"typescript: not found"**
    - ✅ **FIXED**: Moved `typescript` to dependencies
 
-3. **Dependencies issues**
+3. **"Cannot find module '/opt/render/project/src/backend/dist/main.js'"**
+   - ✅ **FIXED**: Created `start-render.js` startup script
+   - Uses correct paths for Render's file structure
+
+4. **Dependencies issues**
    - Use `npm install --legacy-peer-deps` for backend
    - Ensure all build tools are in `dependencies`, not `devDependencies`
 
@@ -98,7 +107,7 @@ node dist/main.js
 
 1. **Port binding**
    - Render uses `PORT` environment variable (typically 10000)
-   - Make sure your app listens on `process.env.PORT`
+   - Startup script automatically sets this
 
 2. **Static files**
    - Frontend files should be served from `dist/` folder
