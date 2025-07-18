@@ -142,7 +142,7 @@ export const API_CONFIG = {
       SCAN_CHANNEL: (username: string) => `/api/scan/${username}`,
       SCAN_HISTORY: (username: string) => `/api/scan-history/${username}`,
       TRACK_POSTS: (username: string) => `/api/track-posts/${username}`,
-      REQUEST_OTP: '/api/telegram/request-otp',
+      REQUEST_OTP: '/api/auth/request-otp',
       VERIFY_OTP: '/api/telegram/verify-otp'
     }
   }

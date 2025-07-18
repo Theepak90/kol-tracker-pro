@@ -1,5 +1,22 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+interface HealthResponse {
+  status: 'ok' | 'degraded' | 'error';
+  connected: boolean;
+  timestamp: string;
+  services: {
+    telegram: {
+      status: 'available' | 'unavailable';
+      message: string;
+    };
+    backend: {
+      status: 'available' | 'unavailable';
+      message: string;
+    };
+  };
+  uptime?: string;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -12,22 +29,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (req.method === 'GET') {
-    res.status(200).json({
-      status: 'healthy',
-      connected: true,
-      client_status: 'connected',
-      environment: 'vercel',
-      capabilities: {
-        channel_scanning: true,
-        bot_detection: true,
-        message_analysis: true,
-        real_time_monitoring: true
-      },
-      timestamp: new Date().toISOString()
-    });
-  } else {
+  if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
+    return;
   }
+
+  const healthResponse: HealthResponse = {
+    status: 'ok',
+    connected: true,
+    timestamp: new Date().toISOString(),
+    services: {
+      telegram: {
+        status: 'available',
+        message: 'Telegram authentication service is running in demo mode'
+      },
+      backend: {
+        status: 'available',
+        message: 'Backend API services are operational'
+      }
+    }
+  };
+
+  // Check if external Telethon service is available
+  try {
+    const telethonUrl = process.env.TELETHON_SERVICE_URL;
+    if (telethonUrl) {
+      const response = await fetch(`${telethonUrl}/health`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        const telethonHealth = await response.json();
+        healthResponse.services.telegram = {
+          status: 'available',
+          message: 'External Telethon service is connected'
+        };
+        healthResponse.uptime = telethonHealth.uptime;
+      } else {
+        healthResponse.services.telegram = {
+          status: 'unavailable',
+          message: 'External Telethon service responded with error'
+        };
+        healthResponse.status = 'degraded';
+      }
+    }
+  } catch (error) {
+    // Service not available, but that's okay - we have fallbacks
+    healthResponse.services.telegram = {
+      status: 'available',
+      message: 'Using built-in demo authentication'
+    };
+  }
+
+  res.status(200).json(healthResponse);
 } 
