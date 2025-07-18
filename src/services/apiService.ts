@@ -1,5 +1,4 @@
-import { API_BASE_URL, IS_DEMO_MODE } from '../config/api';
-import { demoService, shouldUseDemoData } from './demoService';
+import { API_BASE_URL } from '../config/api';
 
 interface KOL {
   _id: string;
@@ -21,14 +20,7 @@ class ApiService {
 
   constructor() {
     this.baseUrl = API_BASE_URL;
-    
-    // In demo mode, don't try to check connectivity
-    if (!shouldUseDemoData()) {
-      this.checkConnectivity();
-    } else {
-      console.log('🎭 Running in demo mode - using mock data');
-      this.isOnline = false; // Force offline mode for demo
-    }
+    this.checkConnectivity();
   }
 
   private async checkConnectivity(): Promise<boolean> {
@@ -58,12 +50,6 @@ class ApiService {
   }
 
   async getKOLs(): Promise<KOL[]> {
-    // Use demo data if in demo mode or offline
-    if (shouldUseDemoData() || !this.isOnline) {
-      console.log('🎭 Using demo KOL data');
-      return await demoService.getKOLsAsync();
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/api/kols`, {
         method: 'GET',
@@ -83,20 +69,13 @@ class ApiService {
       this.isOnline = true;
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('❌ Error fetching KOLs, falling back to demo data:', error);
+      console.error('❌ Error fetching KOLs:', error);
       this.isOnline = false;
-      // Fallback to demo data instead of throwing error
-      return await demoService.getKOLsAsync();
+      throw new Error('Backend service is not available. Cannot fetch real-time KOL data.');
     }
   }
 
   async createKOL(kolData: Partial<KOL>): Promise<KOL> {
-    // Use demo data if in demo mode or offline
-    if (shouldUseDemoData() || !this.isOnline) {
-      console.log('🎭 Creating demo KOL');
-      return await demoService.createKOLAsync(kolData);
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/api/kols`, {
         method: 'POST',
@@ -117,29 +96,13 @@ class ApiService {
       this.isOnline = true;
       return result;
     } catch (error) {
-      console.error('❌ Error creating KOL, using demo mode:', error);
+      console.error('❌ Error creating KOL:', error);
       this.isOnline = false;
-      // Fallback to demo data instead of throwing error
-      return await demoService.createKOLAsync(kolData);
+      throw new Error('Backend service is not available. Cannot create KOL with real-time data.');
     }
   }
 
-  // Add other methods as needed
   async updateKOL(id: string, kolData: Partial<KOL>): Promise<KOL> {
-    if (shouldUseDemoData() || !this.isOnline) {
-      console.log('🎭 Demo mode: Update not persisted');
-      // Return the updated data but don't actually persist it
-      return { 
-        _id: id, 
-        ...kolData,
-        displayName: kolData.displayName || 'Updated KOL',
-        telegramUsername: kolData.telegramUsername || 'demo_user',
-        description: kolData.description || 'Updated description',
-        tags: kolData.tags || ['Demo'],
-        stats: kolData.stats || { totalPosts: 0, totalViews: 0, totalForwards: 0 }
-      } as KOL;
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/api/kols/${id}`, {
         method: 'PUT',
@@ -162,11 +125,6 @@ class ApiService {
   }
 
   async deleteKOL(id: string): Promise<boolean> {
-    if (shouldUseDemoData() || !this.isOnline) {
-      console.log('🎭 Demo mode: Delete not persisted');
-      return true; // Pretend it worked
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}/api/kols/${id}`, {
         method: 'DELETE',
@@ -180,13 +138,7 @@ class ApiService {
     }
   }
 
-  // Generic method for other API calls
   async get<T>(endpoint: string): Promise<{ data: T; success: boolean }> {
-    if (shouldUseDemoData() || !this.isOnline) {
-      console.log('🎭 Demo mode: API call simulated');
-      return { data: {} as T, success: true };
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'GET',
@@ -208,14 +160,8 @@ class ApiService {
     }
   }
 
-  // Check if we're in demo mode
-  isDemoMode(): boolean {
-    return shouldUseDemoData();
-  }
-
-  // Check connectivity status
   isConnected(): boolean {
-    return this.isOnline && !shouldUseDemoData();
+    return this.isOnline;
   }
 }
 
