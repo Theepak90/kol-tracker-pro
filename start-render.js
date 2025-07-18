@@ -21,64 +21,95 @@ const fileExists = (filePath) => {
   }
 };
 
-// Try different possible paths for the backend
-const possiblePaths = [
-  // Path 1: Standard structure
+// Try different possible startup configurations
+const startupConfigs = [
+  // Config 1: Standard compiled dist/main.js
   {
     cwd: path.join(process.cwd(), 'backend'),
-    script: 'dist/main.js'
+    command: 'node',
+    args: ['dist/main.js'],
+    description: 'Compiled main.js'
   },
-  // Path 2: If we're already in backend directory
+  // Config 2: TypeScript source with ts-node
+  {
+    cwd: path.join(process.cwd(), 'backend'),
+    command: 'npx',
+    args: ['ts-node', 'src/main.ts'],
+    description: 'TypeScript source with ts-node'
+  },
+  // Config 3: Direct node with dist/main.js
   {
     cwd: process.cwd(),
-    script: 'dist/main.js'
+    command: 'node',
+    args: ['backend/dist/main.js'],
+    description: 'Direct backend/dist/main.js'
   },
-  // Path 3: If backend is in src folder (Render structure)
-  {
-    cwd: path.join(process.cwd(), 'src', 'backend'),
-    script: 'dist/main.js'
-  },
-  // Path 4: Alternative nested structure
+  // Config 4: Use production start script
   {
     cwd: path.join(process.cwd(), 'backend'),
-    script: 'backend/dist/main.js'
+    command: 'npm',
+    args: ['run', 'start:prod'],
+    description: 'NPM start:prod script'
   }
 ];
 
-console.log('Looking for backend files in possible locations...');
+console.log('Checking startup configurations...');
 
-let foundPath = null;
+let foundConfig = null;
 
-for (const pathConfig of possiblePaths) {
-  const fullPath = path.join(pathConfig.cwd, pathConfig.script);
-  console.log(`🔍 Checking: ${fullPath}`);
+for (const config of startupConfigs) {
+  console.log(`🔍 Checking: ${config.description}`);
   
-  if (fileExists(fullPath)) {
-    foundPath = pathConfig;
-    console.log(`✅ Found backend at: ${fullPath}`);
-    break;
+  // Check if the command/file exists
+  if (config.command === 'node') {
+    const scriptPath = path.join(config.cwd, config.args[0]);
+    if (fileExists(scriptPath)) {
+      foundConfig = config;
+      console.log(`✅ Found: ${config.description}`);
+      break;
+    }
+  } else if (config.command === 'npx') {
+    // For npx ts-node, check if TypeScript source exists
+    const tsPath = path.join(config.cwd, 'src/main.ts');
+    if (fileExists(tsPath)) {
+      foundConfig = config;
+      console.log(`✅ Found: ${config.description}`);
+      break;
+    }
+  } else if (config.command === 'npm') {
+    // For npm scripts, check if package.json exists
+    const packagePath = path.join(config.cwd, 'package.json');
+    if (fileExists(packagePath)) {
+      foundConfig = config;
+      console.log(`✅ Found: ${config.description}`);
+      break;
+    }
   }
 }
 
-if (!foundPath) {
-  console.error('❌ Could not find backend main.js file in any expected location');
-  console.log('Available files in current directory:');
+if (!foundConfig) {
+  console.error('❌ Could not find any viable startup configuration');
+  console.log('Available files in backend directory:');
   try {
-    const files = fs.readdirSync(process.cwd());
-    files.forEach(file => console.log(`  - ${file}`));
+    const backendPath = path.join(process.cwd(), 'backend');
+    if (fileExists(backendPath)) {
+      const files = fs.readdirSync(backendPath);
+      files.forEach(file => console.log(`  - ${file}`));
+    }
   } catch (error) {
-    console.error('Could not list directory contents');
+    console.error('Could not list backend directory contents');
   }
   process.exit(1);
 }
 
 // Start the application
-console.log(`🚀 Starting backend from: ${foundPath.cwd}`);
-console.log(`📝 Script: ${foundPath.script}`);
+console.log(`🚀 Starting with: ${foundConfig.description}`);
+console.log(`📁 Working directory: ${foundConfig.cwd}`);
+console.log(`🔧 Command: ${foundConfig.command} ${foundConfig.args.join(' ')}`);
 
 try {
-  const child = spawn('node', [foundPath.script], {
-    cwd: foundPath.cwd,
+  const child = spawn(foundConfig.command, foundConfig.args, {
+    cwd: foundConfig.cwd,
     stdio: 'inherit',
     env: {
       ...process.env,
