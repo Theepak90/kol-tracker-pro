@@ -1778,8 +1778,8 @@ export default function KOLAnalyzer() {
                           <MessageCircle className="w-4 h-4 text-blue-400" />
                           <span className="text-sm text-blue-400">
                             {telegramUser?.first_name || 'Connected'}
-                          </span>
-                        </div>
+                                    </span>
+                                </div>
                         <button
                           onClick={() => telegramLogout()}
                           className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-200"
@@ -1787,7 +1787,7 @@ export default function KOLAnalyzer() {
                         >
                           <LogOut className="w-4 h-4" />
                         </button>
-                      </div>
+                              </div>
                     ) : (
                       <button
                         onClick={() => setShowTelegramAuth(true)}
@@ -1814,9 +1814,9 @@ export default function KOLAnalyzer() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
+                            </div>
+                          </div>
+                        </div>
 
           {/* Ultra-Modern Add KOL Interface */}
           <div className="relative mb-12">
