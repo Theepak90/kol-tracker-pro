@@ -1,23 +1,84 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('🚀 Starting KOL Tracker Pro on Render...');
 console.log('Current directory:', process.cwd());
-console.log('Looking for backend files...');
+console.log('Script location:', __dirname);
 
-// Check if we're in the right directory structure
-const backendPath = path.join(process.cwd(), 'backend');
-const mainPath = path.join(backendPath, 'dist', 'main.js');
+// Function to check if file exists
+const fileExists = (filePath) => {
+  try {
+    return fs.existsSync(filePath);
+  } catch (error) {
+    return false;
+  }
+};
 
-console.log('Backend path:', backendPath);
-console.log('Main file path:', mainPath);
+// Try different possible paths for the backend
+const possiblePaths = [
+  // Path 1: Standard structure
+  {
+    cwd: path.join(process.cwd(), 'backend'),
+    script: 'dist/main.js'
+  },
+  // Path 2: If we're already in backend directory
+  {
+    cwd: process.cwd(),
+    script: 'dist/main.js'
+  },
+  // Path 3: If backend is in src folder (Render structure)
+  {
+    cwd: path.join(process.cwd(), 'src', 'backend'),
+    script: 'dist/main.js'
+  },
+  // Path 4: Alternative nested structure
+  {
+    cwd: path.join(process.cwd(), 'backend'),
+    script: 'backend/dist/main.js'
+  }
+];
 
-// Try to start the application
+console.log('Looking for backend files in possible locations...');
+
+let foundPath = null;
+
+for (const pathConfig of possiblePaths) {
+  const fullPath = path.join(pathConfig.cwd, pathConfig.script);
+  console.log(`🔍 Checking: ${fullPath}`);
+  
+  if (fileExists(fullPath)) {
+    foundPath = pathConfig;
+    console.log(`✅ Found backend at: ${fullPath}`);
+    break;
+  }
+}
+
+if (!foundPath) {
+  console.error('❌ Could not find backend main.js file in any expected location');
+  console.log('Available files in current directory:');
+  try {
+    const files = fs.readdirSync(process.cwd());
+    files.forEach(file => console.log(`  - ${file}`));
+  } catch (error) {
+    console.error('Could not list directory contents');
+  }
+  process.exit(1);
+}
+
+// Start the application
+console.log(`🚀 Starting backend from: ${foundPath.cwd}`);
+console.log(`📝 Script: ${foundPath.script}`);
+
 try {
-  const child = spawn('node', ['dist/main.js'], {
-    cwd: backendPath,
+  const child = spawn('node', [foundPath.script], {
+    cwd: foundPath.cwd,
     stdio: 'inherit',
     env: {
       ...process.env,
@@ -34,6 +95,17 @@ try {
   child.on('exit', (code) => {
     console.log(`🔄 Application exited with code ${code}`);
     process.exit(code);
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('📋 Received SIGTERM, shutting down gracefully...');
+    child.kill('SIGTERM');
+  });
+
+  process.on('SIGINT', () => {
+    console.log('📋 Received SIGINT, shutting down gracefully...');
+    child.kill('SIGINT');
   });
 
 } catch (error) {

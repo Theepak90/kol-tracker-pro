@@ -9,6 +9,7 @@
     "prebuild": "rm -rf dist",
     "build": "npx nest build",
     "build:alt": "npx @nestjs/cli build",
+    "build:fallback": "npx tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
