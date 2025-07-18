@@ -13,8 +13,10 @@ interface OTPResponse {
   user_info?: any;
 }
 
-// Telethon service URL - update this to your deployed Python service
-const TELETHON_SERVICE_URL = process.env.TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
+// Get Telethon service URL from environment or use default
+const TELETHON_SERVICE_URL = process.env.TELETHON_SERVICE_URL || 
+                              process.env.VITE_TELETHON_SERVICE_URL || 
+                              'http://localhost:8000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -55,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    console.log(`🔐 Requesting real Telegram OTP for ${phone_number} via Telethon service`);
+    console.log(`🔐 Requesting real Telegram OTP for ${phone_number} via Telethon service at ${TELETHON_SERVICE_URL}`);
 
     try {
       // Call the Python Telethon service to send real OTP
@@ -86,6 +88,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const errorData = await telethonResponse.text();
         console.error('Telethon service error:', errorData);
         
+        // Check if it's a service not available error
+        if (telethonResponse.status === 404 || telethonResponse.status >= 500) {
+          console.log('⚠️ Telethon service not available, using demo mode for testing');
+          
+          // Provide demo mode response for testing
+          const demoOTP = String(Math.floor(Math.random() * 90000) + 10000);
+          res.status(200).json({
+            success: true,
+            message: `📱 DEMO MODE: Verification code sent to ${phone_number}! Use code: ${demoOTP} (Real Telethon service is not running)`,
+            session_id: `demo_session_${user_id}_${Date.now()}`,
+            phone_code_hash: `demo_hash_${Date.now()}`,
+            demo_code: demoOTP,
+            is_demo: true
+          });
+          return;
+        }
+        
         res.status(telethonResponse.status).json({
           success: false,
           message: `Failed to send OTP: ${errorData}`
@@ -95,9 +114,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (telethonError) {
       console.error('Telethon service connection error:', telethonError);
       
+      // Provide fallback demo mode when service is unavailable
+      if (telethonError instanceof Error && (telethonError.name === 'AbortError' || telethonError.message.includes('fetch'))) {
+        console.log('⚠️ Telethon service unreachable, providing demo mode for testing');
+        
+        const demoOTP = String(Math.floor(Math.random() * 90000) + 10000);
+        res.status(200).json({
+          success: true,
+          message: `📱 DEMO MODE: Verification code sent to ${phone_number}! Use code: ${demoOTP} (Telethon service unreachable - deploy Python service for real authentication)`,
+          session_id: `demo_session_${user_id}_${Date.now()}`,
+          phone_code_hash: `demo_hash_${Date.now()}`,
+          demo_code: demoOTP,
+          is_demo: true
+        });
+        return;
+      }
+      
       res.status(503).json({
         success: false,
-        message: 'Telegram service is currently unavailable. Please try again in a few moments.'
+        message: 'Telegram service is currently unavailable. Please deploy the Python Telethon service and try again.'
       });
       return;
     }

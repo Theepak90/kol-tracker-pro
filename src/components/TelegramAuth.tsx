@@ -1,259 +1,235 @@
-import React, { useState } from 'react';
-import { Phone, Shield, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { API_CONFIG } from '../config/api';
+import React, { useState, useContext } from 'react';
+import { TelegramAuthContext } from '../contexts/TelegramAuthContext';
 
-interface TelegramAuthProps {
-  onAuthSuccess: (userInfo: any) => void;
+interface TelegramAuthModalProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-interface TelegramAuthResponse {
-  success: boolean;
-  message: string;
-  session_id?: string;
-  requires_2fa?: boolean;
-  user_info?: any;
-}
-
-const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) => {
-  const [step, setStep] = useState<'phone' | 'otp' | '2fa'>('phone');
+const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }) => {
+  const { requestOTP, verifyOTP, isLoading, error } = useContext(TelegramAuthContext);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [sessionId, setSessionId] = useState('');
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [demoOTP, setDemoOTP] = useState<string>('');
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // Generate a unique user ID for this session
-  const userId = React.useMemo(() => {
-    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }, []);
+  if (!isOpen) return null;
 
-  const requestOTP = async () => {
-    if (!phoneNumber.trim()) {
-      setError('Please enter your phone number');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.REQUEST_OTP}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: phoneNumber,
-          user_id: userId
-        }),
-      });
-
-      const data: TelegramAuthResponse = await response.json();
-
-      if (data.success) {
-        if (data.user_info) {
-          // Already authenticated
-          onAuthSuccess(data.user_info);
-        } else {
-          // OTP sent
-          setSessionId(data.session_id || '');
-          setStep('otp');
-        }
-      } else {
-        setError(data.message);
-      }
-    } catch (err) {
-      setError('Failed to send OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyOTP = async () => {
-    if (!otpCode.trim()) {
-      setError('Please enter the OTP code');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.VERIFY_OTP}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          phone_number: phoneNumber,
-          otp_code: otpCode,
-          password: password || undefined,
-          session_id: sessionId,
-          phone_code_hash: sessionId // Using session ID as hash for demo
-        }),
-      });
-
-      const data: TelegramAuthResponse = await response.json();
-
-      if (data.success) {
-        onAuthSuccess(data.user_info);
-      } else {
-        if (data.requires_2fa) {
-          setStep('2fa');
-        } else {
-          setError(data.message);
-        }
-      }
-    } catch (err) {
-      setError('Failed to verify OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 'phone') {
-      requestOTP();
-    } else if (step === 'otp' || step === '2fa') {
-      verifyOTP();
+    if (!phoneNumber.trim()) return;
+
+    try {
+      const result = await requestOTP(phoneNumber);
+      if (result.success) {
+        setSessionData(result);
+        setStep('otp');
+        
+        // Check if this is demo mode and display the code
+        if (result.is_demo && result.demo_code) {
+          setDemoOTP(result.demo_code);
+          setIsDemoMode(true);
+        } else {
+          setDemoOTP('');
+          setIsDemoMode(false);
+        }
+      }
+    } catch (err) {
+      console.error('Phone submission error:', err);
     }
+  };
+
+  const handleOTPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim() || !sessionData) return;
+
+    try {
+      const result = await verifyOTP({
+        user_id: sessionData.user_id || `user_${Date.now()}`,
+        phone_number: phoneNumber,
+        otp_code: otpCode,
+        session_id: sessionData.session_id,
+        phone_code_hash: sessionData.phone_code_hash
+      });
+
+      if (result.success) {
+        // Close modal on success
+        onClose();
+        // Reset form
+        setStep('phone');
+        setPhoneNumber('');
+        setOtpCode('');
+        setSessionData(null);
+        setDemoOTP('');
+        setIsDemoMode(false);
+      }
+    } catch (err) {
+      console.error('OTP verification error:', err);
+    }
+  };
+
+  const handleCancel = () => {
+    setStep('phone');
+    setPhoneNumber('');
+    setOtpCode('');
+    setSessionData(null);
+    setDemoOTP('');
+    setIsDemoMode(false);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-900 rounded-2xl p-8 w-full max-w-md mx-4 border border-slate-700">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Phone className="w-8 h-8 text-blue-400" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-center mb-6">
+          <div className="bg-blue-600 rounded-full p-3">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Connect Telegram
-          </h2>
-          <p className="text-slate-400">
-            {step === 'phone' && 'Enter your phone number to get started'}
-            {step === 'otp' && 'Enter the verification code sent to your phone'}
-            {step === '2fa' && 'Enter your 2FA password'}
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {step === 'phone' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+        <h2 className="text-2xl font-bold text-white text-center mb-2">
+          Connect Telegram
+        </h2>
+        
+        <p className="text-gray-400 text-center mb-6">
+          {step === 'phone' 
+            ? 'Enter your phone number to get started'
+            : isDemoMode 
+              ? 'Demo mode active - enter the code shown below'
+              : 'Enter the verification code sent to your phone'
+          }
+        </p>
+
+        {error && (
+          <div className="bg-red-900 border border-red-600 text-red-200 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        {step === 'phone' ? (
+          <form onSubmit={handlePhoneSubmit}>
+            <div className="mb-4">
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">
                 Phone Number
               </label>
               <input
                 type="tel"
+                id="phone"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+1234567890"
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
+                placeholder="+919363348338"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 Include country code (e.g., +1 for US)
               </p>
             </div>
-          )}
 
-          {step === 'otp' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || !phoneNumber.trim()}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md transition-colors flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                    Send Code
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleOTPSubmit}>
+            {isDemoMode && demoOTP && (
+              <div className="bg-yellow-900 border border-yellow-600 text-yellow-200 px-4 py-3 rounded mb-4">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                  </svg>
+                  <div>
+                    <p className="font-medium">Demo Mode</p>
+                    <p className="text-sm">Use code: <span className="font-mono font-bold text-lg">{demoOTP}</span></p>
+                    <p className="text-xs mt-1">Python Telethon service is not running</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label htmlFor="otp" className="block text-sm font-medium text-gray-300 mb-2">
                 Verification Code
               </label>
               <input
                 type="text"
+                id="otp"
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                placeholder="12345"
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter 5-digit code"
                 maxLength={6}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-mono"
+                required
               />
-              <p className="text-xs text-slate-500 mt-1">
-                Enter the 5-digit code sent to {phoneNumber}
+              <p className="text-xs text-gray-500 mt-1">
+                {isDemoMode 
+                  ? 'Enter the demo code shown above'
+                  : `Check your phone for the verification code sent to ${phoneNumber}`
+                }
               </p>
             </div>
-          )}
 
-          {step === '2fa' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                2FA Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your 2FA password"
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                Your Telegram account has 2FA enabled
-              </p>
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('phone');
+                  setOtpCode('');
+                  setDemoOTP('');
+                  setIsDemoMode(false);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading || !otpCode.trim() || otpCode.length < 4}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md transition-colors flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    Verify
+                  </>
+                )}
+              </button>
             </div>
-          )}
-
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <span className="text-red-400 text-sm">{error}</span>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {step === 'phone' ? 'Sending...' : 'Verifying...'}
-                </>
-              ) : (
-                <>
-                  {step === 'phone' && <Phone className="w-4 h-4" />}
-                  {step === 'otp' && <Check className="w-4 h-4" />}
-                  {step === '2fa' && <Shield className="w-4 h-4" />}
-                  {step === 'phone' ? 'Send Code' : 'Verify'}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-
-        {step === 'otp' && (
-          <div className="mt-4 pt-4 border-t border-slate-700">
-            <button
-              onClick={() => {
-                setStep('phone');
-                setOtpCode('');
-                setError('');
-              }}
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              Use different phone number
-            </button>
-          </div>
+          </form>
         )}
       </div>
     </div>
   );
 };
 
-export default TelegramAuth; 
+export default TelegramAuthModal; 

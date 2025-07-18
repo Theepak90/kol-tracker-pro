@@ -136,14 +136,14 @@ export const API_CONFIG = {
   },
 
   TELETHON_SERVICE: {
-    BASE_URL: ensureHttps(API_BASE_URL),
+    BASE_URL: TELETHON_BASE_URL, // Use the actual Telethon service URL, not the API base URL
     ENDPOINTS: {
-      HEALTH: '/api/health',
-      SCAN_CHANNEL: (username: string) => `/api/scan/${username}`,
-      SCAN_HISTORY: (username: string) => `/api/scan-history/${username}`,
-      TRACK_POSTS: (username: string) => `/api/track-posts/${username}`,
-      REQUEST_OTP: '/api/auth/request-otp',
-      VERIFY_OTP: '/api/telegram/verify-otp'
+      HEALTH: '/health',
+      SCAN_CHANNEL: (username: string) => `/scan/${username}`,
+      SCAN_HISTORY: (username: string) => `/scan-history/${username}`,
+      TRACK_POSTS: (username: string) => `/track-posts/${username}`,
+      REQUEST_OTP: '/auth/request-otp',
+      VERIFY_OTP: '/auth/verify-otp'
     }
   }
 };
