@@ -71,33 +71,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`🔐 Verifying OTP for ${phone_number} via Telethon service at ${TELETHON_SERVICE_URL}`);
 
-    // Check if this is a demo session (for when Telethon service is unavailable)
-    const isDemo = session_id?.includes('demo_session');
-
-    if (isDemo) {
-      console.log('⚠️ Demo mode verification - Telethon service not available');
-      
-      // Create mock user data for demo mode
-      const phoneHash = phone_number.replace(/\D/g, '').slice(-8);
-      const demoUser = {
-        id: `demo_${phoneHash}`,
-        phone_number: phone_number,
-        first_name: `Demo User`,
-        last_name: phoneHash.slice(-2),
-        username: `demo_user_${phoneHash.slice(-4)}`,
-        is_verified: false,
-        session_id: `verified_demo_${user_id}_${Date.now()}`,
-        session_string: `demo_session_${phoneHash}`
-      };
-
-      res.status(200).json({
-        success: true,
-        message: `🎉 DEMO MODE: Successfully authenticated! Welcome ${demoUser.first_name}! (Deploy Python Telethon service for real authentication)`,
-        user_info: demoUser
-      });
-      return;
-    }
-
     try {
       // Call the Python Telethon service to verify real OTP
       const telethonResponse = await fetch(`${TELETHON_SERVICE_URL}/auth/verify-otp`, {
@@ -127,31 +100,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const errorData = await telethonResponse.text();
         console.error('Telethon verification error:', errorData);
         
-        // Check if it's a service not available error
-        if (telethonResponse.status === 404 || telethonResponse.status >= 500) {
-          console.log('⚠️ Telethon service not available, falling back to demo mode');
-          
-          // Create mock user data for fallback
-          const phoneHash = phone_number.replace(/\D/g, '').slice(-8);
-          const fallbackUser = {
-            id: `fallback_${phoneHash}`,
-            phone_number: phone_number,
-            first_name: `Demo User`,
-            last_name: phoneHash.slice(-2),
-            username: `fallback_user_${phoneHash.slice(-4)}`,
-            is_verified: false,
-            session_id: `verified_fallback_${user_id}_${Date.now()}`,
-            session_string: `fallback_session_${phoneHash}`
-          };
-
-          res.status(200).json({
-            success: true,
-            message: `🎉 DEMO MODE: Successfully authenticated! Welcome ${fallbackUser.first_name}! (Telethon service unavailable)`,
-            user_info: fallbackUser
-          });
-          return;
-        }
-        
         // Try to parse error response
         try {
           const errorJson = JSON.parse(errorData);
@@ -159,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch {
           res.status(telethonResponse.status).json({
             success: false,
-            message: `Verification failed: ${errorData}`
+            message: `Verification failed: ${errorData}. Please ensure the Python Telethon service is running.`
           });
         }
         return;
@@ -167,33 +115,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (telethonError) {
       console.error('Telethon service connection error:', telethonError);
       
-      // Provide fallback demo authentication when service is unavailable
-      if (telethonError instanceof Error && (telethonError.name === 'AbortError' || telethonError.message.includes('fetch'))) {
-        console.log('⚠️ Telethon service unreachable, providing demo authentication');
-        
-        const phoneHash = phone_number.replace(/\D/g, '').slice(-8);
-        const fallbackUser = {
-          id: `offline_${phoneHash}`,
-          phone_number: phone_number,
-          first_name: `Demo User`,
-          last_name: phoneHash.slice(-2),
-          username: `offline_user_${phoneHash.slice(-4)}`,
-          is_verified: false,
-          session_id: `verified_offline_${user_id}_${Date.now()}`,
-          session_string: `offline_session_${phoneHash}`
-        };
-
-        res.status(200).json({
-          success: true,
-          message: `🎉 DEMO MODE: Successfully authenticated! Welcome ${fallbackUser.first_name}! (Telethon service unreachable - deploy Python service for real authentication)`,
-          user_info: fallbackUser
-        });
-        return;
-      }
-      
       res.status(503).json({
         success: false,
-        message: 'Telegram service is currently unavailable. Please deploy the Python Telethon service and try again.'
+        message: `Telegram service is unavailable. Please start the Python Telethon service first. Run: python backend/telethon_service/main.py`
       });
       return;
     }
@@ -201,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('OTP verification error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to verify code. Please try again.'
+      message: 'Failed to verify code. Please ensure the Telethon service is running.'
     });
   }
 } 

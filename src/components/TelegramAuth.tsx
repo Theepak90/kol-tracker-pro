@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { TelegramAuthContext } from '../contexts/TelegramAuthContext';
+import React, { useState } from 'react';
+import { useTelegramAuth } from '../contexts/TelegramAuthContext';
 
 interface TelegramAuthModalProps {
   isOpen: boolean;
@@ -7,13 +7,11 @@ interface TelegramAuthModalProps {
 }
 
 const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }) => {
-  const { requestOTP, verifyOTP, isLoading, error } = useContext(TelegramAuthContext);
+  const { requestOTP, verifyOTP, isLoading, error } = useTelegramAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [sessionData, setSessionData] = useState<any>(null);
-  const [demoOTP, setDemoOTP] = useState<string>('');
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   if (!isOpen) return null;
 
@@ -26,15 +24,6 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
       if (result.success) {
         setSessionData(result);
         setStep('otp');
-        
-        // Check if this is demo mode and display the code
-        if (result.is_demo && result.demo_code) {
-          setDemoOTP(result.demo_code);
-          setIsDemoMode(true);
-        } else {
-          setDemoOTP('');
-          setIsDemoMode(false);
-        }
       }
     } catch (err) {
       console.error('Phone submission error:', err);
@@ -62,8 +51,6 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
         setPhoneNumber('');
         setOtpCode('');
         setSessionData(null);
-        setDemoOTP('');
-        setIsDemoMode(false);
       }
     } catch (err) {
       console.error('OTP verification error:', err);
@@ -75,8 +62,6 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
     setPhoneNumber('');
     setOtpCode('');
     setSessionData(null);
-    setDemoOTP('');
-    setIsDemoMode(false);
     onClose();
   };
 
@@ -97,16 +82,27 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
         
         <p className="text-gray-400 text-center mb-6">
           {step === 'phone' 
-            ? 'Enter your phone number to get started'
-            : isDemoMode 
-              ? 'Demo mode active - enter the code shown below'
-              : 'Enter the verification code sent to your phone'
+            ? 'Enter your phone number to authenticate with Telegram'
+            : 'Enter the verification code sent to your phone'
           }
         </p>
 
         {error && (
           <div className="bg-red-900 border border-red-600 text-red-200 px-4 py-3 rounded mb-4">
-            {error}
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <div>
+                <p className="font-medium">Service Error</p>
+                <p className="text-sm">{error}</p>
+                {error.includes('Python Telethon service') && (
+                  <p className="text-xs mt-1">
+                    Run: <code className="bg-red-800 px-1 py-0.5 rounded">python backend/telethon_service/main.py</code>
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -126,7 +122,7 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                Include country code (e.g., +1 for US)
+                Include country code (e.g., +91 for India, +1 for US)
               </p>
             </div>
 
@@ -158,21 +154,6 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
           </form>
         ) : (
           <form onSubmit={handleOTPSubmit}>
-            {isDemoMode && demoOTP && (
-              <div className="bg-yellow-900 border border-yellow-600 text-yellow-200 px-4 py-3 rounded mb-4">
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-                  </svg>
-                  <div>
-                    <p className="font-medium">Demo Mode</p>
-                    <p className="text-sm">Use code: <span className="font-mono font-bold text-lg">{demoOTP}</span></p>
-                    <p className="text-xs mt-1">Python Telethon service is not running</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="mb-4">
               <label htmlFor="otp" className="block text-sm font-medium text-gray-300 mb-2">
                 Verification Code
@@ -188,10 +169,7 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                {isDemoMode 
-                  ? 'Enter the demo code shown above'
-                  : `Check your phone for the verification code sent to ${phoneNumber}`
-                }
+                Check your phone for the verification code sent to {phoneNumber}
               </p>
             </div>
 
@@ -201,8 +179,6 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
                 onClick={() => {
                   setStep('phone');
                   setOtpCode('');
-                  setDemoOTP('');
-                  setIsDemoMode(false);
                 }}
                 className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
               >
@@ -227,6 +203,12 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
             </div>
           </form>
         )}
+
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          <p className="text-xs text-gray-500 text-center">
+            Real Telegram authentication requires the Python Telethon service to be running.
+          </p>
+        </div>
       </div>
     </div>
   );
