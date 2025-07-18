@@ -90,7 +90,9 @@ const TelegramAuth: React.FC<TelegramAuthProps> = ({ onAuthSuccess, onClose }) =
           user_id: userId,
           phone_number: phoneNumber,
           otp_code: otpCode,
-          password: password || undefined
+          password: password || undefined,
+          session_id: sessionId,
+          phone_code_hash: sessionId // Using session ID as hash for demo
         }),
       });
 
