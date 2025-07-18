@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:frontend && npm run build:backend",
-    "build:backend": "cd backend && npm install --legacy-peer-deps --production && npm run build",
+    "build": "chmod +x build.sh && ./build.sh",
+    "build:backend": "cd backend && npm install --legacy-peer-deps && npm run build",
     "build:frontend": "tsc && npx vite build",
+    "render:build": "chmod +x build.sh && ./build.sh",
     "start": "node backend/dist/main.js",
     "start:backend": "node backend/dist/main.js",
     "serve": "node serve.js",

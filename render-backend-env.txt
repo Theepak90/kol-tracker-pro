@@ -1,0 +1,26 @@
+# ==========================================
+# RENDER BACKEND SERVICE ENVIRONMENT VARIABLES
+# ==========================================
+# Copy these EXACTLY into your Render Backend Service Environment Variables
+# Go to: Dashboard → Your Backend Service → Environment → Add Environment Variables
+
+NODE_ENV=production
+PORT=3000
+MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+MONGODB_DB=kol-tracker-pro
+JWT_SECRET=5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
+
+# ==========================================
+# INSTRUCTIONS:
+# 1. Copy each line (KEY=VALUE) into Render's environment variables
+# 2. MongoDB Atlas is already configured with your credentials
+# 3. The JWT secret is freshly generated and secure
+# 4. Save these values - you'll need them for deployment
+# 
+# Example in Render:
+# Key: NODE_ENV        Value: production
+# Key: PORT            Value: 3000
+# Key: MONGODB_URI     Value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.0wgm1.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+# Key: MONGODB_DB      Value: kol-tracker-pro
+# Key: JWT_SECRET      Value: 5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
+# ========================================== 

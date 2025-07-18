@@ -1,0 +1,19 @@
+# ==========================================
+# RENDER FRONTEND SERVICE ENVIRONMENT VARIABLES
+# ==========================================
+# Copy these EXACTLY into your Render Frontend Service Environment Variables
+# Go to: Dashboard → Your Frontend Service → Environment → Add Environment Variables
+
+VITE_API_BASE_URL=https://your-backend-service.onrender.com
+VITE_TELETHON_BASE_URL=https://your-telethon-service.onrender.com
+
+# ==========================================
+# INSTRUCTIONS:
+# 1. Replace "your-backend-service" with your actual backend service name on Render
+# 2. Replace "your-telethon-service" with your actual telethon service name on Render
+# 3. Copy each line (KEY=VALUE) into Render's environment variables
+# 
+# Example:
+# If your backend service is named "kol-tracker-backend", then:
+# VITE_API_BASE_URL=https://kol-tracker-backend.onrender.com
+# ========================================== 

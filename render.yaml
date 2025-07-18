@@ -1,29 +1,26 @@
 services:
-  # Full Stack Application Service
   - type: web
-    name: kol-tracker-app
+    name: kol-tracker-pro
     env: node
     plan: free
-    buildCommand: npm install --legacy-peer-deps && npm run build
-    startCommand: npm run start
+    buildCommand: npm install && npm run build:frontend && cd backend && npm install --legacy-peer-deps && npx nest build
+    startCommand: node backend/dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: MONGODB_URI
-        fromDatabase:
-          name: kol-tracker-db
-          property: connectionString
+        sync: false
+      - key: MONGODB_DB
+        value: kol-tracker-pro
       - key: JWT_SECRET
-        generateValue: true
-      - key: TELETHON_SERVICE_URL
-        value: https://kol-tracker-telethon.onrender.com
-      - key: CORS_ORIGINS
-        value: https://kol-tracker-app.onrender.com
-    healthCheckPath: /api
+        sync: false
+    disk:
+      name: kol-tracker-disk
+      mountPath: /opt/render/project/backend/dist
+      sizeGB: 1
 
-  # Telethon Python Service
   - type: web
     name: kol-tracker-telethon
     env: python
@@ -31,21 +28,18 @@ services:
     buildCommand: cd backend/telethon_service && pip install -r requirements.txt
     startCommand: cd backend/telethon_service && python main.py
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
       - key: API_ID
-        generateValue: true
+        sync: false
       - key: API_HASH
-        generateValue: true
+        sync: false
       - key: SESSION_NAME
         value: telegram_session
       - key: MONGODB_URI
-        fromDatabase:
-          name: kol-tracker-db
-          property: connectionString
+        sync: false
+      - key: MONGODB_DB
+        value: kol-tracker-pro
       - key: PORT
         value: 8000
-    healthCheckPath: /health
 
 # Database
 databases:
