@@ -11,15 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { v4 as uuidv4 } from 'uuid';
-import { GameService } from './game.service';
-import { Game } from './schemas/game.schema';
-
-interface Player {
-  id: string;
-  username: string;
-  avatar?: string;
-  walletAddress: string;
-}
+import { GameService, Game, Player } from './game.service';
 
 @WebSocketGateway({
   namespace: 'games',

@@ -1,13 +1,25 @@
 import { Injectable, ConflictException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { KOL, KOLDocument } from '../schemas/kol.schema';
+
+interface KOL {
+  id: string;
+  displayName: string;
+  telegramUsername: string;
+  description?: string;
+  tags: string[];
+  stats: {
+    totalPosts: number;
+    totalViews: number;
+    totalForwards: number;
+    lastUpdated: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 @Injectable()
 export class KOLService {
-  constructor(
-    @InjectModel(KOL.name) private kolModel: Model<KOLDocument>
-  ) {}
+  private kols: Map<string, KOL> = new Map();
+  private idCounter = 1;
 
   async create(kolData: {
     displayName: string;
@@ -19,49 +31,57 @@ export class KOLService {
     const cleanUsername = kolData.telegramUsername.replace('@', '');
 
     // Check if KOL already exists
-    const existingKOL = await this.kolModel.findOne({ telegramUsername: cleanUsername });
+    const existingKOL = Array.from(this.kols.values()).find(
+      kol => kol.telegramUsername === cleanUsername
+    );
     if (existingKOL) {
       throw new ConflictException('KOL with this Telegram username already exists');
     }
 
-    const kol = new this.kolModel({
-      ...kolData,
+    const kol: KOL = {
+      id: this.idCounter.toString(),
+      displayName: kolData.displayName,
       telegramUsername: cleanUsername,
+      description: kolData.description,
+      tags: kolData.tags || [],
       stats: {
         totalPosts: 0,
         totalViews: 0,
         totalForwards: 0,
         lastUpdated: new Date()
-      }
-    });
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    return kol.save();
+    this.kols.set(kol.id, kol);
+    this.idCounter++;
+    return kol;
   }
 
   async findAll(): Promise<KOL[]> {
-    return this.kolModel.find().exec();
+    return Array.from(this.kols.values()).sort((a, b) => 
+      b.createdAt.getTime() - a.createdAt.getTime()
+    );
   }
 
   async findByUsername(username: string): Promise<KOL | null> {
     const cleanUsername = username.replace('@', '');
-    return this.kolModel.findOne({ telegramUsername: cleanUsername }).exec();
+    return Array.from(this.kols.values()).find(
+      kol => kol.telegramUsername === cleanUsername
+    ) || null;
   }
 
-  async update(username: string, updateData: Partial<KOL>): Promise<KOL | null> {
+  async remove(username: string): Promise<boolean> {
     const cleanUsername = username.replace('@', '');
-    return this.kolModel
-      .findOneAndUpdate(
-        { telegramUsername: cleanUsername },
-        updateData,
-        { new: true }
-      )
-      .exec();
-  }
-
-  async delete(username: string): Promise<boolean> {
-    const cleanUsername = username.replace('@', '');
-    const result = await this.kolModel.deleteOne({ telegramUsername: cleanUsername }).exec();
-    return result.deletedCount > 0;
+    const kol = Array.from(this.kols.values()).find(
+      kol => kol.telegramUsername === cleanUsername
+    );
+    
+    if (!kol) return false;
+    
+    this.kols.delete(kol.id);
+    return true;
   }
 
   async updateStats(username: string, stats: {
@@ -70,17 +90,19 @@ export class KOLService {
     totalForwards: number;
   }): Promise<KOL | null> {
     const cleanUsername = username.replace('@', '');
-    return this.kolModel
-      .findOneAndUpdate(
-        { telegramUsername: cleanUsername },
-        {
-          stats: {
-            ...stats,
-            lastUpdated: new Date()
-          }
-        },
-        { new: true }
-      )
-      .exec();
+    const kol = Array.from(this.kols.values()).find(
+      kol => kol.telegramUsername === cleanUsername
+    );
+    
+    if (!kol) return null;
+    
+    kol.stats = {
+      ...stats,
+      lastUpdated: new Date()
+    };
+    kol.updatedAt = new Date();
+    
+    this.kols.set(kol.id, kol);
+    return kol;
   }
 } 

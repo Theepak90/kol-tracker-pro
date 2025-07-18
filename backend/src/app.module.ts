@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { MongooseModule } from '@nestjs/mongoose';
 import { KOLModule } from './kol/kol.module';
 import { GameModule } from './game/game.module';
 import { AuthModule } from './auth/auth.module';
@@ -16,11 +15,6 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'dist'),
       exclude: ['/api*'],
-    }),
-
-    // Database
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/kol-tracker', {
-      dbName: process.env.MONGODB_DB || undefined,
     }),
 
     // Misc modules

@@ -1,7 +1,23 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { KOLService } from './kol.service';
-import { KOL } from '../schemas/kol.schema';
 import axios from 'axios';
+
+// Define KOL interface locally
+interface KOL {
+  id: string;
+  displayName: string;
+  telegramUsername: string;
+  description?: string;
+  tags: string[];
+  stats: {
+    totalPosts: number;
+    totalViews: number;
+    totalForwards: number;
+    lastUpdated: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface Post {
   text: string;
@@ -278,13 +294,14 @@ export class KOLController {
   @Put(':username')
   async update(
     @Param('username') username: string,
-    @Body() updateData: Partial<KOL>
-  ): Promise<KOL> {
-    return this.kolService.update(username, updateData);
+    @Body() updateData: any
+  ): Promise<{ message: string }> {
+    // Update functionality disabled - using in-memory storage
+    return { message: 'Update functionality temporarily disabled' };
   }
 
   @Delete(':username')
   async delete(@Param('username') username: string): Promise<boolean> {
-    return this.kolService.delete(username);
+    return this.kolService.remove(username);
   }
 } 

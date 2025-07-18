@@ -8,6 +8,7 @@
     "build": "chmod +x build.sh && ./build.sh",
     "build:backend": "cd backend && npm install --legacy-peer-deps && npm run build",
     "build:frontend": "tsc && npx vite build",
+    "build:all": "npm run build:frontend && npm run build:backend",
     "render:build": "chmod +x build.sh && ./build.sh",
     "start": "node start-render.js",
     "start:backend": "node backend/dist/main.js",
