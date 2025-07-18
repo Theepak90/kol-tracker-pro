@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, IS_DEMO_MODE } from '../config/api';
+import { demoService, shouldUseDemoData } from './demoService';
 
 interface KOL {
   _id: string;
@@ -20,7 +21,14 @@ class ApiService {
 
   constructor() {
     this.baseUrl = API_BASE_URL;
-    this.checkConnectivity();
+    
+    // In demo mode, don't try to check connectivity
+    if (!shouldUseDemoData()) {
+      this.checkConnectivity();
+    } else {
+      console.log('🎭 Running in demo mode - using mock data');
+      this.isOnline = false; // Force offline mode for demo
+    }
   }
 
   private async checkConnectivity(): Promise<boolean> {
@@ -50,6 +58,12 @@ class ApiService {
   }
 
   async getKOLs(): Promise<KOL[]> {
+    // Use demo data if in demo mode or offline
+    if (shouldUseDemoData() || !this.isOnline) {
+      console.log('🎭 Using demo KOL data');
+      return await demoService.getKOLsAsync();
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/kols`, {
         method: 'GET',
@@ -69,13 +83,20 @@ class ApiService {
       this.isOnline = true;
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('❌ Error fetching KOLs:', error);
+      console.error('❌ Error fetching KOLs, falling back to demo data:', error);
       this.isOnline = false;
-      throw new Error('Backend service is not available. Cannot fetch real-time KOL data.');
+      // Fallback to demo data instead of throwing error
+      return await demoService.getKOLsAsync();
     }
   }
 
   async createKOL(kolData: Partial<KOL>): Promise<KOL> {
+    // Use demo data if in demo mode or offline
+    if (shouldUseDemoData() || !this.isOnline) {
+      console.log('🎭 Creating demo KOL');
+      return await demoService.createKOLAsync(kolData);
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/kols`, {
         method: 'POST',
@@ -96,20 +117,36 @@ class ApiService {
       this.isOnline = true;
       return result;
     } catch (error) {
-      console.error('❌ Error creating KOL:', error);
+      console.error('❌ Error creating KOL, using demo mode:', error);
       this.isOnline = false;
-      throw new Error('Backend service is not available. Cannot create KOL with real-time data.');
+      // Fallback to demo data instead of throwing error
+      return await demoService.createKOLAsync(kolData);
     }
   }
 
-  async updateKOL(id: string, updates: Partial<KOL>): Promise<KOL> {
+  // Add other methods as needed
+  async updateKOL(id: string, kolData: Partial<KOL>): Promise<KOL> {
+    if (shouldUseDemoData() || !this.isOnline) {
+      console.log('🎭 Demo mode: Update not persisted');
+      // Return the updated data but don't actually persist it
+      return { 
+        _id: id, 
+        ...kolData,
+        displayName: kolData.displayName || 'Updated KOL',
+        telegramUsername: kolData.telegramUsername || 'demo_user',
+        description: kolData.description || 'Updated description',
+        tags: kolData.tags || ['Demo'],
+        stats: kolData.stats || { totalPosts: 0, totalViews: 0, totalForwards: 0 }
+      } as KOL;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/kols/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(kolData),
         signal: AbortSignal.timeout(10000)
       });
 
@@ -117,20 +154,42 @@ class ApiService {
         throw new Error(`Failed to update KOL: HTTP ${response.status}`);
       }
 
-      const result = await response.json();
-      this.isOnline = true;
-      return result;
+      return await response.json();
     } catch (error) {
       console.error('❌ Error updating KOL:', error);
-      this.isOnline = false;
-      throw new Error('Backend service is not available. Cannot update KOL with real-time data.');
+      throw error;
     }
   }
 
-  async deleteKOL(username: string): Promise<boolean> {
+  async deleteKOL(id: string): Promise<boolean> {
+    if (shouldUseDemoData() || !this.isOnline) {
+      console.log('🎭 Demo mode: Delete not persisted');
+      return true; // Pretend it worked
+    }
+
     try {
-      const response = await fetch(`${this.baseUrl}/api/kols/${username}`, {
+      const response = await fetch(`${this.baseUrl}/api/kols/${id}`, {
         method: 'DELETE',
+        signal: AbortSignal.timeout(10000)
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('❌ Error deleting KOL:', error);
+      return false;
+    }
+  }
+
+  // Generic method for other API calls
+  async get<T>(endpoint: string): Promise<{ data: T; success: boolean }> {
+    if (shouldUseDemoData() || !this.isOnline) {
+      console.log('🎭 Demo mode: API call simulated');
+      return { data: {} as T, success: true };
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -138,21 +197,25 @@ class ApiService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to delete KOL: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
-      this.isOnline = true;
-      return true;
+      const data = await response.json();
+      return { data, success: true };
     } catch (error) {
-      console.error('❌ Error deleting KOL:', error);
-      this.isOnline = false;
-      throw error;
+      console.error(`❌ Error fetching ${endpoint}:`, error);
+      return { data: {} as T, success: false };
     }
   }
 
-  getConnectionStatus(): boolean {
-    return this.isOnline;
+  // Check if we're in demo mode
+  isDemoMode(): boolean {
+    return shouldUseDemoData();
+  }
+
+  // Check connectivity status
+  isConnected(): boolean {
+    return this.isOnline && !shouldUseDemoData();
   }
 }
 

@@ -31,10 +31,11 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://kol-tracker-pro.vercel.app",
-    "VITE_TELETHON_SERVICE_URL": "https://kol-tracker-pro.vercel.app",
+    "VITE_DEMO_MODE": "true",
+    "VITE_API_URL": "https://jsonplaceholder.typicode.com",
+    "VITE_TELETHON_SERVICE_URL": "https://jsonplaceholder.typicode.com",
     "VITE_TELEGRAM_API_ID": "28152923",
     "VITE_TELEGRAM_API_HASH": "766760d2838474a5e6dd734d785aa7ad",
-    "VITE_WS_ENDPOINT": "wss://kol-tracker-pro.vercel.app"
+    "VITE_WS_ENDPOINT": "wss://echo.websocket.org"
   }
 } 

@@ -1,6 +1,9 @@
 // API Configuration
 const isDevelopment = import.meta.env.DEV;
 
+// Demo mode for Vercel deployment (frontend-only)
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || (!isDevelopment && !import.meta.env.VITE_API_URL?.includes('render'));
+
 // Force local development for testing
 const FORCE_LOCAL = false; // Set to false when Render backend is working
 
@@ -14,10 +17,18 @@ const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kol-tracker-ap
 const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
 const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kol-tracker-app.onrender.com';
 
+// Demo URLs (mock endpoints)
+const DEMO_BACKEND_URL = 'https://jsonplaceholder.typicode.com'; // Mock API for demo
+const DEMO_TELETHON_URL = 'https://jsonplaceholder.typicode.com';
+const DEMO_WS_URL = 'wss://echo.websocket.org';
+
 // Export the appropriate URLs based on environment
-export const API_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_BACKEND_URL : PROD_BACKEND_URL;
-export const TELETHON_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_TELETHON_URL : PROD_TELETHON_URL;
-export const WS_URL = (isDevelopment || FORCE_LOCAL) ? DEV_WS_URL : PROD_WS_URL;
+export const API_BASE_URL = DEMO_MODE ? DEMO_BACKEND_URL : (isDevelopment || FORCE_LOCAL) ? DEV_BACKEND_URL : PROD_BACKEND_URL;
+export const TELETHON_BASE_URL = DEMO_MODE ? DEMO_TELETHON_URL : (isDevelopment || FORCE_LOCAL) ? DEV_TELETHON_URL : PROD_TELETHON_URL;
+export const WS_URL = DEMO_MODE ? DEMO_WS_URL : (isDevelopment || FORCE_LOCAL) ? DEV_WS_URL : PROD_WS_URL;
+
+// Demo mode flag for components to use
+export const IS_DEMO_MODE = DEMO_MODE;
 
 // Ensure URLs are properly formatted
 export const ensureHttps = (url: string) => {
