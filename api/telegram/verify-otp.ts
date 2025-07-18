@@ -25,6 +25,9 @@ interface OTPVerifyResponse {
   };
 }
 
+// Telethon service URL - should match the request endpoint
+const TELETHON_SERVICE_URL = process.env.TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -54,74 +57,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Validate OTP format
+    // Validate OTP format (Telegram codes are usually 5 digits)
     const isValidOTP = /^\d{4,6}$/.test(otp_code);
     if (!isValidOTP) {
       res.status(400).json({
         success: false,
-        message: 'Invalid OTP format. Please enter the code from Telegram (4-6 digits).'
+        message: 'Invalid OTP format. Please enter the code from your phone.'
       });
       return;
     }
 
-    console.log(`🔐 Processing Telegram verification for ${phone_number}`);
+    console.log(`🔐 Verifying real Telegram OTP for ${phone_number} via Telethon service`);
 
-    // For now, we'll use a working demo that validates the format and creates a session
-    // In production, this would integrate with the actual Telegram client from request-otp
-    
     try {
-      // Simulate real Telegram authentication
-      // In a real implementation, this would use the TelegramClient from the session
-      
-      // Generate user data based on phone number for consistency
-      const phoneHash = phone_number.replace(/\D/g, '').slice(-8);
-      const userNames = [
-        'Alex', 'Jordan', 'Taylor', 'Casey', 'Morgan', 'Riley', 'Avery', 
-        'Cameron', 'Quinn', 'Sage', 'Rowan', 'Phoenix', 'River', 'Sky',
-        'Crypto', 'Trader', 'Analyst', 'Expert', 'Pro', 'Master', 'Investor',
-        'Builder', 'Developer', 'Engineer', 'Designer', 'Creator', 'Founder'
-      ];
-      
-      const lastNames = [
-        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller',
-        'Davis', 'Rodriguez', 'Martinez', 'Chen', 'Lee', 'Wilson', 'Anderson',
-        'Taylor', 'Moore', 'Jackson', 'Martin', 'White', 'Thompson', 'Crypto',
-        'DeFi', 'Web3', 'Blockchain', 'Token', 'Coin', 'Chain', 'Protocol'
-      ];
-
-      const firstNameIndex = parseInt(phoneHash.slice(0, 2)) % userNames.length;
-      const lastNameIndex = parseInt(phoneHash.slice(2, 4)) % lastNames.length;
-      const isVerified = parseInt(phoneHash.slice(4, 5)) > 7; // 20% chance
-      const hasUsername = parseInt(phoneHash.slice(5, 6)) > 3; // 60% chance
-
-      // Create realistic user info
-      const userInfo = {
-        id: `telegram_${phoneHash}`,
-        phone_number: phone_number,
-        first_name: userNames[firstNameIndex],
-        last_name: Math.random() > 0.3 ? lastNames[lastNameIndex] : undefined,
-        username: hasUsername ? `${userNames[firstNameIndex].toLowerCase()}_${phoneHash.slice(-3)}` : undefined,
-        is_verified: isVerified,
-        session_id: `verified_${user_id}_${Date.now()}`,
-        session_string: `telegram_session_${phoneHash}_${Date.now()}`
-      };
-
-      console.log(`✅ Successfully authenticated ${userInfo.first_name} for ${phone_number}`);
-
-      const response: OTPVerifyResponse = {
-        success: true,
-        message: `🎉 Successfully connected to Telegram! Welcome ${userInfo.first_name}! Your account is now linked and you can use all Telegram features including channel scanning and bot detection.`,
-        user_info: userInfo
-      };
-
-      res.status(200).json(response);
-    } catch (verificationError) {
-      console.error('Verification error:', verificationError);
-      
-      res.status(500).json({
-        success: false,
-        message: `Verification failed: ${verificationError instanceof Error ? verificationError.message : 'Unknown error'}`
+      // Call the Python Telethon service to verify real OTP
+      const telethonResponse = await fetch(`${TELETHON_SERVICE_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user_id,
+          phone_number: phone_number,
+          otp_code: otp_code,
+          password: password,
+          session_id: session_id,
+          phone_code_hash: phone_code_hash
+        }),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       });
+
+      if (telethonResponse.ok) {
+        const telethonData = await telethonResponse.json();
+        console.log(`✅ OTP verification successful for ${phone_number}`);
+        
+        // Forward the response from Telethon service
+        res.status(200).json(telethonData);
+        return;
+      } else {
+        const errorData = await telethonResponse.text();
+        console.error('Telethon verification error:', errorData);
+        
+        // Try to parse error response
+        try {
+          const errorJson = JSON.parse(errorData);
+          res.status(telethonResponse.status).json(errorJson);
+        } catch {
+          res.status(telethonResponse.status).json({
+            success: false,
+            message: `Verification failed: ${errorData}`
+          });
+        }
+        return;
+      }
+    } catch (telethonError) {
+      console.error('Telethon service connection error:', telethonError);
+      
+      res.status(503).json({
+        success: false,
+        message: 'Telegram service is currently unavailable. Please try again in a few moments.'
+      });
+      return;
     }
   } catch (error) {
     console.error('OTP verification error:', error);

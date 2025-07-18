@@ -13,6 +13,9 @@ interface OTPResponse {
   user_info?: any;
 }
 
+// Telethon service URL - update this to your deployed Python service
+const TELETHON_SERVICE_URL = process.env.TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -52,28 +55,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    console.log(`🔐 Initiating Telegram authentication for ${phone_number}`);
+    console.log(`🔐 Requesting real Telegram OTP for ${phone_number} via Telethon service`);
 
-    // Generate a deterministic but realistic OTP based on phone number
-    const phoneDigits = phone_number.replace(/\D/g, '');
-    const seedValue = parseInt(phoneDigits.slice(-6)) + Date.now();
-    const otpCode = String(seedValue % 90000 + 10000); // 5-digit code between 10000-99999
+    try {
+      // Call the Python Telethon service to send real OTP
+      const telethonResponse = await fetch(`${TELETHON_SERVICE_URL}/auth/request-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phone_number,
+          user_id: user_id
+        }),
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
 
-    // Generate session details
-    const sessionId = `telegram_${user_id}_${Date.now()}`;
-    const phoneCodeHash = `hash_${phoneDigits.slice(-4)}_${Date.now().toString(36)}`;
-
-    // Simulate sending to Telegram API
-    console.log(`📱 Generated Telegram auth code for ${phone_number}: ${otpCode}`);
-
-    const response: OTPResponse = {
-      success: true,
-      message: `🔐 Telegram authentication code sent to ${phone_number}! Use code: ${otpCode}`,
-      session_id: sessionId,
-      phone_code_hash: phoneCodeHash
-    };
-
-    res.status(200).json(response);
+      if (telethonResponse.ok) {
+        const telethonData = await telethonResponse.json();
+        console.log('✅ OTP request successful via Telethon service');
+        
+        res.status(200).json({
+          success: true,
+          message: `📱 Telegram verification code sent to ${phone_number}! Check your phone for the code.`,
+          session_id: telethonData.session_id || `session_${user_id}_${Date.now()}`,
+          phone_code_hash: telethonData.phone_code_hash
+        });
+        return;
+      } else {
+        const errorData = await telethonResponse.text();
+        console.error('Telethon service error:', errorData);
+        
+        res.status(telethonResponse.status).json({
+          success: false,
+          message: `Failed to send OTP: ${errorData}`
+        });
+        return;
+      }
+    } catch (telethonError) {
+      console.error('Telethon service connection error:', telethonError);
+      
+      res.status(503).json({
+        success: false,
+        message: 'Telegram service is currently unavailable. Please try again in a few moments.'
+      });
+      return;
+    }
   } catch (error) {
     console.error('OTP request error:', error);
     res.status(500).json({
