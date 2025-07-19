@@ -1,0 +1,28 @@
+# ==========================================
+# RENDER FRONTEND SERVICE ENVIRONMENT VARIABLES
+# ==========================================
+# Copy these into your Render Frontend Service Environment Variables
+# Go to: Render Dashboard → kol-tracker-frontend → Environment → Add Environment Variables
+
+NODE_ENV=production
+VITE_API_URL=https://kol-tracker-backend.onrender.com
+VITE_TELETHON_SERVICE_URL=https://kol-tracker-telethon.onrender.com
+VITE_WS_ENDPOINT=wss://kol-tracker-backend.onrender.com
+
+# Optional: Analytics and external services
+# VITE_MORALIS_API_KEY=your_moralis_api_key
+# VITE_ALCHEMY_API_KEY=your_alchemy_api_key
+# VITE_TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+
+# ==========================================
+# INSTRUCTIONS:
+# 1. Create a new Static Site on Render
+# 2. Connect your GitHub repository
+# 3. Set Build Command: npm install && npm run build
+# 4. Set Publish Directory: dist
+# 5. Add each environment variable above in Render dashboard
+# 6. Deploy the service
+# 
+# 📝 NOTE: For Static Sites, environment variables must be prefixed with VITE_
+# 📝 The frontend will automatically use these URLs to connect to your backend services
+# ========================================== 

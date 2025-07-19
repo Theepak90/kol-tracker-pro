@@ -53,26 +53,52 @@ export function BotDetector() {
       return;
     }
 
+    // Check if authentication is required for better analysis
+    const requiresAuth = botDetectionService.requiresAuthentication(searchTerm);
+    if (requiresAuth && !isTelegramAuthenticated) {
+      toast.error('For detailed bot analysis, please authenticate with Telegram first');
+      setShowTelegramAuth(true);
+      return;
+    }
+
     setIsScanning(true);
     setIsLoading(true);
 
     try {
       let result: BotDetectionResult;
       
+      console.log('🔍 Starting bot detection scan for:', searchTerm);
+      
       if (searchTerm.includes('t.me/') || searchTerm.startsWith('@')) {
+        console.log('📊 Analyzing as channel/group');
         result = await botDetectionService.analyzeChannel(searchTerm);
         toast.success('Channel analysis completed!');
       } else {
+        console.log('👤 Analyzing as user');
         result = await botDetectionService.analyzeUser(searchTerm);
         toast.success('User analysis completed!');
       }
 
+      console.log('✅ Analysis result:', result);
       setResults(prev => Array.isArray(prev) ? [result, ...prev] : [result]);
       setSearchTerm('');
       
     } catch (error) {
-      console.error('Bot detection failed:', error);
-      toast.error('Failed to analyze the account. Please try again.');
+      console.error('🚨 Bot detection failed:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          toast.error('Authentication required for detailed analysis. Using basic scan mode.');
+          setShowTelegramAuth(true);
+        } else if (error.message.includes('Service unavailable')) {
+          toast.error('Analysis service temporarily unavailable. Please try again later.');
+        } else {
+          toast.error(`Analysis failed: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to analyze the account. Please try again.');
+      }
     } finally {
       setIsScanning(false);
       setIsLoading(false);
@@ -353,8 +379,8 @@ export function BotDetector() {
                             <h3 className="text-xl font-bold text-white mb-1">{result.username}</h3>
                             <p className="text-gray-400 font-medium">{result.displayName}</p>
                         </div>
-                          <span className={`px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-sm ${getStatusColor(result.status)}`}>
-                          {result.status.charAt(0).toUpperCase() + result.status.slice(1)}
+                          <span className={`px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-sm ${getStatusColor(result.status || 'unknown')}`}>
+                          {result.status ? (result.status.charAt(0).toUpperCase() + result.status.slice(1)) : 'Unknown'}
                         </span>
                       </div>
                         <div className="flex items-center space-x-6">

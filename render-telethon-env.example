@@ -1,0 +1,30 @@
+# ==========================================
+# RENDER TELETHON SERVICE ENVIRONMENT VARIABLES
+# ==========================================
+# Copy these into your Render Telethon Service Environment Variables
+# Go to: Render Dashboard → kol-tracker-telethon → Environment → Add Environment Variables
+
+API_ID=28152923
+API_HASH=766760d2838474a5e6dd734d785aa7ad
+SESSION_NAME=telegram_session
+MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+MONGODB_DB=kol-tracker-pro
+PORT=10000
+PYTHON_VERSION=3.11.0
+
+# ==========================================
+# INSTRUCTIONS:
+# 1. Create a new Web Service on Render
+# 2. Connect your GitHub repository
+# 3. Set Environment: Python 3
+# 4. Set Build Command: cd backend/telethon_service && python -m pip install --upgrade pip && pip install -r requirements.txt
+# 5. Set Start Command: cd backend/telethon_service && python render-start.py
+# 6. Add each environment variable above in Render dashboard
+# 7. Add a Persistent Disk for sessions:
+#    - Name: telethon-sessions
+#    - Mount Path: /opt/render/project/backend/telethon_service/sessions
+#    - Size: 1GB
+# 8. Deploy the service
+# 
+# ⚠️ IMPORTANT: After first deployment, you'll need to authenticate via the frontend
+# ========================================== 

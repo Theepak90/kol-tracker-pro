@@ -2,26 +2,41 @@ import React, { useState } from 'react';
 import { useTelegramAuth } from '../contexts/TelegramAuthContext';
 
 interface TelegramAuthModalProps {
-  isOpen: boolean;
+  onAuthSuccess: (userInfo: any) => void;
   onClose: () => void;
 }
 
-const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }) => {
-  const { requestOTP, verifyOTP, isLoading, error } = useTelegramAuth();
+const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ onAuthSuccess, onClose }) => {
+  const { requestOTP, verifyOTP, isLoading, error, clearStaleAuth } = useTelegramAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [sessionData, setSessionData] = useState<any>(null);
+  const [message, setMessage] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
 
-  if (!isOpen) return null;
+  // Clear any stale auth data when component mounts
+  React.useEffect(() => {
+    clearStaleAuth();
+    // Generate a fresh user ID for this authentication session
+    const freshUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setCurrentUserId(freshUserId);
+    localStorage.setItem('telegram_user_id', freshUserId);
+    console.log('🆔 TelegramAuth - Fresh user ID for authentication:', freshUserId);
+  }, []);
+
+  // Component is now rendered conditionally by parent
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber.trim()) return;
+    if (!phoneNumber.trim() || !currentUserId) return;
 
+    console.log('📱 TelegramAuth - Requesting OTP with user ID:', currentUserId);
+    
     try {
       const result = await requestOTP(phoneNumber);
       if (result.success) {
+        console.log('✅ TelegramAuth - OTP request successful:', result);
         setSessionData(result);
         setStep('otp');
       }
@@ -32,11 +47,13 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
 
   const handleOTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode.trim() || !sessionData) return;
+    if (!otpCode.trim() || !sessionData || !currentUserId) return;
+
+    console.log('🔐 TelegramAuth - Verifying OTP with user ID:', currentUserId);
 
     try {
       const result = await verifyOTP({
-        user_id: sessionData.user_id || `user_${Date.now()}`,
+        user_id: currentUserId, // Use the consistent user ID
         phone_number: phoneNumber,
         otp_code: otpCode,
         session_id: sessionData.session_id,
@@ -44,13 +61,34 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
       });
 
       if (result.success) {
-        // Close modal on success
-        onClose();
-        // Reset form
-        setStep('phone');
-        setPhoneNumber('');
-        setOtpCode('');
-        setSessionData(null);
+        console.log('✅ TelegramAuth - OTP verification successful:', result);
+        console.log('🔗 TelegramAuth - Authenticated user ID:', currentUserId);
+        
+        // Ensure the user info includes the correct user ID
+        const authResult = {
+          ...result,
+          user_info: {
+            ...result.user_info,
+            authenticated_user_id: currentUserId
+          }
+        };
+        
+        // Call success callback with user info
+        onAuthSuccess(authResult);
+        
+        // Show success message briefly before closing
+        setMessage(`✅ Authentication successful as ${result.user_info?.first_name}! You can now scan channels.`);
+        
+        // Close modal after a brief delay
+        setTimeout(() => {
+          onClose();
+          // Reset form
+          setStep('phone');
+          setPhoneNumber('');
+          setOtpCode('');
+          setSessionData(null);
+          setMessage('');
+        }, 2000);
       }
     } catch (err) {
       console.error('OTP verification error:', err);
@@ -102,6 +140,17 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {message && (
+          <div className="bg-green-900 border border-green-600 text-green-200 px-4 py-3 rounded mb-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+              <p className="text-sm">{message}</p>
             </div>
           </div>
         )}
@@ -214,4 +263,5 @@ const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({ isOpen, onClose }
   );
 };
 
-export default TelegramAuthModal; 
+export default TelegramAuthModal;
+export { TelegramAuthModal as TelegramAuth }; 

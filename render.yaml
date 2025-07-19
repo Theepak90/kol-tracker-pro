@@ -1,10 +1,13 @@
 services:
+  # Main Backend API Service
   - type: web
-    name: kol-tracker-pro
+    name: kol-tracker-backend
     env: node
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: node start-render.js
+    plan: starter  # Changed from free for better performance
+    region: oregon
+    buildCommand: |
+      cd backend && npm install
+    startCommand: cd backend && node render-start.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,17 +19,23 @@ services:
         value: kol-tracker-pro
       - key: JWT_SECRET
         value: 5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
-    disk:
-      name: kol-tracker-disk
-      mountPath: /opt/render/project/backend/dist
-      sizeGB: 1
+      - key: TELETHON_URL
+        value: https://kol-tracker-telethon.onrender.com
+      - key: CORS_ORIGIN
+        value: https://kol-tracker-frontend.onrender.com
+    healthCheckPath: /api/health
 
+  # Telethon Service
   - type: web
     name: kol-tracker-telethon
     env: python
-    plan: free
-    buildCommand: cd backend/telethon_service && pip install -r requirements.txt
-    startCommand: cd backend/telethon_service && python main.py
+    plan: starter  # Changed from free for better performance
+    region: oregon
+    buildCommand: |
+      cd backend/telethon_service && 
+      python -m pip install --upgrade pip && 
+      pip install -r requirements.txt
+    startCommand: cd backend/telethon_service && python render-start.py
     envVars:
       - key: API_ID
         value: 28152923
@@ -39,7 +48,34 @@ services:
       - key: MONGODB_DB
         value: kol-tracker-pro
       - key: PORT
-        value: 8000
+        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    healthCheckPath: /health
+    disk:
+      name: telethon-sessions
+      mountPath: /opt/render/project/backend/telethon_service/sessions
+      sizeGB: 1
+
+  # Frontend Service (Optional - deploy frontend to Render as well)
+  - type: web
+    name: kol-tracker-frontend
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: |
+      npm install && npm run build
+    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://kol-tracker-backend.onrender.com
+      - key: VITE_TELETHON_SERVICE_URL
+        value: https://kol-tracker-telethon.onrender.com
+      - key: VITE_WS_ENDPOINT
+        value: wss://kol-tracker-backend.onrender.com
+    healthCheckPath: /
 
 # Database
 databases:

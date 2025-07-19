@@ -9,10 +9,10 @@ const DEV_BACKEND_URL = 'http://localhost:3000';
 const DEV_TELETHON_URL = 'http://localhost:8000';
 const DEV_WS_URL = 'ws://localhost:3000';
 
-// Production URLs - Vercel deployment
-const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kol-tracker-pro.vercel.app';
-const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kol-tracker-pro.vercel.app';
-const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kol-tracker-pro.vercel.app';
+// Production URLs - Render deployment
+const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kol-tracker-backend.onrender.com';
+const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
+const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kol-tracker-backend.onrender.com';
 
 // Export the appropriate URLs based on environment
 export const API_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_BACKEND_URL : PROD_BACKEND_URL;
