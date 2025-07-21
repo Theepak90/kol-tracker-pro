@@ -1,27 +1,54 @@
 # ==========================================
-# RENDER TELETHON SERVICE ENVIRONMENT VARIABLES
+# RENDER TELETHON SERVICE ENVIRONMENT VARIABLES (PRODUCTION)
 # ==========================================
 # Copy these EXACTLY into your Render Telethon Service Environment Variables
-# Go to: Dashboard → Your Telethon Service → Environment → Add Environment Variables
 
-API_ID=28152923
-API_HASH=766760d2838474a5e6dd734d785aa7ad
-SESSION_NAME=telegram_session
-MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
-MONGODB_DB=kol-tracker-pro
+# Telegram API Configuration (REQUIRED)
+API_ID=your_api_id_here
+API_HASH=your_api_hash_here
+
+# Service Configuration
 PORT=8000
+ENVIRONMENT=production
+
+# Database Configuration
+DATABASE_URL=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
+
+# Service URLs for Communication
+BACKEND_URL=https://api.kolopz.com
+FRONTEND_URL=https://kolopz.com
+
+# CORS Configuration
+CORS_ORIGINS=https://kolopz.com,https://www.kolopz.com,https://api.kolopz.com
+
+# Session Management
+SESSION_PATH=/opt/render/project/sessions
+SESSION_BACKUP_INTERVAL=3600
+
+# Rate Limiting Configuration
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=3600
+
+# Logging Configuration
+LOG_LEVEL=info
+DEBUG=false
+
+# Health Check Configuration
+HEALTH_CHECK_ENABLED=true
+HEALTH_CHECK_INTERVAL=30
 
 # ==========================================
-# INSTRUCTIONS:
-# 1. Replace YOUR_TELEGRAM_API_ID with your actual Telegram API ID
-# 2. Replace YOUR_TELEGRAM_API_HASH with your actual Telegram API Hash
-# 3. MongoDB Atlas is already configured with your credentials
-# 4. Copy each line (KEY=VALUE) into Render's environment variables
+# TELEGRAM API SETUP INSTRUCTIONS:
+# ==========================================
+# 1. Go to: https://my.telegram.org/apps
+# 2. Create a new application
+# 3. Copy API_ID and API_HASH values above
+# 4. These credentials are required for Telegram integration
 # 
-# Example in Render:
-# Key: PORT            Value: 8000
-# Key: API_ID          Value: 28152923
-# Key: API_HASH        Value: 766760d2838474a5e6dd734d785aa7ad
-# Key: SESSION_NAME    Value: telegram_session
-# Key: MONGODB_URI     Value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.0wgm1.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+# ==========================================
+# DEPLOYMENT SETUP:
+# ==========================================
+# 1. This service should be deployed to: https://telethon.kolopz.com
+# 2. Ensure persistent disk is mounted for session storage
+# 3. Configure health checks at: /health
 # ========================================== 

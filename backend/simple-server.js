@@ -39,6 +39,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-t
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kol_tracker';
 let db;
 
+// Improved MongoDB connection status tracking
+let mongoDBConnected = false;
+let connectionRetryCount = 0;
+const MAX_RETRY_ATTEMPTS = 10;
+
 // In-memory storage (for development without MongoDB)
 let users = [];
 let userIdCounter = 1;
@@ -47,7 +52,7 @@ let userIdCounter = 1;
 const gameRooms = new Map();
 const activeConnections = new Map(); // socketId -> userId
 
-// CORS configuration
+// Enhanced CORS configuration for production
 const corsOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : [
@@ -55,7 +60,11 @@ const corsOrigins = process.env.CORS_ORIGIN
       'http://localhost:5174', 
       'http://localhost:5175',
       'http://localhost:5176',
-      'https://kol-tracker-pro.vercel.app'
+      'https://kol-tracker-pro.vercel.app',
+      'https://kolopz.com',
+      'https://www.kolopz.com',
+      'https://api.kolopz.com',
+      'https://telethon.kolopz.com'
     ];
 
 app.use(cors({
@@ -1174,41 +1183,67 @@ app.get('/api/health', (req, res) => {
 
 // Remove mock data - using only real data from database and Telegram
 
-// Connect to MongoDB with fallback to in-memory storage
+// Enhanced MongoDB connection with better error handling
 async function connectDB() {
+  // Skip connection if we've exceeded retry attempts
+  if (connectionRetryCount >= MAX_RETRY_ATTEMPTS) {
+    console.log('🛑 Maximum MongoDB connection attempts reached. Running with in-memory storage only.');
+    db = null;
+    mongoDBConnected = false;
+    return null;
+  }
+
   try {
+    connectionRetryCount++;
+    console.log(`🔄 Attempting MongoDB connection (${connectionRetryCount}/${MAX_RETRY_ATTEMPTS})...`);
+
+    // Improved connection configuration without deprecated options
     const client = await MongoClient.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      retryWrites: true,
+      w: 'majority'
     });
     
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ Successfully connected to MongoDB');
     db = client.db();
+    mongoDBConnected = true;
+    connectionRetryCount = 0; // Reset counter on successful connection
     
     // Handle MongoDB disconnection
     client.on('close', () => {
-      console.log('MongoDB connection closed. Attempting to reconnect...');
-      setTimeout(connectDB, 5000);
+      console.log('📡 MongoDB connection closed. Attempting to reconnect...');
+      mongoDBConnected = false;
+      setTimeout(connectDB, 10000);
     });
     
     client.on('error', (error) => {
-      console.error('MongoDB connection error:', error);
-      setTimeout(connectDB, 5000);
+      console.error('🚨 MongoDB connection error:', error);
+      mongoDBConnected = false;
+      setTimeout(connectDB, 15000);
     });
     
     return client;
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    console.error(`❌ Failed to connect to MongoDB (attempt ${connectionRetryCount}):`, error.message);
+    
+    if (error.message.includes('ENOTFOUND') || error.message.includes('querySrv')) {
+      console.log('🌐 DNS resolution issue detected. This might be a network connectivity problem.');
+      console.log('💡 Check your internet connection and MongoDB Atlas network access settings.');
+    }
+    
     console.log('⚠️  Running with in-memory storage as fallback');
-    console.log('🔄 Will retry MongoDB connection in background...');
+    db = null;
+    mongoDBConnected = false;
     
-    // Retry connection in background without blocking server startup
-    setTimeout(connectDB, 30000); // Retry every 30 seconds instead of 5
+    // Implement exponential backoff for retries
+    const backoffDelay = Math.min(60000, 5000 * Math.pow(2, connectionRetryCount - 1));
+    console.log(`🔄 Will retry MongoDB connection in ${backoffDelay / 1000} seconds...`);
     
-    db = null; // Indicate we're using in-memory storage
+    setTimeout(connectDB, backoffDelay);
     return null;
   }
 }

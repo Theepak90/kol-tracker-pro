@@ -1,24 +1,41 @@
 # ==========================================
-# RENDER BACKEND SERVICE ENVIRONMENT VARIABLES
+# RENDER BACKEND SERVICE ENVIRONMENT VARIABLES (PRODUCTION)
 # ==========================================
 # Copy these EXACTLY into your Render Backend Service Environment Variables
 # Go to: Dashboard → Your Backend Service → Environment → Add Environment Variables
 
 NODE_ENV=production
 PORT=10000
-MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+
+# MongoDB Atlas Configuration (Enhanced)
+MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
 MONGODB_DB=kol-tracker-pro
+
+# Security Configuration
 JWT_SECRET=5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
 
+# Production CORS Configuration
+CORS_ORIGIN=https://kolopz.com,https://www.kolopz.com,https://api.kolopz.com,https://telethon.kolopz.com
+
+# Telethon Service Configuration
+TELETHON_URL=https://telethon.kolopz.com
+
+# Service Health Configuration
+KEEP_ALIVE=true
+HEALTH_CHECK_INTERVAL=300000
+
+# Logging Configuration
+LOG_LEVEL=info
+DEBUG=false
+
 # ==========================================
-# INSTRUCTIONS:
-# 1. Copy each line (KEY=VALUE) into Render's environment variables
-# 2. MongoDB Atlas is already configured with your credentials
-# 3. The JWT secret is freshly generated and secure
-# 4. Save these values - you'll need them for deployment
-# 
-# Example in Render:
-# Key: NODE_ENV, Value: production
-# Key: PORT, Value: 10000
-# Key: MONGODB_URI, Value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+# CUSTOM DOMAIN DEPLOYMENT INSTRUCTIONS:
+# ==========================================
+# 1. Deploy this backend service to: https://api.kolopz.com
+# 2. Deploy telethon service to: https://telethon.kolopz.com
+# 3. Deploy frontend to: https://kolopz.com
+# 4. Configure DNS records:
+#    - api.kolopz.com → Points to Render backend service
+#    - telethon.kolopz.com → Points to Render telethon service
+#    - kolopz.com → Points to frontend deployment (Vercel/Netlify)
 # ========================================== 
