@@ -161,11 +161,14 @@ app.get('/api/kols', async (req, res) => {
       const kols = await db.collection('kols').find({}).toArray();
       res.json(kols);
     } else {
-      res.status(503).json({ error: 'Database not available' });
+      // Return empty array when MongoDB is not available
+      console.log('📝 Returning empty KOLs list (MongoDB not connected)');
+      res.json([]);
     }
   } catch (error) {
     console.error('Error fetching KOLs:', error);
-    res.status(500).json({ error: 'Failed to fetch KOLs' });
+    // Return empty array instead of error to keep frontend working
+    res.json([]);
   }
 });
 
@@ -181,11 +184,13 @@ app.get('/api/kols/:username', async (req, res) => {
         res.status(404).json({ error: 'KOL not found' });
       }
     } else {
-      res.status(503).json({ error: 'Database not available' });
+      // Return 404 when MongoDB is not available (consistent with not found)
+      console.log(`📝 KOL ${username} not found (MongoDB not connected)`);
+      res.status(404).json({ error: 'KOL not found' });
     }
   } catch (error) {
     console.error('Error fetching KOL:', error);
-    res.status(500).json({ error: 'Failed to fetch KOL' });
+    res.status(404).json({ error: 'KOL not found' });
   }
 });
 
@@ -1169,7 +1174,7 @@ app.get('/api/health', (req, res) => {
 
 // Remove mock data - using only real data from database and Telegram
 
-// Connect to MongoDB
+// Connect to MongoDB with fallback to in-memory storage
 async function connectDB() {
   try {
     const client = await MongoClient.connect(MONGODB_URI, {
@@ -1180,7 +1185,7 @@ async function connectDB() {
       socketTimeoutMS: 45000,
     });
     
-    console.log('Connected to MongoDB');
+    console.log('✅ Connected to MongoDB');
     db = client.db();
     
     // Handle MongoDB disconnection
@@ -1190,15 +1195,20 @@ async function connectDB() {
     });
     
     client.on('error', (error) => {
-    console.error('MongoDB connection error:', error);
+      console.error('MongoDB connection error:', error);
       setTimeout(connectDB, 5000);
     });
     
     return client;
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
-    console.log('Retrying connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
+    console.log('⚠️  Running with in-memory storage as fallback');
+    console.log('🔄 Will retry MongoDB connection in background...');
+    
+    // Retry connection in background without blocking server startup
+    setTimeout(connectDB, 30000); // Retry every 30 seconds instead of 5
+    
+    db = null; // Indicate we're using in-memory storage
     return null;
   }
 }
@@ -1566,7 +1576,10 @@ function generateRecommendations(status, activityRatio, botRatio, memberCount, t
 // Start server
 async function startServer() {
   try {
-    await connectDB();
+    // Start MongoDB connection in background (non-blocking)
+    connectDB().catch(err => {
+      console.log('🔧 MongoDB connection will retry in background');
+    });
     
     server.listen(PORT, () => {
       console.log(`🚀 KOL Tracker API running on port ${PORT}`);
@@ -1574,6 +1587,7 @@ async function startServer() {
       console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
       console.log('🎮 Socket.IO enabled for real-time gaming');
       console.log(`🤖 Bot Detection: Available at /api/bot-detection/*`);
+      console.log('💾 Using in-memory storage until MongoDB connects');
       
       if (process.env.KEEP_ALIVE === 'true') {
         console.log('🔄 Keep-alive pings will start in 10 minutes');

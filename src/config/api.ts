@@ -2,17 +2,17 @@
 const isDevelopment = import.meta.env.DEV;
 
 // Force local development for testing
-const FORCE_LOCAL = false; // Set to false when backend is working
+const FORCE_LOCAL = false; // Set to true for local testing when production APIs are not ready
 
 // Development URLs (local)
 const DEV_BACKEND_URL = 'http://localhost:3000';
 const DEV_TELETHON_URL = 'http://localhost:8000';
 const DEV_WS_URL = 'ws://localhost:3000';
 
-// Production URLs - Render deployment
-const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://kol-tracker-backend.onrender.com';
-const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://kol-tracker-telethon.onrender.com';
-const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://kol-tracker-backend.onrender.com';
+// Production URLs - Custom domain deployment
+const PROD_BACKEND_URL = import.meta.env.VITE_API_URL || 'https://api.kolopz.com';
+const PROD_TELETHON_URL = import.meta.env.VITE_TELETHON_SERVICE_URL || 'https://telethon.kolopz.com';
+const PROD_WS_URL = import.meta.env.VITE_WS_ENDPOINT || 'wss://api.kolopz.com';
 
 // Export the appropriate URLs based on environment
 export const API_BASE_URL = (isDevelopment || FORCE_LOCAL) ? DEV_BACKEND_URL : PROD_BACKEND_URL;
