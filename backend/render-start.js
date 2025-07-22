@@ -14,14 +14,14 @@ const env = {
   ...process.env,
   NODE_ENV: 'production',
   PORT: process.env.PORT || 10000,
-  MONGODB_URI: process.env.MONGODB_URI,
+  DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
   TELETHON_URL: process.env.TELETHON_URL || 'http://localhost:8000'
 };
 
 // Log important configuration (without sensitive data)
 console.log('Configuration:');
-console.log('- MongoDB URI:', env.MONGODB_URI ? 'Set ✅' : 'Missing ❌');
+console.log('- Database URL:', env.DATABASE_URL ? 'Set ✅' : 'Missing ❌');
 console.log('- JWT Secret:', env.JWT_SECRET ? 'Set ✅' : 'Missing ❌');
 console.log('- Telethon URL:', env.TELETHON_URL);
 

@@ -31,7 +31,7 @@ def setup_production_environment():
     logger.info(f"Host: {os.getenv('HOST')}")
     logger.info(f"API_ID: {'Set ✅' if os.getenv('API_ID') else 'Missing ❌'}")
     logger.info(f"API_HASH: {'Set ✅' if os.getenv('API_HASH') else 'Missing ❌'}")
-    logger.info(f"MongoDB URI: {'Set ✅' if os.getenv('MONGODB_URI') else 'Missing ❌'}")
+    logger.info(f"Database URL: {'Set ✅' if os.getenv('DATABASE_URL') else 'Missing ❌'}")
     logger.info(f"Session Name: {os.getenv('SESSION_NAME')}")
 
 async def startup_service():

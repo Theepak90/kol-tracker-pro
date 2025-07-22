@@ -16,7 +16,8 @@ from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.functions.channels import GetFullChannelRequest
 from telethon.tl.types import PeerChannel, InputPeerChannel, ChannelParticipantsSearch, ChannelParticipantsAdmins, ChannelParticipantsRecent
 from telethon.sessions import StringSession
-import motor.motor_asyncio
+import asyncpg
+from databases import Database
 import uvicorn
 
 # Import our advanced KOL detection system
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 API_ID = int(os.getenv('API_ID', '28152923'))
 API_HASH = os.getenv('API_HASH', '766760d2838474a5e6dd734d785aa7ad')
 SESSION_NAME = os.getenv('SESSION_NAME', 'telegram_session')
-MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://localhost:5432/kol_tracker')
 PORT = int(os.getenv('PORT', '8000'))
 
 logger.info(f"API_ID: {API_ID}")
@@ -92,14 +93,14 @@ class TelegramScanner:
     
     async def connect(self):
         try:
-            logger.info("Connecting to MongoDB...")
-            # Connect to MongoDB
-            mongo_client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-            self.db = mongo_client.kol_tracker
+            logger.info("Connecting to PostgreSQL...")
+            # Connect to PostgreSQL
+            self.db = Database(DATABASE_URL)
+            await self.db.connect()
             
-            # Test MongoDB connection
-            await self.db.command("ping")
-            logger.info("Connected to MongoDB successfully")
+            # Test PostgreSQL connection
+            await self.db.fetch_one("SELECT 1")
+            logger.info("Connected to PostgreSQL successfully")
             
             logger.info("Creating Telegram client...")
             # Create Telegram client
