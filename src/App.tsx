@@ -5,7 +5,7 @@ import { SolanaWalletProvider } from './contexts/WalletContext';
 import { TelegramAuthProvider } from './contexts/TelegramAuthContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
-import { ChannelScanner } from './components/ChannelScanner';
+import ChannelScanner from './components/ChannelScanner';
 import KOLAnalyzer from './components/KOLAnalyzer';
 import { VolumeTracker } from './components/VolumeTracker';
 import { BotDetector } from './components/BotDetector';

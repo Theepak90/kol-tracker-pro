@@ -1,23 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { KOLService } from './kol.service';
+import { KOLDocument } from '../schemas/kol.schema';
 import axios from 'axios';
-
-// Define KOL interface locally
-interface KOL {
-  id: string;
-  displayName: string;
-  telegramUsername: string;
-  description?: string;
-  tags: string[];
-  stats: {
-    totalPosts: number;
-    totalViews: number;
-    totalForwards: number;
-    lastUpdated: Date;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 interface Post {
   text: string;
@@ -36,18 +20,31 @@ export class KOLController {
     telegramUsername: string;
     description?: string;
     tags?: string[];
-  }): Promise<KOL> {
+  }): Promise<KOLDocument> {
     return this.kolService.create(kolData);
   }
 
   @Get()
-  async findAll(): Promise<KOL[]> {
+  async findAll(): Promise<KOLDocument[]> {
     return this.kolService.findAll();
   }
 
   @Get(':username')
-  async findOne(@Param('username') username: string): Promise<KOL> {
-    return this.kolService.findByUsername(username);
+  async findOne(@Param('username') username: string): Promise<KOLDocument> {
+    const kol = await this.kolService.findByUsername(username);
+    if (!kol) {
+      throw new NotFoundException(`KOL with username ${username} not found`);
+    }
+    return kol;
+  }
+
+  @Delete(':username')
+  async remove(@Param('username') username: string): Promise<{ message: string }> {
+    const deleted = await this.kolService.remove(username);
+    if (!deleted) {
+      throw new NotFoundException(`KOL with username ${username} not found`);
+    }
+    return { message: 'KOL deleted successfully' };
   }
 
   @Get('track-posts/:username')
@@ -64,6 +61,48 @@ export class KOLController {
       }
       throw new HttpException('Failed to track user posts', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Get('search/:query')
+  async searchKOLs(@Param('query') query: string): Promise<KOLDocument[]> {
+    if (!query || query.trim().length === 0) {
+      throw new HttpException('Search query cannot be empty', HttpStatus.BAD_REQUEST);
+    }
+    return this.kolService.searchKOLs(query);
+  }
+
+  @Get('top/:limit')
+  async getTopKOLs(@Param('limit') limit: string): Promise<KOLDocument[]> {
+    const limitNum = parseInt(limit) || 10;
+    if (limitNum < 1 || limitNum > 100) {
+      throw new HttpException('Limit must be between 1 and 100', HttpStatus.BAD_REQUEST);
+    }
+    return this.kolService.getTopKOLsByViews(limitNum);
+  }
+
+  @Post('tags')
+  async getKOLsByTags(@Body() body: { tags: string[] }): Promise<KOLDocument[]> {
+    const { tags } = body;
+    if (!Array.isArray(tags) || tags.length === 0) {
+      throw new HttpException('Tags array is required and cannot be empty', HttpStatus.BAD_REQUEST);
+    }
+    return this.kolService.getKOLsByTags(tags);
+  }
+
+  @Put(':username/stats')
+  async updateStats(
+    @Param('username') username: string,
+    @Body() stats: {
+      totalPosts: number;
+      totalViews: number;
+      totalForwards: number;
+    }
+  ): Promise<KOLDocument> {
+    const updatedKOL = await this.kolService.updateStats(username, stats);
+    if (!updatedKOL) {
+      throw new NotFoundException(`KOL with username ${username} not found`);
+    }
+    return updatedKOL;
   }
 
   private analyzeSentiment(text: string): { score: number; label: string } {
@@ -98,105 +137,114 @@ export class KOLController {
     };
 
     posts.forEach(post => {
-      const text = post.text.toLowerCase();
+      const words = post.text.toLowerCase().split(/\s+/);
+      
       Object.entries(topicKeywords).forEach(([topic, keywords]) => {
-        const matchCount = keywords.filter(keyword => text.includes(keyword)).length;
+        const matchCount = words.filter(word => keywords.includes(word)).length;
         if (matchCount > 0) {
           const existing = topics.get(topic) || { count: 0, keywords: [] };
-          topics.set(topic, {
-            count: existing.count + matchCount,
-            keywords: [...new Set([...existing.keywords, ...keywords.filter(k => text.includes(k))])]
-          });
+          existing.count += matchCount;
+          topics.set(topic, existing);
         }
       });
     });
 
-    const totalMatches = Array.from(topics.values()).reduce((sum, { count }) => sum + count, 0);
-    
     return Array.from(topics.entries())
-      .map(([label, { count, keywords }]) => ({
-        label,
-        confidence: count / (totalMatches || 1)
+      .map(([topic, data]) => ({
+        label: topic,
+        confidence: Math.min(data.count / posts.length, 1)
       }))
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 5);
   }
 
-  private calculateEngagementTrends(posts: Post[]) {
-    const sortedPosts = [...posts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const periods = Math.min(4, Math.floor(posts.length / 5));
-    const chunks = Array.from({ length: periods }, (_, i) => {
-      const start = Math.floor((i * posts.length) / periods);
-      const end = Math.floor(((i + 1) * posts.length) / periods);
-      return sortedPosts.slice(start, end);
-    });
+  private calculateEngagementTrends(posts: Post[]): { trend: 'improving' | 'declining' | 'stable'; change: number } {
+    if (posts.length < 2) {
+      return { trend: 'stable', change: 0 };
+    }
 
-    const trends = chunks.map(chunk => {
-      const avgViews = chunk.reduce((sum, post) => sum + (post.views || 0), 0) / chunk.length;
-      const avgForwards = chunk.reduce((sum, post) => sum + (post.forwards || 0), 0) / chunk.length;
-      return { avgViews, avgForwards };
-    });
+    const recentPosts = posts.slice(0, Math.ceil(posts.length / 2));
+    const olderPosts = posts.slice(Math.ceil(posts.length / 2));
 
-    const viewsTrend = trends[trends.length - 1].avgViews / (trends[0].avgViews || 1);
-    const forwardsTrend = trends[trends.length - 1].avgForwards / (trends[0].avgForwards || 1);
-    
+    const recentEngagement = recentPosts.reduce((sum, post) => sum + (post.forwards / Math.max(post.views, 1)), 0) / recentPosts.length;
+    const olderEngagement = olderPosts.reduce((sum, post) => sum + (post.forwards / Math.max(post.views, 1)), 0) / olderPosts.length;
+
+    const change = ((recentEngagement - olderEngagement) / Math.max(olderEngagement, 0.001)) * 100;
+
     return {
-      trend: viewsTrend > 1.1 && forwardsTrend > 1.1 ? 'improving' :
-             viewsTrend < 0.9 && forwardsTrend < 0.9 ? 'declining' : 'stable',
-      growth_rate: ((viewsTrend + forwardsTrend) / 2 - 1) * 100
+      trend: change > 10 ? 'improving' : change < -10 ? 'declining' : 'stable',
+      change: Math.round(change * 100) / 100
     };
   }
 
-  private assessRisk(posts: Post[], engagementMetrics: any, sentimentAnalysis: any) {
+  private assessRisk(posts: Post[], engagement: any, trends: any): any {
     const riskFactors = [];
-    const recommendations = [];
     let riskScore = 0;
 
-    // Check engagement volatility
-    const views = posts.map(p => p.views || 0);
-    const viewsStdDev = Math.sqrt(
-      views.reduce((sum, v) => sum + Math.pow(v - engagementMetrics.average_views, 2), 0) / views.length
-    );
-    const volatility = viewsStdDev / engagementMetrics.average_views;
-
-    if (volatility > 1) {
-      riskFactors.push('High volatility in engagement rates');
-      recommendations.push('Monitor engagement stability');
-      riskScore += 0.3;
+    // Low engagement risk
+    if (engagement.average_views < 100) {
+      riskFactors.push('Very low audience reach');
+      riskScore += 20;
     }
 
-    // Check sentiment stability
-    if (sentimentAnalysis.trend === 'declining') {
-      riskFactors.push('Declining sentiment trend');
-      recommendations.push('Analyze causes of sentiment decline');
-      riskScore += 0.3;
+    // Declining trends
+    if (trends.trend === 'declining') {
+      riskFactors.push('Declining engagement trend');
+      riskScore += 15;
     }
 
-    // Check posting patterns
-    const timeBetweenPosts = posts
-      .map(p => new Date(p.date).getTime())
-      .sort((a, b) => b - a)
-      .reduce((acc, time, i, arr) => {
-        if (i === 0) return acc;
-        return [...acc, time - arr[i - 1]];
-      }, []);
+    // Spam indicators
+    const avgTextLength = posts.reduce((sum, post) => sum + post.text.length, 0) / posts.length;
+    if (avgTextLength < 50) {
+      riskFactors.push('Very short post content');
+      riskScore += 10;
+    }
 
-    const avgTimeBetweenPosts = timeBetweenPosts.reduce((a, b) => a + b, 0) / timeBetweenPosts.length;
-    const timeStdDev = Math.sqrt(
-      timeBetweenPosts.reduce((sum, t) => sum + Math.pow(t - avgTimeBetweenPosts, 2), 0) / timeBetweenPosts.length
-    );
-
-    if (timeStdDev / avgTimeBetweenPosts > 0.5) {
+    // Irregular posting
+    const dates = posts.map(post => new Date(post.date).getTime());
+    const intervals = [];
+    for (let i = 1; i < dates.length; i++) {
+      intervals.push(dates[i-1] - dates[i]);
+    }
+    const avgInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+    const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) / intervals.length;
+    
+    if (variance > avgInterval * 2) {
       riskFactors.push('Irregular posting pattern');
-      recommendations.push('Maintain consistent posting schedule');
-      riskScore += 0.2;
+      riskScore += 5;
     }
 
     return {
-      overall_risk: riskScore > 0.6 ? 'high' : riskScore > 0.3 ? 'medium' : 'low',
+      overall_risk: riskScore > 30 ? 'high' : riskScore > 15 ? 'medium' : 'low',
       risk_factors: riskFactors,
-      recommendations: recommendations
+      recommendations: this.generateRecommendations(riskScore, riskFactors)
     };
+  }
+
+  private generateRecommendations(riskScore: number, riskFactors: string[]): string[] {
+    const recommendations = [];
+
+    if (riskFactors.includes('Very low audience reach')) {
+      recommendations.push('Monitor audience growth trends before making investment decisions');
+    }
+    
+    if (riskFactors.includes('Declining engagement trend')) {
+      recommendations.push('Wait for engagement recovery before following calls');
+    }
+    
+    if (riskFactors.includes('Very short post content')) {
+      recommendations.push('Look for more detailed analysis and reasoning in posts');
+    }
+    
+    if (riskFactors.includes('Irregular posting pattern')) {
+      recommendations.push('Consider consistency when evaluating reliability');
+    }
+
+    if (riskScore < 15) {
+      recommendations.push('Generally reliable for following investment insights');
+    }
+
+    return recommendations;
   }
 
   @Post(':username/analyze')
@@ -207,6 +255,10 @@ export class KOLController {
     try {
       const posts = data.posts;
       const kol = await this.kolService.findByUsername(username);
+
+      if (!kol) {
+        throw new NotFoundException(`KOL with username ${username} not found`);
+      }
 
       // Calculate engagement metrics
       const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
@@ -272,36 +324,58 @@ export class KOLController {
           `${riskAssessment.overall_risk === 'low' ? 'Low-risk' : riskAssessment.overall_risk === 'medium' ? 'Moderate-risk' : 'High-risk'} profile`
         ],
         performance_summary: {
-          growth_rate: trends.growth_rate,
-          consistency_score: (1 - (riskAssessment.risk_factors.length / 5)) * 100,
-          trend: trends.trend === 'improving' ? 'upward' : trends.trend === 'declining' ? 'downward' : 'stable',
-          key_metrics: [
-            { name: 'Engagement Growth', value: `${trends.growth_rate.toFixed(1)}%` },
-            { name: 'Content Quality', value: `${(contentQualityScore * 100).toFixed(1)}%` },
-            { name: 'Risk Level', value: riskAssessment.overall_risk.toUpperCase() }
-          ]
+          strengths: this.identifyStrengths(engagementRate, contentQualityScore, trends),
+          weaknesses: this.identifyWeaknesses(engagementRate, contentQualityScore, riskAssessment),
+          overall_rating: this.calculateOverallRating(engagementRate, contentQualityScore, riskAssessment.overall_risk)
         }
       };
+      
     } catch (error) {
-      console.error('Analysis error:', error);
-      throw new HttpException(
-        'Failed to analyze KOL data',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new HttpException('Failed to analyze KOL', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private identifyStrengths(engagementRate: number, contentQuality: number, trends: any): string[] {
+    const strengths = [];
+    
+    if (engagementRate > 10) strengths.push('High engagement rate');
+    if (contentQuality > 0.7) strengths.push('High-quality content');
+    if (trends.trend === 'improving') strengths.push('Growing influence');
+    
+    return strengths.length > 0 ? strengths : ['Consistent posting activity'];
+  }
+
+  private identifyWeaknesses(engagementRate: number, contentQuality: number, riskAssessment: any): string[] {
+    const weaknesses = [];
+    
+    if (engagementRate < 2) weaknesses.push('Low engagement rate');
+    if (contentQuality < 0.3) weaknesses.push('Content quality needs improvement');
+    if (riskAssessment.overall_risk === 'high') weaknesses.push('High risk profile');
+    
+    return weaknesses;
+  }
+
+  private calculateOverallRating(engagementRate: number, contentQuality: number, riskLevel: string): string {
+    const score = (engagementRate / 20) * 0.4 + contentQuality * 0.4 + (riskLevel === 'low' ? 0.2 : riskLevel === 'medium' ? 0.1 : 0);
+    
+    if (score > 0.8) return 'excellent';
+    if (score > 0.6) return 'good';
+    if (score > 0.4) return 'average';
+    return 'below_average';
   }
 
   @Put(':username')
   async update(
     @Param('username') username: string,
     @Body() updateData: any
-  ): Promise<{ message: string }> {
-    // Update functionality disabled - using in-memory storage
-    return { message: 'Update functionality temporarily disabled' };
-  }
-
-  @Delete(':username')
-  async delete(@Param('username') username: string): Promise<boolean> {
-    return this.kolService.remove(username);
+  ): Promise<KOLDocument> {
+    const updatedKOL = await this.kolService.update(username, updateData);
+    if (!updatedKOL) {
+      throw new NotFoundException(`KOL with username ${username} not found`);
+    }
+    return updatedKOL;
   }
 } 

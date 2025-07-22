@@ -1,41 +1,51 @@
 services:
-  # Main Backend API Service
+  # Main Backend API Service - Always Running
   - type: web
     name: kol-tracker-backend
     env: node
-    plan: starter  # Changed from free for better performance
+    plan: starter  # Starter plan for better reliability
     region: oregon
     buildCommand: |
-      cd backend && npm install
-    startCommand: cd backend && node render-start.js
+      cd backend && npm install --production
+    startCommand: cd backend && node keep-alive-wrapper.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
       - key: MONGODB_DB
         value: kol-tracker-pro
       - key: JWT_SECRET
         value: 5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
       - key: TELETHON_URL
-        value: https://kol-tracker-telethon.onrender.com
+        fromService:
+          type: web
+          name: kol-tracker-telethon
+          property: host
       - key: CORS_ORIGIN
-        value: https://kol-tracker-frontend.onrender.com
+        value: https://kol-tracker-frontend.onrender.com,https://kolopz.com,https://www.kolopz.com
+      - key: KEEP_ALIVE
+        value: "true"
+      - key: HEALTH_CHECK_INTERVAL
+        value: "300000"
+      - key: RESTART_ON_FAILURE
+        value: "true"
     healthCheckPath: /api/health
+    autoDeploy: true
 
-  # Telethon Service
+  # Telethon Service - Always Running
   - type: web
     name: kol-tracker-telethon
     env: python
-    plan: starter  # Changed from free for better performance
+    plan: starter  # Starter plan for better reliability
     region: oregon
     buildCommand: |
       cd backend/telethon_service && 
       python -m pip install --upgrade pip && 
       pip install -r requirements.txt
-    startCommand: cd backend/telethon_service && python render-start.py
+    startCommand: cd backend/telethon_service && python keep-alive-wrapper.py
     envVars:
       - key: API_ID
         value: 28152923
@@ -44,20 +54,34 @@ services:
       - key: SESSION_NAME
         value: telegram_session
       - key: MONGODB_URI
-        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority
+        value: mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
       - key: MONGODB_DB
         value: kol-tracker-pro
       - key: PORT
         value: 10000
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: ENVIRONMENT
+        value: production
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: kol-tracker-backend
+          property: host
+      - key: KEEP_ALIVE
+        value: "true"
+      - key: HEALTH_CHECK_INTERVAL
+        value: "300000"
+      - key: RESTART_ON_FAILURE
+        value: "true"
     healthCheckPath: /health
+    autoDeploy: true
     disk:
       name: telethon-sessions
       mountPath: /opt/render/project/backend/telethon_service/sessions
       sizeGB: 1
 
-  # Frontend Service (Optional - deploy frontend to Render as well)
+  # Frontend Service - Static Site
   - type: web
     name: kol-tracker-frontend
     env: node
@@ -70,16 +94,25 @@ services:
       - key: NODE_ENV
         value: production
       - key: VITE_API_URL
-        value: https://kol-tracker-backend.onrender.com
+        fromService:
+          type: web
+          name: kol-tracker-backend
+          property: host
       - key: VITE_TELETHON_SERVICE_URL
-        value: https://kol-tracker-telethon.onrender.com
+        fromService:
+          type: web
+          name: kol-tracker-telethon
+          property: host
       - key: VITE_WS_ENDPOINT
-        value: wss://kol-tracker-backend.onrender.com
+        fromService:
+          type: web
+          name: kol-tracker-backend
+          property: host
     healthCheckPath: /
+    autoDeploy: true
 
-# Database
+# Redis for session management and caching (Optional but recommended)
 databases:
-  - name: kol-tracker-db
-    databaseName: kol_tracker
-    user: kol_user
-    plan: free 
+  - name: kol-tracker-redis
+    plan: free
+    type: redis 

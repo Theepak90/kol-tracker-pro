@@ -97,7 +97,7 @@ export function BotDetector() {
           toast.error(`Analysis failed: ${error.message}`);
         }
       } else {
-        toast.error('Failed to analyze the account. Please try again.');
+      toast.error('Failed to analyze the account. Please try again.');
       }
     } finally {
       setIsScanning(false);

@@ -27,7 +27,7 @@ if ! command -v render &> /dev/null; then
         curl -fsSL https://cli.render.com/install | sh
     else
         echo -e "${RED}Please install Render CLI manually: https://render.com/docs/cli${NC}"
-        exit 1
+    exit 1
     fi
 fi
 
@@ -119,7 +119,7 @@ if render deploy; then
     echo -e "4. Follow the authentication process"
     echo ""
 else
-    echo ""
+echo ""
     echo -e "${RED}❌ Deployment failed${NC}"
     echo -e "${YELLOW}💡 Troubleshooting:${NC}"
     echo -e "• Check render.yaml syntax: ${GREEN}render validate${NC}"
