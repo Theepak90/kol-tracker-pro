@@ -164,7 +164,7 @@ export default function Layout({ children }: LayoutProps) {
                   className="w-full rounded-xl bg-[#09a7ec] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#09a7ec]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#09a7ec] h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => {
                     if (plan.name === 'Custom') {
-                      window.location.href = 'mailto:sales@kolnexus.com?subject=Custom Plan Inquiry';
+                      window.location.href = 'mailto:sales@kolopz.com?subject=Custom Plan Inquiry';
                     } else {
                       handleUpgrade(plan.name);
                     }
@@ -231,7 +231,7 @@ export default function Layout({ children }: LayoutProps) {
                       className="w-full rounded-xl bg-[#09a7ec] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#09a7ec]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#09a7ec] h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => {
                         if (plan.name === 'Custom') {
-                          window.location.href = 'mailto:sales@kolnexus.com?subject=Custom Plan Inquiry';
+                          window.location.href = 'mailto:sales@kolopz.com?subject=Custom Plan Inquiry';
                         } else {
                           handleUpgrade(plan.name);
                         }
@@ -267,17 +267,17 @@ export default function Layout({ children }: LayoutProps) {
                   <div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] flex items-center justify-center shadow-lg shadow-[#6c5dd3]/20">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#6c5dd3]/20 to-[#8d7ff0]/20 animate-pulse"></div>
                     <div className="absolute -inset-1 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-                    <img 
-                      src={kolxd} 
-                      alt="KOL NEXUS Logo" 
-                      className="h-14 w-14 object-contain transform rotate-12 hover:rotate-0 transition-all duration-300 relative z-10"
-                    />
-                  </div>
+                                      <img 
+                    src={kolxd} 
+                    alt="KOLOPZ Logo" 
+                    className="h-14 w-14 object-contain transform rotate-12 hover:rotate-0 transition-all duration-300 relative z-10"
+                  />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#6c5dd3] tracking-wider group-hover:scale-105 transition-transform duration-300">
-                    KOL NEXUS
-                  </h1>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#6c5dd3] tracking-wider group-hover:scale-105 transition-transform duration-300">
+                  KOLOPZ
+                </h1>
                   <p className="text-sm text-[#6c5dd3]/80 font-medium tracking-wide">Analytics Platform</p>
                 </div>
               </div>
@@ -332,14 +332,14 @@ export default function Layout({ children }: LayoutProps) {
                   <div className="absolute -inset-1 bg-gradient-to-r from-[#6c5dd3] to-[#8d7ff0] rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
                   <img 
                     src={kolxd} 
-                    alt="KOL NEXUS Logo" 
+                    alt="KOLOPZ Logo" 
                     className="h-14 w-14 object-contain transform rotate-12 hover:rotate-0 transition-all duration-300 relative z-10"
                   />
                 </div>
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-[#6c5dd3] tracking-wider group-hover:scale-105 transition-transform duration-300">
-                  KOL NEXUS
+                  KOLOPZ
                 </h1>
                 <p className="text-sm text-[#6c5dd3]/80 font-medium tracking-wide">Analytics Platform</p>
               </div>
