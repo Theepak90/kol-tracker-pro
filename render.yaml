@@ -85,30 +85,6 @@ services:
       mountPath: /opt/render/project/backend/telethon_service/sessions
       sizeGB: 1
 
-  # Frontend Service - Static Site
-  - type: web
-    name: kol-tracker-frontend
-    env: node
-    plan: starter
-    region: oregon
-    buildCommand: |
-      npm install && npm run build
-    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: VITE_API_URL
-        value: https://api.kolopz.com
-      - key: VITE_TELETHON_SERVICE_URL
-        value: https://telethon.kolopz.com
-      - key: VITE_WS_ENDPOINT
-        value: wss://api.kolopz.com
-    healthCheckPath: /
-    autoDeploy: true
-    domains:
-      - kolopz.com
-      - www.kolopz.com
-
 # PostgreSQL Database - Reliable and fast
 databases:
   - name: kol-tracker-db
