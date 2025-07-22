@@ -109,26 +109,18 @@ class TelegramService {
   }
 
   async scanChannel(username: string): Promise<ChannelScanResult> {
-    try {
-      const userId = this.getUserId();
-      
-      // If no user ID, throw authentication error immediately
-      if (!userId) {
-        console.error('🚫 No user ID found - authentication required');
-        throw new Error('Authentication required. Please connect your Telegram account first using the "Connect Telegram" button.');
-      }
-      
-      const url = new URL(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.SCAN_CHANNEL(username)}`);
-      url.searchParams.append('user_id', userId);
-      
-      console.log('🔍 Scanning channel with userId:', userId);
+    const userId = this.getUserId();
+    
+    if (!userId) {
+      throw new Error('Authentication required. Please connect your Telegram account first.');
+    }
 
-      const response = await fetch(url.toString(), {
+    try {
+      const response = await fetch(`${API_CONFIG.TELETHON_SERVICE.BASE_URL}${API_CONFIG.TELETHON_SERVICE.ENDPOINTS.SCAN_CHANNEL(username)}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(30000)
+          'Content-Type': 'application/json',
+        }
       });
 
       if (response.ok) {
@@ -140,86 +132,63 @@ class TelegramService {
       }
     } catch (error) {
       console.error('Channel scan failed:', error);
-      // Fallback to mock data if real service fails
-      return this.getMockChannelData(username);
+      throw error; // Don't fallback to mock data, throw the actual error
     }
   }
 
   // New method to get KOL data from real Telegram scans
   async getKOLChannels(): Promise<ChannelScanResult[]> {
-    try {
-      const userId = this.getUserId();
-      
-      if (!userId) {
-        console.error('🚫 No user ID found - authentication required');
-        throw new Error('Authentication required. Please connect your Telegram account first.');
-      }
-
-      // Real popular crypto/KOL channels with verified usernames
-      const popularChannels = [
-        'durov',        // Pavel Durov (Telegram founder)
-        'CryptoCurrency_News',  // Crypto News Channel
-        'bitcoin_daily',       // Bitcoin Daily Updates
-        'ethereum_news',       // Ethereum News
-        'crypto_signals',      // Crypto Trading Signals
-        'defi_alerts',         // DeFi Alerts
-        'nft_marketplace',     // NFT Marketplace Updates
-        'blockchain_news',     // Blockchain Technology News
-        'coindesk',           // CoinDesk Official
-        'cointelegraph'       // Cointelegraph News
-      ];
-
-      const results: ChannelScanResult[] = [];
-      
-      for (const channel of popularChannels) {
-        try {
-          console.log(`🔍 Scanning KOL channel: ${channel}`);
-          const data = await this.scanChannel(channel);
-          results.push(data);
-          
-          // Add delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-          console.warn(`Failed to scan ${channel}:`, error);
-          // Add mock data for failed scans to keep UI populated
-          results.push(this.getMockChannelData(channel));
-        }
-      }
-
-      return results;
-    } catch (error) {
-      console.error('Failed to get KOL channels:', error);
-      // Return mock data if everything fails
-      return [
-        'durov',
-        'CryptoCurrency_News', 
-        'bitcoin_daily',
-        'ethereum_news'
-      ].map(channel => this.getMockChannelData(channel));
+    const userId = this.getUserId();
+    
+    if (!userId) {
+      throw new Error('Authentication required. Please connect your Telegram account first.');
     }
-  }
 
-  private getMockChannelData(username: string): ChannelScanResult {
-    return {
-      title: `${username} Channel`,
-      username: username,
-      description: `Analysis for ${username} - using demo data as Telegram service is unavailable`,
-      member_count: Math.floor(Math.random() * 10000) + 1000,
-      verified: Math.random() > 0.8,
-      scam: false,
-      fake: false,
-      message_count: Math.floor(Math.random() * 100) + 50,
-      recent_activity: Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-        text: `Sample message ${i + 1} from ${username}. This is demo content. #crypto #trading`,
-        views: Math.floor(Math.random() * 5000) + 500,
-        forwards: Math.floor(Math.random() * 500) + 50
-      }))
-    };
+    // Real popular crypto/KOL channels with verified usernames
+    const popularChannels = [
+      'durov',        // Pavel Durov (Telegram founder)
+      'CryptoCurrency_News',  // Crypto News Channel
+      'bitcoin_daily',       // Bitcoin Daily Updates
+      'ethereum_news',       // Ethereum News
+      'crypto_signals',      // Crypto Trading Signals
+      'defi_alerts',         // DeFi Alerts
+      'nft_marketplace',     // NFT Marketplace Updates
+      'blockchain_news',     // Blockchain Technology News
+      'coindesk',           // CoinDesk Official
+      'cointelegraph'       // Cointelegraph News
+    ];
+
+    const results: ChannelScanResult[] = [];
+    const errors: string[] = [];
+    
+    for (const channel of popularChannels) {
+      try {
+        console.log(`🔍 Scanning KOL channel: ${channel}`);
+        const data = await this.scanChannel(channel);
+        results.push(data);
+        
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.warn(`Failed to scan ${channel}:`, error);
+        errors.push(`${channel}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    if (results.length === 0) {
+      throw new Error(`Failed to fetch any channel data. Errors: ${errors.join(', ')}`);
+    }
+
+    return results;
   }
 
   async getEnhancedPosts(username: string): Promise<{ posts: EnhancedPost[] }> {
+    const userId = this.getUserId();
+    
+    if (!userId) {
+      throw new Error('Authentication required. Please connect your Telegram account first.');
+    }
+
     try {
       const channelData = await this.scanChannel(username);
       
@@ -232,19 +201,19 @@ class TelegramService {
         forwards: activity.forwards,
         channel_id: Math.floor(Math.random() * 1000000),
         channel_title: channelData.title,
-        sentiment_score: 0.5 + Math.random() * 0.5,
-        engagement_rate: channelData.member_count > 0 ? (activity.forwards / channelData.member_count) * 100 : 0,
+        engagement_rate: activity.views > 0 ? (activity.forwards / activity.views) * 100 : 0,
+        sentiment_score: 0.5, // Placeholder - would need AI analysis
         volume_data: {
-          volume: Math.floor(Math.random() * 1000000) + 100000,
-          price: Math.random() * 100,
+          volume: activity.views * 10, // Placeholder calculation
+          price: Math.random() * 100, // Placeholder price
           timestamp: activity.date
         }
       }));
 
       return { posts };
     } catch (error) {
-      console.error('Enhanced posts fetch failed:', error);
-      throw error;
+      console.error('Failed to get enhanced posts:', error);
+      throw error; // Don't fallback to mock data
     }
   }
 

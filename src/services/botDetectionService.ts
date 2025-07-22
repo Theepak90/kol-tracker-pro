@@ -83,117 +83,66 @@ export interface BotDetectionStats {
 }
 
 class BotDetectionService {
-  private getUserId(): string | null {
-    // Get user ID from TelegramAuth context or localStorage
-    const user = localStorage.getItem('telegram_user');
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        return userData.id || userData.user_id;
-      } catch {
-        return null;
-      }
-    }
-    return null;
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = API_BASE_URL;
   }
 
   async analyzeUser(username: string): Promise<BotDetectionResult> {
     try {
-      const userId = this.getUserId();
-      const cleanUsername = username.replace('@', '').replace('https://t.me/', '');
-      const url = new URL(`${API_BASE_URL}/api/bot-detection/analyze/${cleanUsername}`);
-      
-      if (userId) {
-        url.searchParams.append('user_id', userId);
-      }
-
-      console.log('🔍 Analyzing user:', cleanUsername, 'with userId:', userId);
-
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${this.baseUrl}/api/bot-detection/user/${username}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(30000)
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Bot detection response:', data);
-        
-        // Transform the response to ensure compatibility
-        const result = this.transformToStandardFormat(data, cleanUsername);
-        return result;
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Bot detection failed:', errorText);
-        throw new Error(`Failed to analyze user: ${errorText}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return this.transformToStandardFormat(data);
     } catch (error) {
-      console.error('🚨 Bot detection error:', error);
-      // Fallback to mock analysis if real service fails
-      const mockResult = this.getMockAnalysis(username);
-      console.log('📝 Using mock analysis for:', username);
-      return mockResult;
+      console.error('Bot detection service error:', error);
+      throw new Error(`Failed to analyze user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async analyzeChannel(channelUrl: string): Promise<BotDetectionResult> {
     try {
-      // Extract channel identifier from URL
-      let channelId = channelUrl.trim();
-      if (channelId.includes('t.me/')) {
-        channelId = channelId.split('t.me/')[1];
-      }
-      if (channelId.startsWith('@')) {
-        channelId = channelId.substring(1);
+      const username = this.extractUsername(channelUrl);
+      if (!username) {
+        throw new Error('Invalid channel URL');
       }
 
-      const userId = this.getUserId();
-      const url = new URL(`${API_BASE_URL}/api/bot-detection/analyze-channel/${channelId}`);
-      
-      if (userId) {
-        url.searchParams.append('user_id', userId);
-      }
-
-      console.log('🔍 Analyzing channel:', channelId, 'with userId:', userId);
-
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${this.baseUrl}/api/bot-detection/channel/${username}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(30000)
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Channel bot detection response:', data);
-        
-        // Transform the response to ensure compatibility
-        const result = this.transformToStandardFormat(data, channelId);
-        return result;
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Channel bot detection failed:', errorText);
-        throw new Error(`Failed to analyze channel: ${errorText}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return this.transformToStandardFormat(data);
     } catch (error) {
-      console.error('🚨 Channel bot detection error:', error);
-      // Fallback to mock analysis if real service fails
-      const mockResult = this.getMockChannelAnalysis(channelUrl);
-      console.log('📝 Using mock channel analysis for:', channelUrl);
-      return mockResult;
+      console.error('Channel analysis service error:', error);
+      throw new Error(`Failed to analyze channel: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private transformToStandardFormat(data: any, identifier: string): BotDetectionResult {
+  private transformToStandardFormat(data: any): BotDetectionResult {
     console.log('🔄 Transforming data:', data);
     
     // Handle both new structured format and legacy format
     const result: BotDetectionResult = {
-      username: data.username || identifier,
-      displayName: data.displayName || data.first_name || data.title || identifier,
+      username: data.username || data.user_id || data.channel_id,
+      displayName: data.displayName || data.first_name || data.title || data.username,
       isBot: data.isBot || data.is_bot || false,
       confidence: data.confidence || (data.bot_probability ? Math.round(data.bot_probability * 100) : 0),
       status: this.determineStatus(data),
@@ -204,7 +153,7 @@ class BotDetectionService {
         bioLength: data.bio ? data.bio.length : 0,
         hasVerifiedBadge: data.is_verified || false,
         accountAge: data.accountAge || Math.floor(Math.random() * 1000),
-        usernamePattern: this.analyzeUsernamePattern(identifier),
+        usernamePattern: this.analyzeUsernamePattern(data.username || data.user_id || data.channel_id),
       },
       
       activityAnalysis: data.activityAnalysis || {
@@ -234,7 +183,7 @@ class BotDetectionService {
       },
       
       aiAnalysis: data.aiAnalysis || {
-        overview: data.overview || this.generateOverview(data, identifier),
+        overview: data.overview || this.generateOverview(data, data.username || data.user_id || data.channel_id),
         keyIndicators: data.analysis_factors || data.keyIndicators || [],
         riskFactors: data.riskFactors || [],
         recommendations: data.recommendations || this.generateRecommendations(data),
@@ -252,14 +201,14 @@ class BotDetectionService {
       is_verified: data.is_verified || false,
       is_scam: data.is_scam || false,
       is_fake: data.is_fake || false,
-      first_name: data.first_name || data.displayName || identifier,
+      first_name: data.first_name || data.displayName || data.username,
       last_name: data.last_name || '',
       phone: data.phone || '',
       bio: data.bio || '',
       common_chats_count: data.common_chats_count || 0,
       bot_probability: data.bot_probability || (data.confidence / 100) || 0,
       analysis_factors: data.analysis_factors || [],
-      profile_picture: data.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(identifier)}&background=random`,
+      profile_picture: data.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username || data.user_id || data.channel_id)}&background=random`,
       last_seen: data.last_seen || 'Unknown',
       join_date: data.join_date || this.generateJoinDate(),
       confidence_score: data.confidence_score || data.confidence || 0
@@ -267,7 +216,7 @@ class BotDetectionService {
 
     console.log('✅ Transformed result:', result);
     return result;
-  }
+    }
 
   private determineStatus(data: any): 'confirmed_bot' | 'suspicious' | 'human' | 'unknown' {
     if (data.status) return data.status;
@@ -345,304 +294,19 @@ class BotDetectionService {
     return recommendations;
   }
 
-  private calculateChannelBotProbability(data: any): number {
-    let probability = 0.1; // Base probability for channels
-
-    // Channels marked as scam or fake are highly suspicious
-    if (data.scam) probability += 0.7;
-    if (data.fake) probability += 0.6;
-    
-    // Very new channels with high member count are suspicious
-    if (data.member_count > 10000 && data.created_date) {
-      const createdDate = new Date(data.created_date);
-      const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceCreation < 30) {
-        probability += 0.4;
-      }
+  private extractUsername(channelUrl: string): string | null {
+    if (channelUrl.includes('t.me/')) {
+      return channelUrl.split('t.me/')[1];
+    } else if (channelUrl.startsWith('@')) {
+      return channelUrl.substring(1);
     }
-
-    // No description or very short description
-    if (!data.description || data.description.length < 20) {
-      probability += 0.2;
-    }
-
-    // High bot count in channel
-    if (data.bot_count && data.member_count) {
-      const botRatio = data.bot_count / data.member_count;
-      if (botRatio > 0.3) probability += 0.3;
-    }
-
-    return Math.min(probability, 1.0);
-  }
-
-  private generateChannelAnalysisFactors(data: any): string[] {
-    const factors = [];
-
-    if (data.scam) factors.push('Marked as scam by Telegram');
-    if (data.fake) factors.push('Marked as fake by Telegram');
-    if (data.verified) factors.push('Verified by Telegram');
-    
-    if (data.member_count > 50000) {
-      factors.push('Large channel with high member count');
-    } else if (data.member_count < 100) {
-      factors.push('Small channel with low member count');
-    }
-
-    if (!data.description || data.description.length < 20) {
-      factors.push('Missing or minimal channel description');
-    }
-
-    if (data.bot_count && data.member_count) {
-      const botRatio = data.bot_count / data.member_count;
-      if (botRatio > 0.3) {
-        factors.push('High ratio of bots to real members');
-      }
-    }
-
-    if (data.kol_count && data.kol_count > 0) {
-      factors.push(`Contains ${data.kol_count} identified KOLs`);
-    }
-
-    return factors;
-  }
-
-  private calculateChannelConfidenceScore(data: any): number {
-    let score = 0.5; // Base confidence
-    
-    if (data.verified) score += 0.4;
-    if (data.scam) score += 0.4;
-    if (data.fake) score += 0.4;
-    if (data.description && data.description.length > 50) score += 0.2;
-    if (data.member_count > 1000) score += 0.1;
-    if (data.kol_count > 0) score += 0.1;
-    
-    return Math.min(score, 1.0);
-  }
-
-  private getMockChannelAnalysis(channelUrl: string): BotDetectionResult {
-    const channelId = channelUrl.split('/').pop() || channelUrl.replace('@', '');
-    const randomFactor = channelId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
-    const isScam = (randomFactor % 20) < 1; // 5% chance of being scam
-    const isFake = (randomFactor % 25) < 1; // 4% chance of being fake
-    const isVerified = (randomFactor % 15) === 0; // ~7% chance of being verified
-    
-    const factors = [];
-    if (isScam) factors.push('Marked as scam by Telegram');
-    if (isFake) factors.push('Marked as fake by Telegram');
-    if (isVerified) factors.push('Verified by Telegram');
-    if (channelId.length < 5) factors.push('Very short channel name');
-    if (randomFactor % 3 === 0) factors.push('Limited channel information');
-
-    const botProbability = isScam || isFake ? 0.8 + Math.random() * 0.2 : Math.random() * 0.3;
-    const confidence = Math.round(botProbability * 100);
-
-    return {
-      username: channelId,
-      displayName: `Channel ${channelId}`,
-      isBot: false, // Channels aren't bots
-      confidence: confidence,
-      status: isScam || isFake ? 'confirmed_bot' : confidence > 50 ? 'suspicious' : 'human',
-      detectionDate: new Date().toISOString(),
-      
-      profileAnalysis: {
-        hasProfilePhoto: true,
-        bioLength: 50,
-        hasVerifiedBadge: isVerified,
-        accountAge: Math.floor(Math.random() * 1000),
-        usernamePattern: this.analyzeUsernamePattern(channelId),
-      },
-      
-      activityAnalysis: {
-        messageCount: Math.floor(Math.random() * 1000),
-        avgMessagesPerDay: Math.random() * 20,
-        lastSeenDays: 0,
-        activityPattern: 'regular',
-        timeZoneConsistency: Math.random() * 100,
-        responseTimePattern: 'human',
-      },
-      
-      contentAnalysis: {
-        spamScore: Math.random() * 100,
-        duplicateContentRatio: Math.random() * 50,
-        linkSpamRatio: Math.random() * 30,
-        languageConsistency: Math.random() * 100,
-        sentimentVariation: Math.random() * 100,
-        topicDiversity: Math.random() * 100,
-      },
-      
-      networkAnalysis: {
-        mutualConnections: Math.floor(Math.random() * 100),
-        suspiciousConnections: Math.floor(Math.random() * 10),
-        networkCentrality: Math.random() * 100,
-        clusteringCoefficient: Math.random() * 100,
-        connectionPattern: 'organic',
-      },
-      
-      aiAnalysis: {
-        overview: `Demo analysis for channel ${channelId}. ${isScam || isFake ? 'Suspicious channel detected.' : 'Channel appears normal.'}`,
-        keyIndicators: factors,
-        riskFactors: isScam || isFake ? ['Marked as harmful by Telegram'] : [],
-        recommendations: isScam || isFake ? ['Exercise extreme caution', 'Report if necessary'] : ['Continue normal monitoring'],
-      },
-      
-      metrics: {
-        followers: Math.floor(Math.random() * 50000),
-        following: 0,
-        posts: Math.floor(Math.random() * 500),
-        engagement: Math.random() * 10,
-      },
-
-      // Legacy fields for backward compatibility
-      is_bot: false,
-      is_verified: isVerified,
-      is_scam: isScam,
-      is_fake: isFake,
-      first_name: `Channel ${channelId}`,
-      last_name: '',
-      phone: '',
-      bio: `Telegram channel - real analysis unavailable in demo mode`,
-      common_chats_count: 0,
-      bot_probability: botProbability,
-      analysis_factors: factors,
-      confidence_score: confidence,
-      profile_picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(channelId)}&background=random`,
-      last_seen: 'Channel',
-      join_date: this.generateJoinDate()
-    };
-  }
-
-  private calculateConfidenceScore(data: any): number {
-    let score = 0.5; // Base confidence
-    
-    if (data.is_verified) score += 0.3;
-    if (data.is_scam) score += 0.4;
-    if (data.is_fake) score += 0.4;
-    if (data.is_bot) score += 0.5;
-    if (data.first_name && data.last_name) score += 0.1;
-    if (data.bio) score += 0.1;
-    if (data.phone) score += 0.2;
-    
-    return Math.min(score, 1.0);
-  }
-
-  private generateLastSeen(): string {
-    const randomHours = Math.floor(Math.random() * 72); // 0-72 hours ago
-    const lastSeen = new Date(Date.now() - randomHours * 60 * 60 * 1000);
-    
-    if (randomHours < 1) {
-      return 'Recently';
-    } else if (randomHours < 24) {
-      return `${randomHours}h ago`;
-    } else {
-      const days = Math.floor(randomHours / 24);
-      return `${days}d ago`;
-    }
+    return null;
   }
 
   private generateJoinDate(): string {
     const randomDays = Math.floor(Math.random() * 365 * 3); // 0-3 years ago
     const joinDate = new Date(Date.now() - randomDays * 24 * 60 * 60 * 1000);
     return joinDate.toLocaleDateString();
-  }
-
-  private getMockAnalysis(username: string): BotDetectionResult {
-    const randomFactor = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const isBot = (randomFactor % 10) < 3; // 30% chance of being a bot
-    const isVerified = (randomFactor % 10) > 8; // 10% chance of being verified
-    const isScam = !isBot && (randomFactor % 20) < 1; // 5% chance of being scam
-    
-    const botFactors = [];
-    if (isBot) botFactors.push('Marked as bot by Telegram');
-    if (isScam) botFactors.push('Marked as scam account');
-    if (!username.includes('_') && username.length < 6) botFactors.push('Short username without underscore');
-    if (randomFactor % 3 === 0) botFactors.push('Limited profile information');
-
-    const botProbability = isBot ? 0.8 + Math.random() * 0.2 : Math.random() * 0.3;
-    const confidence = Math.round(botProbability * 100);
-
-    return {
-      username: username,
-      displayName: this.generateName(username),
-      isBot: isBot,
-      confidence: confidence,
-      status: isBot || isScam ? 'confirmed_bot' : confidence > 50 ? 'suspicious' : 'human',
-      detectionDate: new Date().toISOString(),
-      
-      profileAnalysis: {
-        hasProfilePhoto: !isBot,
-        bioLength: isBot ? 0 : 50,
-        hasVerifiedBadge: isVerified,
-        accountAge: Math.floor(Math.random() * 1000),
-        usernamePattern: this.analyzeUsernamePattern(username),
-      },
-      
-      activityAnalysis: {
-        messageCount: Math.floor(Math.random() * 1000),
-        avgMessagesPerDay: Math.random() * 20,
-        lastSeenDays: this.parseLastSeen(this.generateLastSeen()),
-        activityPattern: isBot ? 'suspicious' : 'regular',
-        timeZoneConsistency: isBot ? 30 : Math.random() * 100,
-        responseTimePattern: isBot ? 'automated' : 'human',
-      },
-      
-      contentAnalysis: {
-        spamScore: isBot ? 80 + Math.random() * 20 : Math.random() * 40,
-        duplicateContentRatio: isBot ? 60 + Math.random() * 40 : Math.random() * 30,
-        linkSpamRatio: isBot ? 50 + Math.random() * 50 : Math.random() * 20,
-        languageConsistency: isBot ? 30 : 70 + Math.random() * 30,
-        sentimentVariation: isBot ? 20 : 50 + Math.random() * 50,
-        topicDiversity: isBot ? 20 : 60 + Math.random() * 40,
-      },
-      
-      networkAnalysis: {
-        mutualConnections: Math.floor(Math.random() * 50),
-        suspiciousConnections: isBot ? Math.floor(Math.random() * 20) : Math.floor(Math.random() * 5),
-        networkCentrality: isBot ? Math.random() * 40 : 40 + Math.random() * 60,
-        clusteringCoefficient: isBot ? Math.random() * 30 : 50 + Math.random() * 50,
-        connectionPattern: isBot ? 'artificial' : 'organic',
-      },
-      
-      aiAnalysis: {
-        overview: `Demo analysis for ${username}. ${isBot ? 'Bot behavior detected.' : 'Human behavior patterns observed.'}`,
-        keyIndicators: botFactors,
-        riskFactors: isBot || isScam ? ['Automated behavior', 'Suspicious patterns'] : [],
-        recommendations: isBot ? ['Monitor closely', 'Consider blocking'] : ['Continue normal monitoring'],
-      },
-      
-      metrics: {
-        followers: Math.floor(Math.random() * 10000),
-        following: Math.floor(Math.random() * 1000),
-        posts: Math.floor(Math.random() * 500),
-        engagement: Math.random() * 10,
-      },
-
-      // Legacy fields for backward compatibility
-      is_bot: isBot,
-      is_verified: isVerified,
-      is_scam: isScam,
-      is_fake: false,
-      first_name: this.generateName(username),
-      last_name: Math.random() > 0.5 ? this.generateName(username, true) : '',
-      phone: isBot ? '' : '+1***HIDDEN***',
-      bio: isBot ? '' : 'Telegram user - real analysis unavailable in demo mode',
-      common_chats_count: Math.floor(Math.random() * 10),
-      bot_probability: botProbability,
-      analysis_factors: botFactors,
-      confidence_score: confidence,
-      profile_picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`,
-      last_seen: this.generateLastSeen(),
-      join_date: this.generateJoinDate()
-    };
-  }
-
-  private generateName(username: string, isLast = false): string {
-    const firstNames = ['Alex', 'Jordan', 'Taylor', 'Casey', 'Morgan', 'Riley'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia'];
-    
-    const names = isLast ? lastNames : firstNames;
-    const index = username.charCodeAt(0) % names.length;
-    return names[index];
   }
 
   calculateStats(results: BotDetectionResult[]): BotDetectionStats {
@@ -684,12 +348,21 @@ class BotDetectionService {
   }
 
   // Authentication helpers
-  isAuthenticated(): boolean {
-    const user = localStorage.getItem('telegram_user');
-    return !!user;
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/bot-detection/auth-status`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.authenticated;
+      }
+      return false; // Assume not authenticated if can't check
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      return false;
+    }
   }
 
-  requiresAuthentication(username: string): boolean {
+  async requiresAuthentication(username: string): Promise<boolean> {
     // Some usernames might not require authentication (public bots, etc.)
     return !username.endsWith('bot') && !username.startsWith('telegram');
   }

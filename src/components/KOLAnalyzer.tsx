@@ -250,7 +250,7 @@ export default function KOLAnalyzer() {
       setTelegramStatus({
         connected: status.connected,
         lastCheck: new Date().toISOString(),
-        uptime: status.uptime
+        uptime: Number(status.uptime) || 0
       });
       
       // Only show error if we haven't shown demo mode message
@@ -276,37 +276,37 @@ export default function KOLAnalyzer() {
       setLoading(true);
       setError(null);
       
-      // Use real Telethon data instead of MongoDB
+      // Use real Telethon data only - no fallbacks or demo data
       console.log('📊 Loading KOLs using real Telethon data...');
       const telegramChannels = await telegramService.getKOLChannels();
       
-      // Transform Telethon response to component format
+      // Transform Telethon response to component format with ONLY real data
       const transformedKOLs: KOL[] = telegramChannels.map((channel: any, index: number) => ({
         id: `channel_${channel.username || index}`,
         name: channel.title || channel.username,
         username: channel.username || `channel_${index}`,
         description: channel.description || 'Real data from Telegram',
-        tags: ['crypto', 'trading', 'telegram'], // Default tags
+        tags: ['crypto', 'trading', 'telegram'],
         stats: {
           posts: channel.message_count || 0,
-          views: channel.recent_activity?.reduce((sum: number, msg: any) => sum + (msg.views || 0), 0) || 0,
-          forwards: channel.recent_activity?.reduce((sum: number, msg: any) => sum + (msg.forwards || 0), 0) || 0,
-          total_volume: Math.floor(Math.random() * 1000000), // Placeholder for volume
-          average_sentiment: Math.random() * 100,
-          peak_engagement: Math.floor(Math.random() * 10000),
+          views: channel.recent_activity?.reduce((sum: number, msg: any) => sum + (Number(msg.views) || 0), 0) || 0,
+          forwards: channel.recent_activity?.reduce((sum: number, msg: any) => sum + (Number(msg.forwards) || 0), 0) || 0,
+          total_volume: 0, // Real volume data would come from additional analysis
+          average_sentiment: 0, // Would require sentiment analysis
+          peak_engagement: channel.recent_activity?.reduce((max: number, msg: any) => Math.max(max, Number(msg.views) || 0), 0) || 0,
           advanced: {
-            avg_posting_time: "12:00",
-            most_active_day: "Monday",
-            hashtag_usage: Math.floor(Math.random() * 50),
-            link_sharing_frequency: Math.floor(Math.random() * 10),
-            reply_engagement: Math.floor(Math.random() * 100),
-            forward_ratio: Math.floor(Math.random() * 50),
+            avg_posting_time: "Unknown",
+            most_active_day: "Unknown", 
+            hashtag_usage: 0,
+            link_sharing_frequency: 0,
+            reply_engagement: 0,
+            forward_ratio: 0,
             unique_viewers: channel.member_count || 0,
-            subscriber_growth: Math.floor(Math.random() * 1000)
+            subscriber_growth: 0
           }
         },
         verification_status: channel.verified ? 'verified' as const : 'unverified' as const,
-        influence_score: Math.floor((channel.member_count || 0) / 100),
+        influence_score: Math.min(100, Math.floor((channel.member_count || 0) / 1000)),
         last_activity: channel.recent_activity?.[0]?.date || new Date().toISOString(),
         channel_info: {
           id: index,
@@ -327,12 +327,18 @@ export default function KOLAnalyzer() {
       
       // Filter out any deleted KOLs
       const filteredKOLs = transformedKOLs.filter(kol => !deletedKOLs.has(kol.username));
+      
+      if (filteredKOLs.length === 0) {
+        throw new Error('No valid KOL data received from Telegram');
+      }
+      
       setKols(filteredKOLs);
+      console.log(`✅ Loaded ${filteredKOLs.length} real KOLs from Telegram`);
       
     } catch (err) {
       console.error('Failed to load KOLs:', err);
-      setError(`❌ Failed to load KOLs: ${err instanceof Error ? err.message : 'Unknown error'}. Please ensure the backend service is running.`);
-      setKols([]); // Set empty array instead of demo data
+      setError(`❌ Failed to load KOLs: ${err instanceof Error ? err.message : 'Unknown error'}. Please ensure Telegram is connected and authenticated.`);
+      setKols([]);
     } finally {
       setLoading(false);
     }
@@ -606,31 +612,12 @@ export default function KOLAnalyzer() {
     setError(null);
     
     try {
-      let data;
-      if (telegramStatus.connected) {
-      // Use enhanced posts from telegram service
-        data = await telegramService.getEnhancedPosts(username);
-      } else {
-        // Use demo data when Telegram is disconnected
-        data = {
-          posts: Array.from({ length: 5 }).map((_, i) => ({
-            message_id: i + 1,
-            text: `Sample post ${i + 1} from ${username}. This is demo content showing what kind of analysis we can provide. #crypto #trading`,
-            date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-            views: Math.floor(1000 + Math.random() * 9000),
-            forwards: Math.floor(100 + Math.random() * 900),
-            channel_id: 123456,
-            channel_title: username,
-            sentiment_score: 0.5 + Math.random() * 0.5,
-            engagement_rate: 5 + Math.random() * 15,
-            volume_data: {
-              volume: Math.floor(100000 + Math.random() * 900000),
-              price: 0.1 + Math.random() * 0.9,
-              timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString()
-            }
-          }))
-        };
+      if (!telegramStatus.connected) {
+        throw new Error('Telegram service is not connected. Please connect your Telegram account first.');
       }
+      
+      // Use enhanced posts from telegram service only
+      const data = await telegramService.getEnhancedPosts(username);
       
       // Transform enhanced posts to our format
       const enhancedPostsData = Array.isArray(data.posts) ? data.posts.map((post: any) => ({
@@ -712,9 +699,15 @@ export default function KOLAnalyzer() {
     setAnalysisError(null);
     
     try {
-      let analysisResult: KOLAnalysisResult;
-      if (telegramStatus.connected) {
-        analysisResult = await aiAnalysisService.analyzeKOL(
+      if (!telegramStatus.connected) {
+        throw new Error('Telegram service is not connected. Please connect your Telegram account first.');
+      }
+      
+      if (posts.length === 0) {
+        throw new Error('No posts available for analysis. Please load posts first.');
+      }
+      
+      const analysisResult = await aiAnalysisService.analyzeKOL(
         selectedKOL.username,
         posts.map(post => ({
           message_id: parseInt(post.id.split('_')[1]),
@@ -726,117 +719,12 @@ export default function KOLAnalyzer() {
           channel_title: post.channel_title
         }))
       );
-      } else {
-        // Generate demo analysis when service is unavailable
-        const sentimentScore = posts.reduce((sum, post) => sum + (post.sentiment_score || 0.5), 0) / posts.length;
-        const engagementRate = posts.reduce((sum, post) => sum + (post.engagement_rate || 0), 0) / posts.length;
-        
-        analysisResult = {
-          overall_sentiment: {
-            label: sentimentScore > 0.6 ? 'positive' : sentimentScore < 0.4 ? 'negative' : 'neutral',
-            score: sentimentScore
-          },
-          engagement_metrics: {
-            average_views: Math.floor(posts.reduce((sum, post) => sum + post.views, 0) / posts.length),
-            average_forwards: Math.floor(posts.reduce((sum, post) => sum + post.forwards, 0) / posts.length),
-            engagement_rate: engagementRate,
-            viral_potential: engagementRate * 100
-          },
-          content_analysis: {
-            primary_topics: [
-              { label: 'Crypto', confidence: 0.85 },
-              { label: 'Trading', confidence: 0.75 },
-              { label: 'Market Analysis', confidence: 0.65 }
-            ],
-            sentiment_trend: 'improving',
-            posting_frequency: 3.5,
-            content_quality_score: 0.85
-          },
-          influence_metrics: {
-            overall_influence_score: 75 + Math.random() * 20,
-            market_impact_potential: 'high',
-            credibility_score: 80 + Math.random() * 15,
-            expertise_areas: ['Cryptocurrency', 'Trading', 'Market Analysis']
-          },
-          risk_assessment: {
-            overall_risk: 'medium',
-            risk_factors: [
-              'High volatility in engagement rates',
-              'Rapid growth in follower count'
-            ],
-            recommendations: [
-              'Monitor sentiment trends closely',
-              'Verify information from multiple sources'
-            ]
-          },
-          key_insights: [
-            'Shows consistent engagement with community',
-            'Strong focus on market analysis',
-            'Growing influence in the crypto space'
-          ],
-          performance_summary: {
-            growth_rate: 15.5,
-            consistency_score: 0.85,
-            trend: 'upward',
-            key_metrics: [
-              { name: 'Engagement Growth', value: '+25%' },
-              { name: 'Content Quality', value: '85/100' },
-              { name: 'Market Impact', value: 'High' }
-            ]
-          }
-        };
-      }
       
       setAnalysis(analysisResult);
       setActiveView('analysis');
     } catch (error) {
       console.error('Error performing AI analysis:', error);
-      setAnalysisError('Failed to perform analysis. Using demo data.');
-      
-      // Set demo analysis as fallback
-      setAnalysis({
-        overall_sentiment: {
-          label: 'positive',
-          score: 0.75
-        },
-        engagement_metrics: {
-          average_views: 5000,
-          average_forwards: 500,
-          engagement_rate: 8.5,
-          viral_potential: 85
-        },
-        content_analysis: {
-          primary_topics: [
-            { label: 'Crypto', confidence: 0.85 },
-            { label: 'Trading', confidence: 0.75 }
-          ],
-          sentiment_trend: 'stable',
-          posting_frequency: 2.5,
-          content_quality_score: 0.8
-        },
-        influence_metrics: {
-          overall_influence_score: 85,
-          market_impact_potential: 'medium',
-          credibility_score: 90,
-          expertise_areas: ['Cryptocurrency', 'Trading']
-        },
-        risk_assessment: {
-          overall_risk: 'low',
-          risk_factors: ['New account'],
-          recommendations: ['Monitor growth']
-        },
-        key_insights: ['Demo insights'],
-        performance_summary: {
-          growth_rate: 10.5,
-          consistency_score: 0.8,
-          trend: 'upward',
-          key_metrics: [
-            { name: 'Engagement Growth', value: '+15%' },
-            { name: 'Content Quality', value: '80/100' },
-            { name: 'Market Impact', value: 'Medium' }
-          ]
-        }
-      });
+      setAnalysisError(error instanceof Error ? error.message : 'Failed to perform analysis. Please ensure Telegram is connected and try again.');
     } finally {
       setAnalysisLoading(false);
     }

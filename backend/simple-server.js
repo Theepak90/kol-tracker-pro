@@ -575,11 +575,10 @@ app.get('/api/bot-detection/analyze/:username', async (req, res) => {
       }
     } catch (telethonError) {
       console.log('Telethon service not available for bot detection');
+      return res.status(503).json({ 
+        error: 'Bot detection service unavailable. Please ensure Telegram is connected and authenticated.' 
+      });
     }
-    
-    // Fallback to mock analysis
-    const mockResult = generateMockBotDetection(username, 'user');
-    return res.json(mockResult);
     
   } catch (error) {
     console.error('Error in bot detection:', error);
@@ -623,11 +622,10 @@ app.get('/api/bot-detection/analyze-channel/:channelId', async (req, res) => {
       }
     } catch (telethonError) {
       console.log('Telethon service not available for bot detection');
+      return res.status(503).json({ 
+        error: 'Bot detection service unavailable. Please ensure Telegram is connected and authenticated.' 
+      });
     }
-    
-    // Fallback to mock analysis
-    const mockResult = generateMockBotDetection(cleanChannelId, 'channel');
-    return res.json(mockResult);
     
   } catch (error) {
     console.error('Error in channel bot detection:', error);
@@ -1420,154 +1418,7 @@ function processBotDetectionAnalysis(telethonData, username, type) {
   };
 }
 
-function generateMockBotDetection(username, type) {
-  const randomFactor = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  
-  // Enhanced analysis patterns based on real bot detection techniques
-  const hasNumberPattern = /\d{3,}/.test(username);
-  const hasUnderscorePattern = username.includes('_');
-  const lengthSuspicious = username.length < 4 || username.length > 15;
-  const isKnownPattern = /^(bot|spam|fake|scam|promo)/i.test(username);
-  
-  // Calculate bot probability using multiple factors
-  let botScore = 0;
-  if (hasNumberPattern) botScore += 0.3;
-  if (!hasUnderscorePattern && hasNumberPattern) botScore += 0.2;
-  if (lengthSuspicious) botScore += 0.15;
-  if (isKnownPattern) botScore += 0.6;
-  
-  // Add randomness but keep it realistic
-  botScore += (randomFactor % 100) / 400; // 0-0.25 random factor
-  botScore = Math.min(botScore, 1.0);
-  
-  const isBot = botScore > 0.6;
-  const isScam = botScore > 0.8 || /^(scam|fake|phish)/i.test(username);
-  const isVerified = !isBot && (randomFactor % 25) === 0 && username.length > 6; // 4% chance for longer, non-bot usernames
-  
-  // Sophisticated factor analysis
-  const factors = [];
-  const riskFactors = [];
-  
-  if (hasNumberPattern) factors.push('Username contains numeric sequences');
-  if (isKnownPattern) riskFactors.push('Username matches known bot patterns');
-  if (lengthSuspicious) factors.push('Unusual username length detected');
-  if (isBot) factors.push('Behavioral patterns consistent with automation');
-  if (isScam) riskFactors.push('Exhibits characteristics of malicious account');
-  if (isVerified) factors.push('Verified account with good standing');
-  if (!hasUnderscorePattern && username.length < 8) factors.push('Simple username structure');
-  
-  // Content-based risk assessment
-  if (botScore > 0.4) riskFactors.push('Elevated automation risk score');
-  if (botScore > 0.7) riskFactors.push('High-confidence bot detection');
-  
-  const confidence = Math.round(botScore * 100);
-  
-  let status;
-  if (confidence >= 75) status = 'confirmed_bot';
-  else if (confidence >= 45) status = 'suspicious';  
-  else if (confidence <= 25) status = 'human';
-  else status = 'unknown';
-
-  // Generate realistic metrics based on bot probability
-  const baseActivity = isBot ? 50 + Math.random() * 200 : 20 + Math.random() * 80;
-  const messageCount = Math.floor(baseActivity * (isBot ? 10 : 3));
-  const followers = isBot ? 
-    Math.floor(Math.random() * 5000) : // Bots often have low, artificial followers
-    Math.floor(Math.random() * 50000 + 100);
-  
-  return {
-    username: username,
-    displayName: type === 'channel' ? `${username}` : username,
-    isBot: isBot,
-    confidence: confidence,
-    status,
-    detectionDate: new Date().toISOString(),
-    
-    profileAnalysis: {
-      hasProfilePhoto: isBot ? Math.random() > 0.7 : Math.random() > 0.2,
-      bioLength: isBot ? Math.floor(Math.random() * 50) : Math.floor(Math.random() * 200 + 20),
-      hasVerifiedBadge: isVerified,
-      accountAge: isBot ? Math.floor(Math.random() * 100 + 10) : Math.floor(Math.random() * 1000 + 50),
-      usernamePattern: hasNumberPattern ? (isKnownPattern ? 'suspicious' : 'generated') : 'normal',
-    },
-    
-    activityAnalysis: {
-      messageCount: messageCount,
-      avgMessagesPerDay: Math.round((messageCount / Math.max(1, Math.floor(Math.random() * 365))) * 10) / 10,
-      lastSeenDays: isBot ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * 30),
-      activityPattern: isBot ? (botScore > 0.8 ? 'burst' : 'suspicious') : 'regular',
-      timeZoneConsistency: isBot ? 15 + Math.random() * 40 : 65 + Math.random() * 35,
-      responseTimePattern: isBot ? 'automated' : 'human',
-    },
-    
-    contentAnalysis: {
-      spamScore: isBot ? 60 + Math.random() * 40 : Math.random() * 35,
-      duplicateContentRatio: isBot ? 45 + Math.random() * 50 : Math.random() * 25,
-      linkSpamRatio: isBot ? 30 + Math.random() * 60 : Math.random() * 25,
-      languageConsistency: isBot ? 30 + Math.random() * 40 : 70 + Math.random() * 30,
-      sentimentVariation: isBot ? 10 + Math.random() * 30 : 35 + Math.random() * 50,
-      topicDiversity: isBot ? Math.random() * 35 : 45 + Math.random() * 50,
-    },
-    
-    networkAnalysis: {
-      mutualConnections: isBot ? Math.floor(Math.random() * 20) : Math.floor(Math.random() * 150),
-      suspiciousConnections: isBot ? Math.floor(Math.random() * 80) : Math.floor(Math.random() * 10),
-      networkCentrality: isBot ? Math.random() * 40 : 40 + Math.random() * 60,
-      clusteringCoefficient: isBot ? Math.random() * 45 : 45 + Math.random() * 55,
-      connectionPattern: isBot ? 'artificial' : 'organic',
-    },
-    
-    aiAnalysis: {
-      overview: generateAdvancedOverview(username, status, confidence, isBot, type, factors),
-      keyIndicators: factors,
-      riskFactors: riskFactors,
-      recommendations: generateSmartRecommendations(status, isBot, isScam, botScore, type),
-    },
-    
-    metrics: {
-      followers: followers,
-      following: isBot ? Math.floor(Math.random() * 200) : Math.floor(Math.random() * 1500),
-      posts: Math.floor(messageCount * 0.3),
-      engagement: isBot ? Math.random() * 2 : 1 + Math.random() * 8,
-    }
-  };
-}
-
-function generateAdvancedOverview(username, status, confidence, isBot, type, factors) {
-  const accountType = type === 'channel' ? 'channel' : 'account';
-  
-  if (status === 'confirmed_bot') {
-    return `Advanced behavioral analysis indicates this ${accountType} (@${username}) exhibits automated characteristics with ${confidence}% confidence. Multiple algorithmic patterns detected including irregular posting schedules, repetitive content structures, and artificial engagement metrics. Network analysis reveals connections to known bot clusters.`;
-  } else if (status === 'suspicious') {
-    return `Moderate-confidence analysis suggests this ${accountType} (@${username}) displays some automated behaviors (${confidence}% confidence). While not definitively classified as a bot, several indicators warrant continued monitoring including ${factors.length} behavioral flags and anomalous activity patterns.`;
-  } else if (status === 'human') {
-    return `Comprehensive analysis indicates this ${accountType} (@${username}) demonstrates authentic human behavior patterns with ${100-confidence}% confidence. Natural engagement patterns, consistent communication style, and organic network connections support human classification. Monitoring shows normal activity variations.`;
-  } else {
-    return `Analysis of ${accountType} (@${username}) yields mixed signals requiring further observation. Current confidence level: ${confidence}%. Additional data collection recommended to improve classification accuracy. Preliminary indicators show ${factors.length} behavioral markers.`;
-  }
-}
-
-function generateSmartRecommendations(status, isBot, isScam, botScore, type) {
-  const recommendations = [];
-  
-  if (status === 'confirmed_bot') {
-    recommendations.push('Implement immediate automated monitoring');
-    recommendations.push('Review account creation patterns and metadata');
-    recommendations.push('Cross-reference with known bot network databases');
-    if (isScam) recommendations.push('Consider security restrictions and user warnings');
-  } else if (status === 'suspicious') {
-    recommendations.push('Enable enhanced monitoring for unusual activity');
-    recommendations.push('Analyze posting frequency and content patterns');
-    recommendations.push('Monitor for coordinated behavior with similar accounts');
-    if (botScore > 0.5) recommendations.push('Flag for manual review within 48 hours');
-  } else {
-    recommendations.push('Maintain standard monitoring protocols');
-    recommendations.push('Continue periodic behavioral assessment');
-    if (type === 'channel') recommendations.push('Monitor channel growth patterns for authenticity');
-  }
-  
-  return recommendations;
-}
+// Removed all mock data generation functions - only real data from Telethon is used
 
 function generateAIOverview(status, activityRatio, botRatio, memberCount, type, description) {
   if (status === 'confirmed_bot') {
