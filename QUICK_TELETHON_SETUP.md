@@ -20,7 +20,7 @@ The service will start on **http://localhost:8000**
 ### Step 2: Test Authentication
 1. Go to your app: `https://kol-tracker-pro.vercel.app`
 2. Click **"Connect Telegram"**
-3. Enter your real phone number: `+919363348338`
+3. Enter your real phone number: `+1234567890` (use your actual number)
 4. **Check your phone** for the real Telegram OTP code
 5. Enter the code and verify ✅
 

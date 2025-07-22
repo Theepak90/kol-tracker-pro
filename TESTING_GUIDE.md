@@ -7,7 +7,7 @@ I've resolved the authentication errors you were experiencing. The app now works
 ### 🎯 **Mode 1: Demo Mode** (Available Now)
 When the Python Telethon service isn't running, the app automatically falls back to demo mode:
 
-1. **Enter your phone number**: `+919363348338` (or any valid format)
+1. **Enter your phone number**: `+1234567890` (or any valid format)
 2. **Demo OTP will be displayed**: The app shows you a 5-digit code
 3. **Enter the displayed code**: Copy the demo code and verify
 4. **Authentication succeeds**: You get access to all features
@@ -27,7 +27,7 @@ When you deploy the Python Telethon service, the app uses real Telegram authenti
 ### Step 1: Test Demo Mode (Works Immediately)
 1. Go to your deployed app: `https://kol-tracker-pro.vercel.app`
 2. Click **"Connect Telegram"** 
-3. Enter phone: `+919363348338` (or any number with country code)
+3. Enter phone: `+1234567890` (or any number with country code)
 4. Click **"Send Code"**
 5. **Look for the yellow box** showing "Demo Mode" with a 5-digit code
 6. **Copy that code** and enter it in the verification field
