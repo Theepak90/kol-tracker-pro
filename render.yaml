@@ -25,7 +25,7 @@ services:
           name: kol-tracker-telethon
           property: host
       - key: CORS_ORIGIN
-        value: https://kol-tracker-frontend.onrender.com,https://kolopz.com,https://www.kolopz.com
+        value: https://kolopz.com,https://www.kolopz.com,https://api.kolopz.com,https://telethon.kolopz.com
       - key: KEEP_ALIVE
         value: "true"
       - key: HEALTH_CHECK_INTERVAL
@@ -34,6 +34,8 @@ services:
         value: "true"
     healthCheckPath: /api/health
     autoDeploy: true
+    domains:
+      - api.kolopz.com
 
   # Telethon Service - Always Running
   - type: web
@@ -76,6 +78,8 @@ services:
         value: "true"
     healthCheckPath: /health
     autoDeploy: true
+    domains:
+      - telethon.kolopz.com
     disk:
       name: telethon-sessions
       mountPath: /opt/render/project/backend/telethon_service/sessions
@@ -94,22 +98,16 @@ services:
       - key: NODE_ENV
         value: production
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: kol-tracker-backend
-          property: host
+        value: https://api.kolopz.com
       - key: VITE_TELETHON_SERVICE_URL
-        fromService:
-          type: web
-          name: kol-tracker-telethon
-          property: host
+        value: https://telethon.kolopz.com
       - key: VITE_WS_ENDPOINT
-        fromService:
-          type: web
-          name: kol-tracker-backend
-          property: host
+        value: wss://api.kolopz.com
     healthCheckPath: /
     autoDeploy: true
+    domains:
+      - kolopz.com
+      - www.kolopz.com
 
 # Redis for session management and caching (Optional but recommended)
 databases:

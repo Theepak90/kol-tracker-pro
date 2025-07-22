@@ -1,0 +1,126 @@
+# ==========================================
+# KOLOPZ.COM PRODUCTION ENVIRONMENT VARIABLES
+# ==========================================
+# Use these environment variables for production deployment on Render
+# with custom domain kolopz.com
+
+# ==========================================
+# BACKEND SERVICE ENVIRONMENT VARIABLES
+# Service: kol-tracker-backend
+# Domain: api.kolopz.com
+# ==========================================
+
+NODE_ENV=production
+PORT=10000
+
+# MongoDB Atlas Configuration
+MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
+MONGODB_DB=kol-tracker-pro
+
+# Security Configuration
+JWT_SECRET=5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
+
+# Production CORS Configuration
+CORS_ORIGIN=https://kolopz.com,https://www.kolopz.com,https://api.kolopz.com,https://telethon.kolopz.com
+
+# Telethon Service Configuration
+TELETHON_URL=https://telethon.kolopz.com
+
+# Always-On Configuration
+KEEP_ALIVE=true
+HEALTH_CHECK_INTERVAL=300000
+RESTART_ON_FAILURE=true
+
+# Logging Configuration
+LOG_LEVEL=info
+DEBUG=false
+
+# ==========================================
+# TELETHON SERVICE ENVIRONMENT VARIABLES
+# Service: kol-tracker-telethon
+# Domain: telethon.kolopz.com
+# ==========================================
+
+API_ID=28152923
+API_HASH=766760d2838474a5e6dd734d785aa7ad
+SESSION_NAME=telegram_session
+MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
+MONGODB_DB=kol-tracker-pro
+PORT=10000
+PYTHON_VERSION=3.11.0
+ENVIRONMENT=production
+
+# Backend Service URL
+BACKEND_URL=https://api.kolopz.com
+
+# Always-On Configuration
+KEEP_ALIVE=true
+HEALTH_CHECK_INTERVAL=300000
+RESTART_ON_FAILURE=true
+
+# ==========================================
+# FRONTEND SERVICE ENVIRONMENT VARIABLES
+# Service: kol-tracker-frontend
+# Domain: kolopz.com, www.kolopz.com
+# ==========================================
+
+NODE_ENV=production
+
+# API Endpoints Configuration
+VITE_API_URL=https://api.kolopz.com
+VITE_TELETHON_SERVICE_URL=https://telethon.kolopz.com
+VITE_WS_ENDPOINT=wss://api.kolopz.com
+
+# ==========================================
+# RENDER DEPLOYMENT INSTRUCTIONS
+# ==========================================
+
+# 1. Go to https://dashboard.render.com
+# 2. Create new Blueprint deployment
+# 3. Connect your GitHub repository (Theepak90/kol-tracker-pro)
+# 4. Render will detect render.yaml automatically
+# 5. Services will be created with these configurations:
+#    - Backend: api.kolopz.com (Always-on with auto-restart)
+#    - Telethon: telethon.kolopz.com (Always-on with auto-restart)
+#    - Frontend: kolopz.com, www.kolopz.com (Static site with CDN)
+
+# ==========================================
+# DNS CONFIGURATION REQUIRED
+# ==========================================
+# Set up these CNAME records in your domain provider:
+
+# api.kolopz.com      CNAME  kol-tracker-backend.onrender.com
+# telethon.kolopz.com CNAME  kol-tracker-telethon.onrender.com
+# kolopz.com          CNAME  kol-tracker-frontend.onrender.com
+# www.kolopz.com      CNAME  kol-tracker-frontend.onrender.com
+
+# ==========================================
+# POST-DEPLOYMENT CHECKLIST
+# ==========================================
+
+# ✅ Health Check Endpoints:
+# - Backend: https://api.kolopz.com/api/health
+# - Telethon: https://telethon.kolopz.com/health
+# - Frontend: https://kolopz.com/
+
+# ✅ Features Verification:
+# - Always-on services (no sleeping)
+# - Auto-restart on failures
+# - Real Telegram data only
+# - MongoDB connection with fallback
+# - Session persistence
+# - Keep-alive pings every 14 minutes
+
+# ✅ Authentication Flow:
+# 1. Visit https://kolopz.com
+# 2. Connect Telegram account
+# 3. Enter OTP from Telegram
+# 4. Start using real KOL analysis
+
+# ==========================================
+# MONITORING & LOGS
+# ==========================================
+# - Render Dashboard: https://dashboard.render.com
+# - Real-time logs available for each service
+# - Health monitoring every 5 minutes
+# - Auto-restart on failure detection 
