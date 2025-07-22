@@ -30,55 +30,19 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Build backend with multiple fallback methods
-echo "🏗️ Building backend..."
+# Prepare backend for simple-server.js deployment
+echo "🏗️ Preparing backend (using simple-server.js approach)..."
 
-# Method 1: Try direct npm run build
-echo "🔄 Attempting Method 1: npm run build"
-npm run build
-if [ $? -eq 0 ]; then
-    echo "✅ Backend build completed with npm run build"
+# Check if simple-server.js exists
+if [ -f "simple-server.js" ]; then
+    echo "✅ Backend ready - using simple-server.js (no compilation needed)"
     cd ..
     echo "✅ Build completed successfully!"
-    echo "Backend built to: backend/dist/"
     echo "Frontend built to: dist/"
+    echo "Backend ready: backend/simple-server.js"
     exit 0
+else
+    echo "❌ simple-server.js not found in backend directory"
 fi
-
-# Method 2: Manual TypeScript compilation
-echo "🔄 Attempting Method 2: Manual TypeScript compilation"
-# Install TypeScript globally as fallback
-npm install -g typescript@latest
-
-# Use global TypeScript to compile
-npx tsc -p tsconfig.json --outDir dist
-if [ $? -eq 0 ]; then
-    echo "✅ Backend build completed with manual TypeScript compilation"
-    cd ..
-    echo "✅ Build completed successfully!"
-    echo "Backend built to: backend/dist/"
-    echo "Frontend built to: dist/"
-    exit 0
-fi
-
-# Method 3: Create dist directory and copy source with basic compilation
-echo "🔄 Attempting Method 3: Basic source preparation"
-mkdir -p dist
-# Copy package.json for runtime
-cp package.json dist/
-
-# Install and use ts-node for runtime compilation
-npm install ts-node --save
-if [ $? -eq 0 ]; then
-    echo "✅ Fallback preparation completed - will use ts-node for runtime"
-    cd ..
-    echo "✅ Build completed successfully!"
-    echo "Backend built to: backend/dist/"
-    echo "Frontend built to: dist/"
-    exit 0
-fi
-
-# If all methods fail
-echo "❌ All build methods failed"
 cd ..
 exit 1 
