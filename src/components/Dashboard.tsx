@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+  
+  const contractAddress = "C1ceXqRwzeeL3kUB5UJYYteRUBb4T6U65jqbrWnJbonk";
+  
+  const handleCopyCA = async () => {
+    try {
+      await navigator.clipboard.writeText(contractAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+  
   const stats = [
     { label: 'Active Trackers', value: '24', change: '+12%', icon: '📊' },
     { label: 'Total Volume', value: '$2.4M', change: '+8.2%', icon: '💰' },
@@ -76,6 +90,51 @@ const Dashboard: React.FC = () => {
               <button className="btn-ghost transform hover:scale-105 transition-transform duration-200">
                 Learn More
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contract Address Box */}
+      <div className="responsive-container py-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="card bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-cyan-600/20 border-2 border-blue-400/30 hover:border-blue-400/50 transition-all duration-300">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-center gap-2">
+                <span className="text-2xl">📄</span>
+                Contract Address (CA)
+              </h3>
+              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600/50">
+                <div className="flex items-center justify-between gap-4">
+                  <code className="text-blue-300 font-mono text-sm sm:text-base break-all">
+                    {contractAddress}
+                  </code>
+                  <button
+                    onClick={handleCopyCA}
+                    className="btn-primary flex-shrink-0 px-4 py-2 text-sm flex items-center gap-2 hover:scale-105 transform transition-all duration-200"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <p className="text-gray-400 text-sm mt-3">
+                Official KOLOPZ Contract Address - Always verify before transactions
+              </p>
             </div>
           </div>
         </div>
