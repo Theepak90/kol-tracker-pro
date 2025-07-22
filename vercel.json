@@ -1,18 +1,11 @@
 {
   "version": 2,
   "framework": "vite",
-  "buildCommand": "npm run build:all",
+  "buildCommand": "npm run build:frontend",
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
   "devCommand": "npm run dev",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./src/",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -44,11 +37,8 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "JWT_SECRET": "5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8",
-    "VITE_API_URL": "https://kol-tracker-pro.vercel.app",
-    "VITE_TELETHON_SERVICE_URL": "https://kol-tracker-pro.vercel.app",
-    "VITE_TELEGRAM_API_ID": "28152923",
-    "VITE_TELEGRAM_API_HASH": "766760d2838474a5e6dd734d785aa7ad",
-    "VITE_WS_ENDPOINT": "wss://kol-tracker-pro.vercel.app"
+    "VITE_API_URL": "https://api.kolopz.com",
+    "VITE_TELETHON_SERVICE_URL": "https://telethon.kolopz.com",
+    "VITE_WS_ENDPOINT": "wss://api.kolopz.com"
   }
 } 
