@@ -154,9 +154,9 @@ RESTART_ON_FAILURE=true
 - **Cross-Restart**: Authentication persists
 
 ### **Database Fallback**
-- **MongoDB Primary**: Full feature set
-- **In-Memory Fallback**: Basic functionality
-- **Auto-Recovery**: Reconnects when available
+- **PostgreSQL Primary**: Full feature set with ACID compliance
+- **In-Memory Fallback**: Basic functionality when database unavailable
+- **Auto-Recovery**: Reconnects automatically when available
 
 ---
 

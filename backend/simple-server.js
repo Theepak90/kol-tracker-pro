@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const http = require('http');
 const socketIo = require('socket.io');
-const { MongoClient } = require('mongodb');
+const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const path = require('path');
 
@@ -35,16 +35,16 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kol_tracker';
-let db;
+// PostgreSQL connection
+const DATABASE_URL = process.env.DATABASE_URL;
+let pool;
 
-// Improved MongoDB connection status tracking
-let mongoDBConnected = false;
+// Database connection status tracking
+let dbConnected = false;
 let connectionRetryCount = 0;
 const MAX_RETRY_ATTEMPTS = 10;
 
-// In-memory storage (for development without MongoDB)
+// In-memory storage fallback
 let users = [];
 let userIdCounter = 1;
 
@@ -166,12 +166,12 @@ app.get('/api/telegram-status', async (req, res) => {
 // Get all KOLs
 app.get('/api/kols', async (req, res) => {
   try {
-    if (db) {
-      const kols = await db.collection('kols').find({}).toArray();
-      res.json(kols);
+    if (pool) {
+      const result = await pool.query('SELECT * FROM kols ORDER BY created_at DESC');
+      res.json(result.rows);
     } else {
       // Return empty array when MongoDB is not available
-      console.log('📝 Returning empty KOLs list (MongoDB not connected)');
+      console.log('📝 Returning empty KOLs list (PostgreSQL not connected)');
       res.json([]);
     }
   } catch (error) {
@@ -185,16 +185,16 @@ app.get('/api/kols', async (req, res) => {
 app.get('/api/kols/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    if (db) {
-      const kol = await db.collection('kols').findOne({ telegramUsername: username });
-      if (kol) {
-        res.json(kol);
+    if (pool) {
+      const result = await pool.query('SELECT * FROM kols WHERE telegram_username = $1', [username]);
+      if (result.rows.length > 0) {
+        res.json(result.rows[0]);
       } else {
         res.status(404).json({ error: 'KOL not found' });
       }
     } else {
       // Return 404 when MongoDB is not available (consistent with not found)
-      console.log(`📝 KOL ${username} not found (MongoDB not connected)`);
+      console.log(`📝 KOL ${username} not found (PostgreSQL not connected)`);
       res.status(404).json({ error: 'KOL not found' });
     }
   } catch (error) {
@@ -218,9 +218,12 @@ app.post('/api/kols', async (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    if (db) {
-      const result = await db.collection('kols').insertOne(kolData);
-      res.json({ ...kolData, _id: result.insertedId });
+    if (pool) {
+      const result = await pool.query(
+        'INSERT INTO kols (username, telegram_username, stats, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [kolData.username, kolData.telegramUsername, JSON.stringify(kolData.stats), kolData.createdAt, kolData.updatedAt]
+      );
+      res.json({ ...kolData, _id: result.rows[0].id });
     } else {
       res.json({ ...kolData, _id: 'mock' + Date.now() });
     }
@@ -239,10 +242,10 @@ app.put('/api/kols/:username', async (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    if (db) {
-      await db.collection('kols').updateOne(
-        { telegramUsername: username },
-        { $set: updateData }
+    if (pool) {
+      await pool.query(
+        'UPDATE kols SET username = $1, telegram_username = $2, stats = $3, updated_at = $4 WHERE telegram_username = $5',
+        [updateData.username, updateData.telegramUsername, JSON.stringify(updateData.stats), updateData.updatedAt, username]
       );
     }
     
@@ -258,8 +261,8 @@ app.delete('/api/kols/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    if (db) {
-      await db.collection('kols').deleteOne({ telegramUsername: username });
+    if (pool) {
+      await pool.query('DELETE FROM kols WHERE telegram_username = $1', [username]);
     }
     
     res.json({ message: 'KOL deleted successfully' });
@@ -286,13 +289,17 @@ app.get('/api/kols/:username/posts', async (req, res) => {
         const posts = await response.json();
         
         // Store posts in database if available
-        if (db && posts.length > 0) {
-          await db.collection('user_posts').insertMany(
-            posts.map(post => ({
-              ...post,
+        if (pool && posts.length > 0) {
+          await pool.query(
+            'INSERT INTO user_posts (username, text, views, forwards, date, fetched_at) VALUES ($1, $2, $3, $4, $5, $6)',
+            posts.map(post => [
               username,
-              fetchedAt: new Date().toISOString()
-            }))
+              post.text,
+              post.views,
+              post.forwards,
+              post.date,
+              new Date().toISOString()
+            ])
           );
         }
         
@@ -303,15 +310,14 @@ app.get('/api/kols/:username/posts', async (req, res) => {
     }
     
     // Fallback to database
-    if (db) {
-      const posts = await db.collection('user_posts')
-        .find({ username })
-        .sort({ date: -1 })
-        .limit(parseInt(limit))
-        .toArray();
+    if (pool) {
+      const posts = await pool.query(
+        'SELECT * FROM user_posts WHERE username = $1 ORDER BY date DESC LIMIT $2',
+        [username, parseInt(limit)]
+      );
       
-      if (posts.length > 0) {
-        return res.json(posts);
+      if (posts.rows.length > 0) {
+        return res.json(posts.rows);
       }
     }
     
@@ -447,13 +453,11 @@ app.post('/api/kols/:username/analyze', async (req, res) => {
     const analysis = generateAIAnalysis(posts, username);
     
     // Store analysis in database
-    if (db) {
-      await db.collection('kol_analyses').insertOne({
-        username,
-        analysis,
-        posts: posts.length,
-        analyzedAt: new Date().toISOString()
-      });
+    if (pool) {
+      await pool.query(
+        'INSERT INTO kol_analyses (username, analysis, posts, analyzed_at) VALUES ($1, $2, $3, $4)',
+        [username, JSON.stringify(analysis), posts.length, new Date().toISOString()]
+      );
     }
     
     res.json(analysis);
@@ -484,13 +488,14 @@ app.get('/api/groups/:groupName/kols', async (req, res) => {
         const kols = scanResult.kols || [];
         
         // Store in database
-        if (db && kols.length > 0) {
-          await db.collection('discovered_kols').insertMany(
-            kols.map(kol => ({
-              ...kol,
-              discoveredFrom: groupName,
-              discoveredAt: new Date().toISOString()
-            }))
+        if (pool && kols.length > 0) {
+          await pool.query(
+            'INSERT INTO discovered_kols (username, discovered_from, discovered_at) VALUES ($1, $2, $3)',
+            kols.map(kol => [
+              kol.username,
+              groupName,
+              new Date().toISOString()
+            ])
           );
         }
         
@@ -507,19 +512,18 @@ app.get('/api/groups/:groupName/kols', async (req, res) => {
     }
     
     // Check database for cached data
-    if (db) {
-      const cachedKols = await db.collection('discovered_kols')
-        .find({ discoveredFrom: groupName })
-        .sort({ discoveredAt: -1 })
-        .limit(parseInt(limit))
-        .toArray();
+    if (pool) {
+      const cachedKols = await pool.query(
+        'SELECT * FROM discovered_kols WHERE discovered_from = $1 ORDER BY discovered_at DESC LIMIT $2',
+        [groupName, parseInt(limit)]
+      );
       
-      if (cachedKols.length > 0) {
+      if (cachedKols.rows.length > 0) {
         return res.json({
           success: true,
           groupName,
-          kols: cachedKols,
-          totalFound: cachedKols.length,
+          kols: cachedKols.rows,
+          totalFound: cachedKols.rows.length,
           cached: true,
           message: 'Showing cached data - Telegram service unavailable'
         });
@@ -564,11 +568,24 @@ app.get('/api/bot-detection/analyze/:username', async (req, res) => {
         const botResult = processBotDetectionAnalysis(scanResult, username, 'user');
         
         // Store in database
-        if (db) {
-          await db.collection('bot_detections').insertOne({
-            ...botResult,
-            analyzedAt: new Date().toISOString()
-          });
+        if (pool) {
+          await pool.query(
+            'INSERT INTO bot_detections (username, display_name, is_bot, confidence, status, detection_date, profile_analysis, activity_analysis, content_analysis, network_analysis, ai_analysis, metrics) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+            [
+              botResult.username,
+              botResult.displayName,
+              botResult.isBot,
+              botResult.confidence,
+              botResult.status,
+              botResult.detectionDate,
+              JSON.stringify(botResult.profileAnalysis),
+              JSON.stringify(botResult.activityAnalysis),
+              JSON.stringify(botResult.contentAnalysis),
+              JSON.stringify(botResult.networkAnalysis),
+              JSON.stringify(botResult.aiAnalysis),
+              JSON.stringify(botResult.metrics)
+            ]
+          );
         }
         
         return res.json(botResult);
@@ -611,11 +628,24 @@ app.get('/api/bot-detection/analyze-channel/:channelId', async (req, res) => {
         const botResult = processBotDetectionAnalysis(scanResult, cleanChannelId, 'channel');
         
         // Store in database
-        if (db) {
-          await db.collection('bot_detections').insertOne({
-            ...botResult,
-            analyzedAt: new Date().toISOString()
-          });
+        if (pool) {
+          await pool.query(
+            'INSERT INTO bot_detections (username, display_name, is_bot, confidence, status, detection_date, profile_analysis, activity_analysis, content_analysis, network_analysis, ai_analysis, metrics) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+            [
+              botResult.username,
+              botResult.displayName,
+              botResult.isBot,
+              botResult.confidence,
+              botResult.status,
+              botResult.detectionDate,
+              JSON.stringify(botResult.profileAnalysis),
+              JSON.stringify(botResult.activityAnalysis),
+              JSON.stringify(botResult.contentAnalysis),
+              JSON.stringify(botResult.networkAnalysis),
+              JSON.stringify(botResult.aiAnalysis),
+              JSON.stringify(botResult.metrics)
+            ]
+          );
         }
         
         return res.json(botResult);
@@ -649,12 +679,11 @@ app.get('/api/scan/:channelName', async (req, res) => {
         const scanResult = await response.json();
         
         // Store in database
-        if (db) {
-          await db.collection('channel_scans').insertOne({
-            ...scanResult,
-            channelName,
-            scannedAt: new Date().toISOString()
-          });
+        if (pool) {
+          await pool.query(
+            'INSERT INTO channel_scans (channel_name, scanned_at) VALUES ($1, $2)',
+            [channelName, new Date().toISOString()]
+          );
         }
         
         return res.json(scanResult);
@@ -664,13 +693,15 @@ app.get('/api/scan/:channelName', async (req, res) => {
     }
     
     // Check database for cached data
-    if (db) {
-      const cachedScan = await db.collection('channel_scans')
-        .findOne({ channelName }, { sort: { scannedAt: -1 } });
+    if (pool) {
+      const cachedScan = await pool.query(
+        'SELECT * FROM channel_scans WHERE channel_name = $1 ORDER BY scanned_at DESC LIMIT 1',
+        [channelName]
+      );
       
-      if (cachedScan) {
+      if (cachedScan.rows.length > 0) {
         return res.json({
-          ...cachedScan,
+          ...cachedScan.rows[0],
           cached: true,
           message: 'Showing cached data - Telegram service unavailable'
         });
@@ -705,13 +736,17 @@ app.get('/api/track-posts/:username', async (req, res) => {
         const postData = await response.json();
         
         // Store in database
-        if (db && postData.posts) {
-          await db.collection('user_posts').insertMany(
-            postData.posts.map(post => ({
-              ...post,
+        if (pool && postData.posts) {
+          await pool.query(
+            'INSERT INTO user_posts (username, text, views, forwards, date, fetched_at) VALUES ($1, $2, $3, $4, $5, $6)',
+            postData.posts.map(post => [
               username,
-              fetchedAt: new Date().toISOString()
-            }))
+              post.text,
+              post.views,
+              post.forwards,
+              post.date,
+              new Date().toISOString()
+            ])
           );
         }
         
@@ -722,31 +757,23 @@ app.get('/api/track-posts/:username', async (req, res) => {
     }
     
     // Check database for cached data
-    if (db) {
-      const cachedPosts = await db.collection('user_posts')
-        .find({ username })
-        .sort({ date: -1 })
-        .limit(parseInt(limit))
-        .toArray();
+    if (pool) {
+      const cachedPosts = await pool.query(
+        'SELECT * FROM user_posts WHERE username = $1 ORDER BY date DESC LIMIT $2',
+        [username, parseInt(limit)]
+      );
       
-      if (cachedPosts.length > 0) {
-        const totalStats = await db.collection('user_posts').aggregate([
-          { $match: { username } },
-          { 
-            $group: { 
-              _id: null, 
-              total_posts: { $sum: 1 },
-              total_views: { $sum: '$views' },
-              total_forwards: { $sum: '$forwards' }
-            } 
-          }
-        ]).toArray();
+      if (cachedPosts.rows.length > 0) {
+        const totalStats = await pool.query(
+          'SELECT COUNT(*) AS total_posts, SUM(views) AS total_views, SUM(forwards) AS total_forwards FROM user_posts WHERE username = $1',
+          [username]
+        );
         
         return res.json({
-          posts: cachedPosts,
-          total_posts: totalStats[0]?.total_posts || cachedPosts.length,
-          total_views: totalStats[0]?.total_views || 0,
-          total_forwards: totalStats[0]?.total_forwards || 0,
+          posts: cachedPosts.rows,
+          total_posts: totalStats.rows[0]?.total_posts || cachedPosts.rows.length,
+          total_views: totalStats.rows[0]?.total_views || 0,
+          total_forwards: totalStats.rows[0]?.total_forwards || 0,
           cached: true,
           message: 'Showing cached data - Telegram service unavailable'
         });
@@ -1181,65 +1208,163 @@ app.get('/api/health', (req, res) => {
 
 // Remove mock data - using only real data from database and Telegram
 
-// Enhanced MongoDB connection with better error handling
+// Initialize PostgreSQL database schema
+async function initializeDatabase() {
+  if (!pool) return;
+  
+  try {
+    console.log('🔧 Initializing database schema...');
+    
+    // Create tables if they don't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        telegram_id BIGINT,
+        telegram_username VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS kols (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        telegram_username VARCHAR(255) UNIQUE,
+        display_name VARCHAR(255),
+        stats JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS user_posts (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        text TEXT,
+        views INTEGER DEFAULT 0,
+        forwards INTEGER DEFAULT 0,
+        date TIMESTAMP,
+        fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS bot_detections (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        display_name VARCHAR(255),
+        is_bot BOOLEAN DEFAULT FALSE,
+        confidence DECIMAL(3,2) DEFAULT 0.0,
+        status VARCHAR(50) DEFAULT 'unknown',
+        detection_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        profile_analysis JSONB DEFAULT '{}',
+        activity_analysis JSONB DEFAULT '{}',
+        content_analysis JSONB DEFAULT '{}',
+        network_analysis JSONB DEFAULT '{}',
+        ai_analysis JSONB DEFAULT '{}',
+        metrics JSONB DEFAULT '{}',
+        analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS kol_analyses (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        analysis JSONB DEFAULT '{}',
+        posts INTEGER DEFAULT 0,
+        analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS discovered_kols (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        discovered_from VARCHAR(255),
+        discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS channel_scans (
+        id SERIAL PRIMARY KEY,
+        channel_name VARCHAR(255) NOT NULL,
+        scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_kols_telegram_username ON kols(telegram_username);
+      CREATE INDEX IF NOT EXISTS idx_user_posts_username ON user_posts(username);
+      CREATE INDEX IF NOT EXISTS idx_bot_detections_username ON bot_detections(username);
+    `);
+    
+    console.log('✅ Database schema initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize database schema:', error);
+  }
+}
+
+// Enhanced PostgreSQL connection with better error handling
 async function connectDB() {
   // Skip connection if we've exceeded retry attempts
   if (connectionRetryCount >= MAX_RETRY_ATTEMPTS) {
-    console.log('🛑 Maximum MongoDB connection attempts reached. Running with in-memory storage only.');
-    db = null;
-    mongoDBConnected = false;
+    console.log('🛑 Maximum PostgreSQL connection attempts reached. Running with in-memory storage only.');
+    pool = null;
+    dbConnected = false;
     return null;
   }
 
   try {
     connectionRetryCount++;
-    console.log(`🔄 Attempting MongoDB connection (${connectionRetryCount}/${MAX_RETRY_ATTEMPTS})...`);
+    console.log(`🔄 Attempting PostgreSQL connection (${connectionRetryCount}/${MAX_RETRY_ATTEMPTS})...`);
 
     // Improved connection configuration without deprecated options
-    const client = await MongoClient.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 15000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-      minPoolSize: 2,
-      retryWrites: true,
-      w: 'majority'
+    const client = new Pool({
+      connectionString: DATABASE_URL,
+      max: 10,
+      min: 2,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 20000,
+      maxUses: 750,
+      prepareThreshold: 10,
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return new Promise(resolve => setTimeout(resolve, delay));
+      }
     });
     
-    console.log('✅ Successfully connected to MongoDB');
-    db = client.db();
-    mongoDBConnected = true;
+    console.log('✅ Successfully connected to PostgreSQL');
+    pool = client;
+    dbConnected = true;
     connectionRetryCount = 0; // Reset counter on successful connection
     
-    // Handle MongoDB disconnection
-    client.on('close', () => {
-      console.log('📡 MongoDB connection closed. Attempting to reconnect...');
-      mongoDBConnected = false;
-      setTimeout(connectDB, 10000);
+    // Initialize database schema
+    await initializeDatabase();
+    
+    // Handle PostgreSQL disconnection
+    client.on('error', (err, client) => {
+      console.error('🚨 PostgreSQL connection error:', err);
+      dbConnected = false;
+      setTimeout(connectDB, 15000);
     });
     
-    client.on('error', (error) => {
-      console.error('🚨 MongoDB connection error:', error);
-      mongoDBConnected = false;
-      setTimeout(connectDB, 15000);
+    client.on('connect', (client) => {
+      console.log('📡 PostgreSQL client connected');
+    });
+    
+    client.on('remove', (client) => {
+      console.log('📡 PostgreSQL client removed');
     });
     
     return client;
   } catch (error) {
-    console.error(`❌ Failed to connect to MongoDB (attempt ${connectionRetryCount}):`, error.message);
+    console.error(`❌ Failed to connect to PostgreSQL (attempt ${connectionRetryCount}):`, error.message);
     
     if (error.message.includes('ENOTFOUND') || error.message.includes('querySrv')) {
       console.log('🌐 DNS resolution issue detected. This might be a network connectivity problem.');
-      console.log('💡 Check your internet connection and MongoDB Atlas network access settings.');
+      console.log('💡 Check your internet connection and PostgreSQL Atlas network access settings.');
     }
     
     console.log('⚠️  Running with in-memory storage as fallback');
-    db = null;
-    mongoDBConnected = false;
+    pool = null;
+    dbConnected = false;
     
     // Implement exponential backoff for retries
     const backoffDelay = Math.min(60000, 5000 * Math.pow(2, connectionRetryCount - 1));
-    console.log(`🔄 Will retry MongoDB connection in ${backoffDelay / 1000} seconds...`);
+    console.log(`🔄 Will retry PostgreSQL connection in ${backoffDelay / 1000} seconds...`);
     
     setTimeout(connectDB, backoffDelay);
     return null;
@@ -1462,9 +1587,9 @@ function generateRecommendations(status, activityRatio, botRatio, memberCount, t
 // Start server
 async function startServer() {
   try {
-    // Start MongoDB connection in background (non-blocking)
+    // Start PostgreSQL connection in background (non-blocking)
     connectDB().catch(err => {
-      console.log('🔧 MongoDB connection will retry in background');
+      console.log('🔧 PostgreSQL connection will retry in background');
     });
     
     server.listen(PORT, () => {
@@ -1473,7 +1598,7 @@ async function startServer() {
       console.log(`🔗 Frontend: https://kol-tracker-pro.vercel.app`);
       console.log('🎮 Socket.IO enabled for real-time gaming');
       console.log(`🤖 Bot Detection: Available at /api/bot-detection/*`);
-      console.log('💾 Using in-memory storage until MongoDB connects');
+      console.log('💾 Using in-memory storage until PostgreSQL connects');
       
       if (process.env.KEEP_ALIVE === 'true') {
         console.log('🔄 Keep-alive pings will start in 10 minutes');

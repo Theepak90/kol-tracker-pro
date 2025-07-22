@@ -48,7 +48,7 @@ Features:
   ✅ Auto-restart on failures
   ✅ Health checks every 5 minutes
   ✅ Keep-alive pings (prevents sleeping)
-  ✅ MongoDB with in-memory fallback
+  ✅ PostgreSQL with in-memory fallback
   ✅ Socket.IO real-time support
   ✅ CORS configured for kolopz.com
 ```
@@ -191,11 +191,11 @@ dig kolopz.com
 # Test with different DNS servers: 8.8.8.8, 1.1.1.1
 ```
 
-#### **MongoDB Connection Issues**
+#### **Database Connection Issues**
 ```yaml
-Symptom: "ENOTFOUND _mongodb._tcp.cluster0.rvhxt.mongodb.net"
-Solution: Services run with in-memory fallback
-Action: Check MongoDB Atlas network access and connection string
+Symptom: "Connection to PostgreSQL failed"
+Solution: Services run with in-memory fallback automatically
+Action: Check Render database status and environment variables
 ```
 
 #### **Telegram Authentication Failures**
@@ -244,7 +244,7 @@ wscat -c wss://api.kolopz.com
 ### **Cost Management**
 - **Starter Plans**: $7/month per service (3 services = $21/month)
 - **Free Tier Alternative**: Available with reduced reliability
-- **MongoDB Atlas**: Free tier (512MB storage)
+- **PostgreSQL**: Render-managed free tier (1GB storage)
 - **Domain Cost**: Varies by provider
 
 ---
@@ -256,7 +256,7 @@ graph TB
     A[kolopz.com] --> B[Frontend<br/>React SPA]
     B --> C[api.kolopz.com<br/>Backend API]
     B --> D[telethon.kolopz.com<br/>Telegram Service]
-    C --> E[MongoDB Atlas<br/>Database]
+    C --> E[PostgreSQL<br/>Database]
     D --> F[Telegram API<br/>MTProto]
     D --> G[1GB Disk<br/>Session Storage]
     
@@ -289,7 +289,7 @@ graph TB
 - **API Docs**: [https://api.kolopz.com/api](https://api.kolopz.com/api)
 - **Render Dashboard**: [https://dashboard.render.com](https://dashboard.render.com)
 - **GitHub Repository**: [https://github.com/Theepak90/kol-tracker-pro](https://github.com/Theepak90/kol-tracker-pro)
-- **MongoDB Atlas**: [https://cloud.mongodb.com](https://cloud.mongodb.com)
+- **PostgreSQL**: [https://www.postgresql.org](https://www.postgresql.org)
 
 ---
 
@@ -299,7 +299,7 @@ If you encounter any issues:
 1. Check service logs in Render Dashboard
 2. Verify DNS propagation with online tools
 3. Test health endpoints manually
-4. Review MongoDB Atlas network access
+4. Check Render database connection status
 5. Check Telegram API credentials
 
 **Your KOL Tracker Pro is now live on kolopz.com with enterprise-grade reliability!** 🎯 

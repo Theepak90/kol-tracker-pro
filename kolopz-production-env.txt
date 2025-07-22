@@ -13,9 +13,8 @@
 NODE_ENV=production
 PORT=10000
 
-# MongoDB Atlas Configuration
-MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
-MONGODB_DB=kol-tracker-pro
+# PostgreSQL Database Configuration (Render managed)
+DATABASE_URL=postgresql://user:password@hostname:port/database
 
 # Security Configuration
 JWT_SECRET=5c3b577c95b24f768d746a31229d79e0a5be87183c92e4bf504c4d88e2ae5957a90aa61e6900fd7425f739e3c5f44f5b84fa3554cadbccefb95e2223736669f8
@@ -44,8 +43,7 @@ DEBUG=false
 API_ID=28152923
 API_HASH=766760d2838474a5e6dd734d785aa7ad
 SESSION_NAME=telegram_session
-MONGODB_URI=mongodb+srv://theepakkumar187:XP3YPWryQfSGDeKM@cluster0.rvhxt.mongodb.net/kol-tracker-pro?retryWrites=true&w=majority&serverSelectionTimeoutMS=10000&connectTimeoutMS=15000&socketTimeoutMS=45000
-MONGODB_DB=kol-tracker-pro
+DATABASE_URL=postgresql://user:password@hostname:port/database
 PORT=10000
 PYTHON_VERSION=3.11.0
 ENVIRONMENT=production
