@@ -23,33 +23,26 @@ const fileExists = (filePath) => {
 
 // Try different possible startup configurations
 const startupConfigs = [
-  // Config 1: Standard compiled dist/main.js
+  // Config 1: PRIORITY - Simple server approach (current)
   {
     cwd: path.join(process.cwd(), 'backend'),
     command: 'node',
-    args: ['dist/main.js'],
-    description: 'Compiled main.js'
+    args: ['simple-server.js'],
+    description: 'Simple Express server (PostgreSQL)'
   },
-  // Config 2: TypeScript source with ts-node
-  {
-    cwd: path.join(process.cwd(), 'backend'),
-    command: 'npx',
-    args: ['ts-node', 'src/main.ts'],
-    description: 'TypeScript source with ts-node'
-  },
-  // Config 3: Direct node with dist/main.js
-  {
-    cwd: process.cwd(),
-    command: 'node',
-    args: ['backend/dist/main.js'],
-    description: 'Direct backend/dist/main.js'
-  },
-  // Config 4: Use production start script
+  // Config 2: Fallback - NPM simple start script
   {
     cwd: path.join(process.cwd(), 'backend'),
     command: 'npm',
-    args: ['run', 'start:prod'],
-    description: 'NPM start:prod script'
+    args: ['run', 'start:simple'],
+    description: 'NPM start:simple script'
+  },
+  // Config 3: Alternative simple server path
+  {
+    cwd: process.cwd(),
+    command: 'node',
+    args: ['backend/simple-server.js'],
+    description: 'Direct backend/simple-server.js'
   }
 ];
 
@@ -68,21 +61,22 @@ for (const config of startupConfigs) {
       console.log(`✅ Found: ${config.description}`);
       break;
     }
-  } else if (config.command === 'npx') {
-    // For npx ts-node, check if TypeScript source exists
-    const tsPath = path.join(config.cwd, 'src/main.ts');
-    if (fileExists(tsPath)) {
-      foundConfig = config;
-      console.log(`✅ Found: ${config.description}`);
-      break;
-    }
   } else if (config.command === 'npm') {
-    // For npm scripts, check if package.json exists
+    // For npm scripts, check if package.json exists and script is available
     const packagePath = path.join(config.cwd, 'package.json');
     if (fileExists(packagePath)) {
-      foundConfig = config;
-      console.log(`✅ Found: ${config.description}`);
-      break;
+      try {
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+        const scriptName = config.args[config.args.length - 1]; // Get last arg as script name
+        if (packageJson.scripts && packageJson.scripts[scriptName]) {
+          foundConfig = config;
+          console.log(`✅ Found: ${config.description}`);
+          break;
+        }
+      } catch (error) {
+        // If we can't parse package.json, skip this config
+        console.log(`⚠️  Could not verify script in package.json: ${error.message}`);
+      }
     }
   }
 }
